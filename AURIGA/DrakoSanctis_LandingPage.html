@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DrakoSanctis | Auriga Ecosystem - See Beyond Sight</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0A0A0F">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --space-black: #0A0A0F;
+            --cobalt-blue: #0057FF;
+            --auriga-cyan: #00F0FF;
+            --warning-amber: #FFB300;
+            --alert-red: #FF3B30;
+            --hud-text: #FFFFFF;
+            --dim: #3A4A5A;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --panel-bg: rgba(0, 10, 30, 0.85);
+            --mono: 'Share Tech Mono', monospace;
+            --focus-ring: 3px solid #FFB300;
+            --focus-offset: 3px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* High-contrast focus ring — WCAG AAA */
+        *:focus-visible {
+            outline: var(--focus-ring);
+            outline-offset: var(--focus-offset);
+            border-radius: 2px;
+        }
+
+        /* Skip navigation link for keyboard & screen reader users */
+        .skip-link {
+            position: absolute;
+            top: -100px;
+            left: 20px;
+            background: var(--warning-amber);
+            color: #000;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            padding: 12px 24px;
+            z-index: 9999;
+            text-decoration: none;
+            letter-spacing: 2px;
+            transition: top 0.2s;
+        }
+        .skip-link:focus { top: 20px; }
+
+        body {
+            background-color: var(--space-black);
+            color: var(--hud-text);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, .hud-font {
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-style: italic;
+            font-weight: 900;
+        }
+
+        /* ── ACCESSIBILITY TOOLBAR ── */
+        .a11y-toolbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            background: #000;
+            border-bottom: 2px solid var(--warning-amber);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 20px;
+            flex-wrap: wrap;
+        }
+        .a11y-label {
+            font-family: 'Orbitron'; font-size: 0.6rem;
+            letter-spacing: 3px; color: var(--warning-amber);
+            text-transform: uppercase; margin-right: 4px;
+        }
+        .a11y-btn {
+            background: transparent;
+            border: 1px solid #444;
+            color: #fff;
+            font-family: 'Inter'; font-size: 0.78rem;
+            padding: 5px 14px; cursor: pointer;
+            transition: all 0.2s;
+            min-height: 36px; min-width: 48px;
+        }
+        .a11y-btn:hover, .a11y-btn.active {
+            border-color: var(--warning-amber);
+            color: var(--warning-amber);
+            background: rgba(255,179,0,0.08);
+        }
+        .a11y-sep { width: 1px; height: 24px; background: #333; }
+
+        /* ── HIGH CONTRAST MODE ── */
+        body.high-contrast {
+            --auriga-cyan: #FFFFFF;
+            --cobalt-blue: #FFFF00;
+            --warning-amber: #FFFF00;
+            --hud-text: #FFFFFF;
+            --dim: #CCCCCC;
+            --card-bg: rgba(255,255,255,0.1);
+            background: #000000;
+        }
+        body.high-contrast .hud-container { filter: grayscale(100%) contrast(200%); }
+
+        /* ── LARGE TEXT MODE ── */
+        body.large-text { font-size: 22px; }
+        body.large-text .value { font-size: 3rem !important; }
+        body.large-text .doc-block p { font-size: 1rem; }
+        body.large-text .acq-step-desc { font-size: 1rem; }
+        body.large-text .acq-substeps li { font-size: 1rem; }
+
+        /* ── REDUCE MOTION ── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+        }
+        body.reduce-motion *, body.reduce-motion *::before, body.reduce-motion *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+        }
+
+        /* ── STARFIELD ── */
+        #starfield {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at center, #0a0a1a 0%, #05050a 100%);
+        }
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.5;
+            animation: twinkle var(--duration) infinite ease-in-out;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        /* ── NAV ── */
+        nav {
+            position: fixed;
+            top: 48px; width: 100%;
+            padding: 20px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 10, 15, 0.88);
+            backdrop-filter: blur(12px);
+            z-index: 1000;
+            border-bottom: 1px solid rgba(0, 87, 255, 0.2);
+        }
+        .nav-logo {
+            display: flex; align-items: center; gap: 15px;
+            font-family: 'Orbitron'; font-weight: bold;
+            color: var(--auriga-cyan); cursor: pointer;
+        }
+        .nav-logo img { height: 40px; filter: drop-shadow(0 0 10px var(--alert-red)); }
+        .nav-links { display: flex; gap: 30px; }
+        .nav-links a {
+            color: var(--hud-text); text-decoration: none;
+            font-family: 'Orbitron'; font-size: 0.8rem;
+            cursor: pointer; transition: color 0.3s;
+        }
+        .nav-links a:hover { color: var(--auriga-cyan); }
+
+        /* ── SECTIONS ── */
+        section {
+            min-height: 100vh;
+            padding: 130px 5% 80px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        section.active { display: flex; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── HERO ── */
+        .hero { text-align: center; justify-content: center; }
+        .logo-container { position: relative; margin-bottom: 30px; }
+        .logo-glow {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px; height: 200px;
+            background: var(--cobalt-blue);
+            filter: blur(80px); opacity: 0.3; border-radius: 50%;
+        }
+        .hero h1 {
+            font-size: 5rem; margin-bottom: 10px;
+            color: var(--auriga-cyan);
+            text-shadow: 0 0 30px rgba(0, 240, 255, 0.5);
+        }
+        .hero p { font-size: 1.5rem; color: var(--cobalt-blue); font-weight: 300; }
+        .hero-logo {
+            width: 180px; margin-bottom: 20px;
+            filter: drop-shadow(0 0 20px var(--alert-red));
+            animation: pulse 4s infinite alternate ease-in-out;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); filter: drop-shadow(0 0 10px var(--alert-red)); }
+            100% { transform: scale(1.05); filter: drop-shadow(0 0 30px var(--alert-red)); }
+        }
+        .cta-btn {
+            margin-top: 30px;
+            padding: 18px 45px;
+            background: transparent;
+            border: 2px solid var(--auriga-cyan);
+            color: var(--auriga-cyan);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 2px;
+        }
+        .cta-btn:hover {
+            background: var(--auriga-cyan);
+            color: var(--space-black);
+            box-shadow: 0 0 40px var(--auriga-cyan);
+        }
+
+        /* ── GRID ── */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px; width: 100%; max-width: 1200px;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid rgba(0, 87, 255, 0.2);
+            padding: 30px; transition: all 0.3s ease;
+            text-align: left; display: flex; flex-direction: column;
+        }
+        .card:hover {
+            border-color: var(--auriga-cyan);
+            background: rgba(0, 87, 255, 0.08);
+            transform: translateY(-6px);
+            box-shadow: 0 10px 30px rgba(0, 87, 255, 0.2);
+        }
+        .card h3 { color: var(--auriga-cyan); margin-bottom: 10px; font-size: 1.1rem; }
+        .card p { font-size: 0.85rem; color: #ccc; margin-bottom: 20px; flex-grow: 1; }
+        .card-actions { display: flex; gap: 10px; }
+        .card-btn {
+            flex: 1; padding: 10px;
+            font-family: 'Orbitron'; font-size: 0.6rem;
+            background: transparent;
+            border: 1px solid var(--cobalt-blue);
+            color: var(--cobalt-blue);
+            cursor: pointer; transition: all 0.3s;
+        }
+        .card-btn:hover { background: var(--cobalt-blue); color: white; }
+        .card-btn.primary { border-color: var(--auriga-cyan); color: var(--auriga-cyan); }
+        .card-btn.primary:hover { background: var(--auriga-cyan); color: var(--space-black); }
+
+        /* ── HUD WRAPPER (image + docs) ── */
+        .hud-wrapper {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            margin-top: 40px;
+            border: 1px solid rgba(0, 87, 255, 0.4);
+            box-shadow: 0 0 60px rgba(0, 87, 255, 0.15);
+        }
+
+        /* top label bar */
+        .hud-header-bar {
+            background: rgba(0, 87, 255, 0.08);
+            border-bottom: 1px solid rgba(0, 87, 255, 0.3);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .hud-header-bar .hud-label {
+            font-family: 'Orbitron'; font-size: 0.65rem;
+            letter-spacing: 4px; color: var(--cobalt-blue);
+            text-transform: uppercase;
+        }
+        .hud-header-bar .hud-status {
+            font-family: var(--mono); font-size: 0.7rem;
+            color: var(--auriga-cyan);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .status-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--auriga-cyan);
+            box-shadow: 0 0 8px var(--auriga-cyan);
+            animation: blink 1.4s ease-in-out infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+        /* the actual HUD screen */
+        .hud-container {
+            width: 100%;
+            height: 500px;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+        .hud-scanlines {
+            position: absolute; inset: 0;
+            background:
+                linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.22) 50%),
+                linear-gradient(90deg, rgba(255,0,0,0.04), rgba(0,255,0,0.015), rgba(0,0,118,0.04));
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none; z-index: 10;
+        }
+        .hud-overlay {
+            position: absolute; inset: 0;
+            border: 2px solid rgba(0,240,255,0.15);
+            pointer-events: none;
+        }
+        .hud-radar {
+            position: absolute; bottom: -80px; left: 50%;
+            transform: translateX(-50%);
+            width: 400px; height: 400px;
+            border: 1px solid rgba(0,240,255,0.35);
+            border-radius: 50%;
+        }
+        .radar-sweep {
+            position: absolute; width: 100%; height: 100%;
+            background: conic-gradient(from 0deg, rgba(0,240,255,0.25), transparent 90deg);
+            border-radius: 50%;
+            animation: sweep 4s linear infinite;
+        }
+        @keyframes sweep { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        .readout { position: absolute; font-family: 'Orbitron'; }
+        .label { color: var(--cobalt-blue); font-size: 0.7rem; display: block; margin-bottom: 5px; letter-spacing: 2px; }
+        .value { color: var(--auriga-cyan); font-size: 2.5rem; font-weight: bold; text-shadow: 0 0 10px var(--auriga-cyan); }
+        .context-bg {
+            position: absolute; inset: 0; opacity: 0.38;
+            background-size: cover; background-position: center;
+            filter: grayscale(80%) contrast(120%);
+        }
+        .hud-readout { position: absolute; font-family: 'Orbitron'; }
+
+        /* ── DOCUMENTATION PANEL (below HUD) ── */
+        .doc-panel {
+            background: var(--panel-bg);
+            border-top: 1px solid rgba(0, 87, 255, 0.3);
+            padding: 36px 40px 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px 48px;
+        }
+
+        .doc-block { display: flex; flex-direction: column; gap: 10px; }
+
+        .doc-block-title {
+            font-family: 'Orbitron'; font-size: 0.65rem;
+            letter-spacing: 4px; color: var(--cobalt-blue);
+            text-transform: uppercase;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(0, 87, 255, 0.2);
+            margin-bottom: 4px;
+        }
+
+        .doc-block p {
+            font-size: 0.82rem; color: #b0bec5; line-height: 1.7;
+        }
+
+        .doc-block ul {
+            list-style: none; padding: 0;
+            display: flex; flex-direction: column; gap: 6px;
+        }
+
+        .doc-block ul li {
+            font-size: 0.8rem; color: #90a4ae;
+            display: flex; align-items: flex-start; gap: 10px;
+            line-height: 1.5;
+        }
+
+        .doc-block ul li::before {
+            content: '▸';
+            color: var(--auriga-cyan);
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .doc-metric-row {
+            display: flex; gap: 20px; flex-wrap: wrap;
+        }
+
+        .doc-metric {
+            background: rgba(0, 87, 255, 0.06);
+            border: 1px solid rgba(0, 87, 255, 0.2);
+            padding: 10px 16px;
+            display: flex; flex-direction: column; gap: 2px;
+            min-width: 110px;
+        }
+
+        .doc-metric-label {
+            font-family: 'Orbitron'; font-size: 0.55rem;
+            letter-spacing: 2px; color: var(--dim);
+            text-transform: uppercase;
+        }
+
+        .doc-metric-value {
+            font-family: var(--mono); font-size: 1.1rem;
+            color: var(--auriga-cyan);
+            text-shadow: 0 0 8px rgba(0,240,255,0.4);
+        }
+
+        /* full-width doc block */
+        .doc-block.full { grid-column: 1 / -1; }
+
+        /* ── ACQUISITION SECTION ── */
+        .acquisition-wrapper {
+            width: 100%; max-width: 1000px;
+            margin-top: 48px;
+            border: 1px solid rgba(0, 87, 255, 0.3);
+        }
+
+        .acq-header {
+            background: rgba(0, 87, 255, 0.06);
+            border-bottom: 1px solid rgba(0, 87, 255, 0.3);
+            padding: 16px 30px;
+            display: flex; align-items: center; gap: 16px;
+        }
+
+        .acq-header-title {
+            font-family: 'Orbitron'; font-size: 0.7rem;
+            letter-spacing: 5px; color: var(--auriga-cyan);
+            text-transform: uppercase;
+        }
+
+        .acq-badge {
+            font-family: var(--mono); font-size: 0.65rem;
+            color: var(--warning-amber);
+            border: 1px solid var(--warning-amber);
+            padding: 3px 10px; letter-spacing: 1px;
+        }
+
+        .acq-steps {
+            padding: 36px 40px;
+            display: flex; flex-direction: column; gap: 0;
+        }
+
+        .acq-step {
+            display: flex; gap: 24px;
+            padding: 28px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            position: relative;
+        }
+        .acq-step:last-child { border-bottom: none; }
+
+        .acq-step-number {
+            flex-shrink: 0;
+            width: 44px; height: 44px;
+            border: 1.5px solid var(--auriga-cyan);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Orbitron'; font-size: 0.9rem;
+            color: var(--auriga-cyan);
+            text-shadow: 0 0 10px var(--auriga-cyan);
+            box-shadow: 0 0 12px rgba(0,240,255,0.15);
+            margin-top: 2px;
+        }
+
+        .acq-step-body { flex: 1; }
+
+        .acq-step-title {
+            font-family: 'Orbitron'; font-size: 0.75rem;
+            letter-spacing: 3px; color: var(--hud-text);
+            text-transform: uppercase; margin-bottom: 10px;
+        }
+
+        .acq-step-desc {
+            font-size: 0.85rem; color: #90a4ae;
+            line-height: 1.8; margin-bottom: 14px;
+        }
+
+        .acq-step-note {
+            font-family: var(--mono); font-size: 0.72rem;
+            color: var(--warning-amber);
+            background: rgba(255, 179, 0, 0.05);
+            border-left: 2px solid var(--warning-amber);
+            padding: 8px 14px;
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+
+        .acq-step-note.cyan {
+            color: var(--auriga-cyan);
+            background: rgba(0, 240, 255, 0.04);
+            border-left-color: var(--auriga-cyan);
+        }
+
+        .acq-code {
+            font-family: var(--mono); font-size: 0.72rem;
+            color: #80cbc4;
+            background: rgba(0, 240, 255, 0.04);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            padding: 14px 18px;
+            margin-top: 10px;
+            line-height: 2;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .acq-substeps {
+            list-style: none; padding: 0;
+            display: flex; flex-direction: column; gap: 8px;
+            margin-top: 10px;
+        }
+        .acq-substeps li {
+            font-size: 0.82rem; color: #b0bec5;
+            display: flex; align-items: flex-start; gap: 10px;
+            line-height: 1.6;
+        }
+        .acq-substeps li .sub-num {
+            flex-shrink: 0;
+            font-family: 'Orbitron'; font-size: 0.6rem;
+            color: var(--cobalt-blue);
+            background: rgba(0, 87, 255, 0.1);
+            border: 1px solid rgba(0, 87, 255, 0.3);
+            padding: 2px 7px;
+            margin-top: 1px;
+        }
+
+        .acq-tier-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px; margin-top: 12px;
+        }
+
+        .acq-tier-card {
+            border: 1px solid rgba(0, 87, 255, 0.25);
+            background: rgba(0, 87, 255, 0.04);
+            padding: 16px;
+        }
+
+        .acq-tier-name {
+            font-family: 'Orbitron'; font-size: 0.65rem;
+            letter-spacing: 3px; color: var(--auriga-cyan);
+            margin-bottom: 6px; text-transform: uppercase;
+        }
+        .acq-tier-price {
+            font-family: var(--mono); font-size: 1.1rem;
+            color: var(--hud-text); margin-bottom: 8px;
+        }
+        .acq-tier-desc {
+            font-size: 0.75rem; color: var(--dim); line-height: 1.5;
+        }
+
+        /* ── MODAL ── */
+        #install-modal {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 2000; display: none;
+            align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .modal-content {
+            background: var(--space-black);
+            border: 2px solid var(--auriga-cyan);
+            width: 100%; max-width: 600px;
+            padding: 50px; position: relative;
+            text-align: center;
+            box-shadow: 0 0 100px rgba(0,240,255,0.15);
+        }
+        .modal-content h2 { margin-bottom: 20px; color: var(--auriga-cyan); }
+        .modal-content p { margin-bottom: 30px; color: #ccc; }
+        .form-group { text-align: left; margin-bottom: 20px; }
+        .form-group label {
+            display: block; font-family: 'Orbitron'; font-size: 0.7rem;
+            color: var(--cobalt-blue); margin-bottom: 10px;
+        }
+        .form-group input, .form-group select {
+            width: 100%; background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(0,240,255,0.3);
+            padding: 15px; color: white;
+            font-family: 'Orbitron'; outline: none;
+        }
+        .form-group select option { background: var(--space-black); color: white; }
+        .platform-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+        .choice-btn {
+            background: rgba(0,87,255,0.1);
+            border: 1px solid rgba(0,87,255,0.4);
+            padding: 20px; color: white;
+            font-family: 'Orbitron'; cursor: pointer; transition: all 0.3s;
+        }
+        .choice-btn:hover {
+            border-color: var(--auriga-cyan);
+            background: rgba(0,240,255,0.1);
+        }
+        .choice-btn h4 { color: var(--auriga-cyan); margin-bottom: 5px; }
+        .choice-btn p { font-size: 0.7rem; color: #888; margin: 0; }
+        .close-modal { position: absolute; top: 20px; right: 20px; color: #555; cursor: pointer; font-size: 1.5rem; }
+        .close-modal:hover { color: white; }
+
+        /* ── FOOTER ── */
+        footer {
+            padding: 50px; text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            background: rgba(10,10,15,0.9);
+        }
+        footer p { color: #555; font-size: 0.78rem; margin-bottom: 5px; }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 3rem; }
+            .nav-links { display: none; }
+            .hud-container { height: 340px; }
+            .value { font-size: 1.5rem; }
+            .doc-panel { grid-template-columns: 1fr; padding: 24px 20px; }
+            .doc-block.full { grid-column: 1; }
+            .acq-steps { padding: 24px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<a href="#home" class="skip-link">Skip to Main Content</a>
+
+<div class="a11y-toolbar" role="region" aria-label="Accessibility Options">
+    <span class="a11y-label">ACCESSIBILITY:</span>
+    <button class="a11y-btn" id="btn-hc" onclick="toggleHighContrast()" aria-pressed="false">High Contrast</button>
+    <button class="a11y-btn" id="btn-lt" onclick="toggleLargeText()" aria-pressed="false">Large Text</button>
+    <button class="a11y-btn" id="btn-rm" onclick="toggleReduceMotion()" aria-pressed="false">Reduce Motion</button>
+    <div class="a11y-sep"></div>
+    <span class="a11y-label">DRAKOVOICE™:</span>
+    <button class="a11y-btn" id="btn-tts" onclick="toggleTTS()" aria-pressed="false">Screen Reader [OFF]</button>
+</div>
+
+<div id="starfield"></div>
+
+<nav>
+    <div class="nav-logo" onclick="showSection('home')">
+        <img src="logo.png" alt="DRAKOSANCTIS" onerror="this.style.display='none'">
+        DRAKOSANCTIS // AURIGA
+    </div>
+    <div class="nav-links">
+        <a onclick="showSection('home')">HOME</a>
+        <a onclick="showSection('ecosystem')">ECOSYSTEM</a>
+        <a onclick="showSection('navi')">NAVI</a>
+        <a onclick="showSection('sentinel')">SENTINEL</a>
+        <a onclick="showSection('aero')">AERO</a>
+        <a onclick="showSection('industrial')">INDUSTRIAL</a>
+    </div>
+</nav>
+
+<!-- ══════════════════════════════════════
+     1. HOME
+══════════════════════════════════════ -->
+<section id="home" class="active hero">
+    <div class="logo-container">
+        <div class="logo-glow"></div>
+        <img src="logo.png" alt="DrakoSanctis" class="hero-logo" onerror="this.style.display='none'">
+        <h1>AURIGA</h1>
+        <p>BY DRAKOSANCTIS</p>
+    </div>
+    <p class="hud-font" style="color:var(--hud-text);margin-top:10px;">UNIVERSAL SPATIAL INTELLIGENCE</p>
+    <button class="cta-btn" onclick="showSection('ecosystem')">ENTER THE ECOSYSTEM</button>
+</section>
+
+<!-- ══════════════════════════════════════
+     2. ECOSYSTEM
+══════════════════════════════════════ -->
+<section id="ecosystem">
+    <h2 style="margin-bottom:50px;">AURIGA CONSTELLATION</h2>
+    <div class="grid">
+        <div class="card">
+            <h3>AURIGA NAVI</h3>
+            <p>The Charioteer. Assistive mobility for the visually impaired. Sub-20cm accuracy on any device using proprietary TruePath™ fiducial triangulation.</p>
+            <div class="card-actions">
+                <button class="card-btn" onclick="showSection('navi')">HUD PREVIEW</button>
+                <button class="card-btn primary" onclick="openInstallFlow('NAVI')">INSTALL</button>
+            </div>
+        </div>
+        <div class="card">
+            <h3>AURIGA SENTINEL</h3>
+            <p>The Watchman. Intelligent fall detection and presence awareness. Privacy-first safety monitoring powered by vectorized spatial geometry.</p>
+            <div class="card-actions">
+                <button class="card-btn" onclick="showSection('sentinel')">HUD PREVIEW</button>
+                <button class="card-btn primary" onclick="openInstallFlow('SENTINEL')">ACQUIRE SDK</button>
+            </div>
+        </div>
+        <div class="card">
+            <h3>AURIGA AERO</h3>
+            <p>The Winged One. High-precision spatial SDK for drones and robotics. LiDAR-grade environmental awareness without specialist hardware.</p>
+            <div class="card-actions">
+                <button class="card-btn" onclick="showSection('aero')">HUD PREVIEW</button>
+                <button class="card-btn primary" onclick="openInstallFlow('AERO')">ACQUIRE SDK</button>
+            </div>
+        </div>
+        <div class="card">
+            <h3>AURIGA INDUSTRIAL</h3>
+            <p>The Builder. Warehouse forklift safety and hanging hazard avoidance. Industrial-grade TruePath™ on entry-level Android tablets.</p>
+            <div class="card-actions">
+                <button class="card-btn" onclick="showSection('industrial')">HUD PREVIEW</button>
+                <button class="card-btn primary" onclick="openInstallFlow('INDUSTRIAL')">ACQUIRE SDK</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     3. NAVI
+══════════════════════════════════════ -->
+<section id="navi">
+    <h2 style="color:var(--auriga-cyan);margin-bottom:6px;">AURIGA NAVI</h2>
+    <p style="margin-bottom:36px;color:var(--cobalt-blue);font-family:'Orbitron';font-size:0.7rem;letter-spacing:4px;">SPATIAL MOBILITY INTERFACE</p>
+
+    <!-- HUD WRAPPER -->
+    <div class="hud-wrapper">
+
+        <!-- TOP BAR -->
+        <div class="hud-header-bar">
+            <span class="hud-label">⬡ TruePath™ Live Feed — AurigaNavi v1.0</span>
+            <span class="hud-status"><span class="status-dot"></span> ENGINE ACTIVE</span>
+        </div>
+
+        <!-- HUD SCREEN -->
+        <div class="hud-container">
+            <div class="context-bg" style="background-image:url('https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&q=80&w=1000');"></div>
+            <div class="hud-scanlines"></div>
+            <div class="hud-overlay"></div>
+            <div class="hud-readout" style="top:40px;left:40px;">
+                <span class="label">DISTANCE</span>
+                <span class="value" id="navi-dist">0.8m</span>
+            </div>
+            <div class="hud-readout" style="top:40px;right:40px;text-align:right;">
+                <span class="label">BEARING</span>
+                <span class="value" id="navi-bearing">12° L</span>
+            </div>
+            <div class="hud-radar"><div class="radar-sweep"></div></div>
+            <div class="hud-readout" style="bottom:40px;left:50%;transform:translateX(-50%);text-align:center;">
+                <span class="label">SIGNATURE</span>
+                <span class="value" style="font-size:1.5rem;color:var(--alert-red);">⚠ POLE</span>
+            </div>
+        </div>
+
+        <!-- DOCUMENTATION PANEL -->
+        <div class="doc-panel">
+            <div class="doc-block">
+                <div class="doc-block-title">How It Works</div>
+                <p>AurigaNavi uses a physical 20×20cm colored reference square placed on the ground during a one-time 10-point calibration. The TruePath™ engine stores the apparent pixel width of that square at each known distance, building a monotone cubic interpolation curve. At runtime, a virtual fiducial is scaled to match the ground plane at the base of any detected obstacle — matching that scale gives the real-world distance without any depth sensor or LiDAR.</p>
+            </div>
+            <div class="doc-block">
+                <div class="doc-block-title">Core Capabilities</div>
+                <ul>
+                    <li>Sub-20cm distance accuracy from 0.5m to 5m</li>
+                    <li>3-column spatial scan (Left 25%, Center, Right 75%)</li>
+                    <li>SkyShield™ suspended obstacle detection with clearance height</li>
+                    <li>Stereo audio bearing — beeps pan left/right with the obstacle</li>
+                    <li>Proximity-scaled haptic feedback (intensity by distance)</li>
+                    <li>DrakoVoice™ TTS: "Wall, 1.2 metres, 10 degrees left"</li>
+                    <li>Auto-flash in low light with 12-frame debounce</li>
+                    <li>GhostAnchor™ stabilisation for tremor compensation</li>
+                </ul>
+            </div>
+            <div class="doc-block">
+                <div class="doc-block-title">Performance Metrics</div>
+                <div class="doc-metric-row">
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">Accuracy</span>
+                        <span class="doc-metric-value">&lt;20cm</span>
+                    </div>
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">Latency</span>
+                        <span class="doc-metric-value">&lt;30ms</span>
+                    </div>
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">Frame Rate</span>
+                        <span class="doc-metric-value">30+ FPS</span>
+                    </div>
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">Min RAM</span>
+                        <span class="doc-metric-value">1 GB</span>
+                    </div>
+                </div>
+            </div>
+            <div class="doc-block">
+                <div class="doc-block-title">Supported Hardware</div>
+                <ul>
+                    <li>Any Android 5.0+ device with a rear camera</li>
+                    <li>Optimised for Helio G85, Snapdragon 4-series and above</li>
+                    <li>Lite build for Android Go devices (Itel A-series, Tecno Pop)</li>
+                    <li>Java ME build for feature phones (Itel IT2590, Nokia 105 series)</li>
+                    <li>Camera2 API — reads real FOV from device metadata automatically</li>
+                </ul>
+            </div>
+            <div class="doc-block full">
+                <div class="doc-block-title">IP & Trademark Notice</div>
+                <p>TruePath™, SkyShield™, AuraTextures™, and GhostAnchor™ are proprietary features of DrakoSanctis. The fiducial ground-scale triangulation method is patent-pending. Redistribution or reverse engineering of the AurigaCore engine is prohibited under the DrakoSanctis Commercial License Agreement. For SDK integration enquiries, see the Acquisition section below.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACQUISITION -->
+    <div class="acquisition-wrapper">
+        <div class="acq-header">
+            <span class="acq-header-title">⬡ Acquisition & Integration Guide — AurigaNavi</span>
+            <span class="acq-badge">CONSUMER + DEVELOPER</span>
+        </div>
+        <div class="acq-steps">
+
+            <div class="acq-step">
+                <div class="acq-step-number">01</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Choose Your Access Tier</div>
+                    <div class="acq-step-desc">AurigaNavi is available as a free download with a Premium upgrade path. Select the tier that matches your use case before proceeding to installation.</div>
+                    <div class="acq-tier-grid">
+                        <div class="acq-tier-card">
+                            <div class="acq-tier-name">Free</div>
+                            <div class="acq-tier-price">$0</div>
+                            <div class="acq-tier-desc">Basic ground navigation and proximity beeps. No calibration required.</div>
+                        </div>
+                        <div class="acq-tier-card">
+                            <div class="acq-tier-name">Premium</div>
+                            <div class="acq-tier-price">$9.99/mo</div>
+                            <div class="acq-tier-desc">Unlocks TruePath™, SkyShield™, AuraTextures™, GhostAnchor™, and DrakoVoice™.</div>
+                        </div>
+                        <div class="acq-tier-card">
+                            <div class="acq-tier-name">Developer</div>
+                            <div class="acq-tier-price">$299/yr</div>
+                            <div class="acq-tier-desc">Full AurigaSDK access for one deployment target. Includes technical documentation.</div>
+                        </div>
+                        <div class="acq-tier-card">
+                            <div class="acq-tier-name">Commercial</div>
+                            <div class="acq-tier-price">$2,499/yr</div>
+                            <div class="acq-tier-desc">Enterprise deployment across all Auriga products with SLA support.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="acq-step">
+                <div class="acq-step-number">02</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Download & Install the APK</div>
+                    <div class="acq-step-desc">AurigaNavi is distributed as a signed APK directly from DrakoSanctis. It is not yet available on the Google Play Store during Beta. Follow these steps precisely to install on your Android device.</div>
+                    <ul class="acq-substeps">
+                        <li><span class="sub-num">2.1</span> On your Android device, open Settings → Security → enable "Install from Unknown Sources" (or "Install Unknown Apps" on Android 8+).</li>
+                        <li><span class="sub-num">2.2</span> Open the download link provided after purchase in your device browser. The file is named AurigaNavi_vX.X_[MODEL].apk.</li>
+                        <li><span class="sub-num">2.3</span> Tap the downloaded APK in your notification bar or Files app. Tap Install when prompted.</li>
+                        <li><span class="sub-num">2.4</span> Once installed, open AurigaNavi. Grant Camera, Microphone, and Vibration permissions when asked — all three are required for full operation.</li>
+                        <li><span class="sub-num">2.5</span> You will see the DrakoSanctis splash screen. Tap ENTER SYSTEM to proceed.</li>
+                    </ul>
+                    <div class="acq-step-note">⚠ If your device shows "App not installed" — your APK may be for a different architecture. Return to the download page and select your exact device model.</div>
+                </div>
+            </div>
+
+            <div class="acq-step">
+                <div class="acq-step-number">03</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Print & Prepare Your Training Marker</div>
+                    <div class="acq-step-desc">TruePath™ requires a one-time calibration using a physical colored square. This is the "ground ruler" the engine uses to measure all future distances. You only do this once per device.</div>
+                    <ul class="acq-substeps">
+                        <li><span class="sub-num">3.1</span> Print a solid-colored square exactly 20cm × 20cm on plain white paper. Use bright red or lime green — these colors are rarely found in natural environments and give the best detection confidence.</li>
+                        <li><span class="sub-num">3.2</span> Laminate it or place it in a clear plastic sleeve. The surface must be flat — any curl or crease reduces detection confidence.</li>
+                        <li><span class="sub-num">3.3</span> Place a length of tape or rope on the ground in a straight line from where you will stand. Mark distances at 0.5m, 1.0m, 1.5m, 2.0m, 2.5m, 3.0m, 3.5m, 4.0m, 4.5m, and 5.0m using chalk or tape markers.</li>
+                    </ul>
+                    <div class="acq-step-note cyan">ℹ The colored square is your permanent calibration tool. Keep it — you will need it if you reset the app or switch devices.</div>
+                </div>
+            </div>
+
+            <div class="acq-step">
+                <div class="acq-step-number">04</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Run the 10-Point TruePath™ Calibration</div>
+                    <div class="acq-step-desc">This process takes approximately 5 minutes and is the most important step. The accuracy of every future distance reading depends on how carefully you complete this calibration. Do it indoors in good lighting for best results.</div>
+                    <ul class="acq-substeps">
+                        <li><span class="sub-num">4.1</span> In the app, tap the Calibrate tab in the bottom navigation bar. Tap BEGIN CALIBRATION.</li>
+                        <li><span class="sub-num">4.2</span> Place your colored square flat on the ground at the 0.5m mark. Hold the phone steady, pointed at the square, at a natural carrying angle (approximately 30° downward from horizontal).</li>
+                        <li><span class="sub-num">4.3</span> Watch the targeting reticle on screen. When it turns green and shows "✓ Point Locked", the engine has detected the square with sufficient confidence (&gt;70%).</li>
+                        <li><span class="sub-num">4.4</span> The distance field will show 0.5m. Confirm it is correct, then tap CONFIRM POINT. You will feel a double haptic pulse confirming the point was saved.</li>
+                        <li><span class="sub-num">4.5</span> Move the square to the 1.0m mark and repeat. Continue through all 10 distances up to 5.0m. The progress bar at the top shows "X / 10".</li>
+                        <li><span class="sub-num">4.6</span> When the screen shows "✓ Calibration Complete", tap RETURN TO NAVIGATION. Your calibration data is saved permanently to this device.</li>
+                    </ul>
+                    <div class="acq-step-note">⚠ Do not skip or rush points. A poorly captured point creates inaccurate distance readings at that range. If the reticle does not lock within 10 seconds, check that the square is in good light and fully flat on the floor.</div>
+                </div>
+            </div>
+
+            <div class="acq-step">
+                <div class="acq-step-number">05</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Activate Your License Key</div>
+                    <div class="acq-step-desc">Free tier is active immediately after install. To unlock Premium features, follow these steps to activate your license key.</div>
+                    <ul class="acq-substeps">
+                        <li><span class="sub-num">5.1</span> After purchase at drakosanctis.com, you will receive a license key in the format: AURIGA-XXXX-XXXX-XXXX via email.</li>
+                        <li><span class="sub-num">5.2</span> In the app, tap the Settings tab. Scroll to the LICENSE KEY section.</li>
+                        <li><span class="sub-num">5.3</span> Type or paste your license key into the input field. Tap APPLY.</li>
+                        <li><span class="sub-num">5.4</span> The app will contact the DrakoSanctis validation server. You need an internet connection for this step only. After validation, the app works fully offline for 7 days before requiring a background refresh.</li>
+                        <li><span class="sub-num">5.5</span> The tier badge in Settings will change from FREE to PREMIUM (or DEVELOPER / COMMERCIAL). All locked feature toggles will activate.</li>
+                    </ul>
+                    <div class="acq-step-note cyan">ℹ Your license is bound to this specific device by a hardware fingerprint. To transfer your license to a new device, contact support@drakosanctis.com with your order number.</div>
+                </div>
+            </div>
+
+            <div class="acq-step">
+                <div class="acq-step-number">06</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Begin Navigation</div>
+                    <div class="acq-step-desc">You are ready. Tap the Navigate tab to enter the live HUD. Hold your phone at a natural carrying angle in front of you. The engine will begin scanning immediately.</div>
+                    <ul class="acq-substeps">
+                        <li><span class="sub-num">6.1</span> The left panel shows real-time distance in metres to the nearest ground obstacle. The right panel shows bearing in degrees left or right of your forward axis.</li>
+                        <li><span class="sub-num">6.2</span> Audio beeps speed up as you approach an obstacle — minimum interval 160ms at very close range.</li>
+                        <li><span class="sub-num">6.3</span> A red alert banner slides down from the top when an obstacle is within 0.5m. An amber banner appears for overhead obstacles detected by SkyShield™.</li>
+                        <li><span class="sub-num">6.4</span> DrakoVoice™ announces obstacles verbally when distance drops below 1.0m: "Wall, 0.8 metres, 5 degrees left."</li>
+                        <li><span class="sub-num">6.5</span> In dark environments, the flashlight activates automatically after 12 consecutive low-light frames.</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <button class="cta-btn" style="margin-top:30px;" onclick="openInstallFlow('NAVI')">INSTALL AURIGA NAVI</button>
+</section>
+
+<!-- ══════════════════════════════════════
+     4. SENTINEL
+══════════════════════════════════════ -->
+<section id="sentinel">
+    <h2 style="color:var(--auriga-cyan);margin-bottom:6px;">AURIGA SENTINEL</h2>
+    <p style="margin-bottom:36px;color:var(--cobalt-blue);font-family:'Orbitron';font-size:0.7rem;letter-spacing:4px;">FALL DETECTION & PRESENCE AWARENESS</p>
+
+    <div class="hud-wrapper">
+        <div class="hud-header-bar">
+            <span class="hud-label">⬡ Sentinel Node — SN-CAMALEO // God's Eye Mesh</span>
+            <span class="hud-status"><span class="status-dot" style="background:var(--warning-amber);box-shadow:0 0 8px var(--warning-amber);"></span> 04 NODES ACTIVE</span>
+        </div>
+        <div class="hud-container">
+            <div class="context-bg" style="background-image:url('https://images.unsplash.com/photo-1558002038-1055907df827?auto=format&fit=crop&q=80&w=1000');"></div>
+            <div class="hud-scanlines"></div>
+            <div class="hud-overlay" style="border-color:var(--warning-amber);"></div>
+            <div style="position:absolute;inset:0;background:radial-gradient(circle,transparent 20%,rgba(0,87,255,0.05) 100%);"></div>
+            <div class="hud-readout" style="top:40px;left:40px;">
+                <span class="label">MODE</span>
+                <span class="value" style="font-size:1.2rem;">SENTINEL</span>
+            </div>
+            <div style="position:absolute;top:100px;left:40px;font-family:monospace;color:var(--auriga-cyan);font-size:0.65rem;background:rgba(0,0,0,0.65);padding:15px;border-left:2px solid var(--auriga-cyan);">
+                {<br>
+                &nbsp;&nbsp;"event": "FALL_DETECTED",<br>
+                &nbsp;&nbsp;"spatial_id": "Subj_07",<br>
+                &nbsp;&nbsp;"height": "1.74m",<br>
+                &nbsp;&nbsp;"vector": {"bearing": 110, "velocity": 0.0}<br>
+                }
+            </div>
+            <div class="hud-readout" style="top:40px;right:40px;text-align:right;">
+                <span class="label">MESH NODES</span>
+                <span class="value" style="font-size:1.2rem;">04 ACTIVE</span>
+            </div>
+            <div class="hud-radar">
+                <div class="radar-sweep"></div>
+                <div id="sentinel-dot" style="position:absolute;top:40%;left:60%;width:10px;height:10px;background:var(--alert-red);border-radius:50%;box-shadow:0 0 15px var(--alert-red);">
+                    <div style="position:absolute;top:-20px;left:15px;font-family:'Orbitron';color:var(--alert-red);font-size:0.6rem;white-space:nowrap;">SUBJ_07 (FALL)</div>
+                </div>
+            </div>
+            <div class="hud-readout" style="bottom:40px;left:50%;transform:translateX(-50%);text-align:center;">
+                <span class="label">ALERT STATUS</span>
+                <span class="value" style="font-size:1rem;color:var(--warning-amber);">CAREGIVER NOTIFIED</span>
+            </div>
+        </div>
+
+        <!-- DOCUMENTATION PANEL -->
+        <div class="doc-panel">
+            <div class="doc-block">
+                <div class="doc-block-title">How It Works</div>
+                <p>AurigaSentinel uses the same TruePath™ spatial geometry engine as AurigaNavi but reorients its purpose from navigation to safety monitoring. It detects human presence using aspect ratio geometry — a person has a height-to-width ratio consistently above 1.8:1. When a standing person suddenly becomes horizontal, the aspect ratio inverts, triggering a fall detection event. No faces, no biometrics, no video stored — purely geometric metadata.</p>
+            </div>
+            <div class="doc-block">
+                <div class="doc-block-title">Core Capabilities</div>
+                <ul>
+                    <li>Fall detection via aspect-ratio inversion geometry</li>
+                    <li>Presence detection without biometric data collection</li>
+                    <li>Vectorized JSON event packets (0.5KB vs 5MB video)</li>
+                    <li>Multi-node mesh via LoRa, Wi-Fi 6, or DrakoLink P2P</li>
+                    <li>Low-power frame differencing mode (battery optimised)</li>
+                    <li>GDPR-compliant by design — no images transmitted</li>
+                    <li>Caregiver alert via push notification on event trigger</li>
+                </ul>
+            </div>
+            <div class="doc-block">
+                <div class="doc-block-title">Performance Metrics</div>
+                <div class="doc-metric-row">
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">Event Packet</span>
+                        <span class="doc-metric-value">0.5KB</span>
+                    </div>
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">Detection</span>
+                        <span class="doc-metric-value">&lt;1s</span>
+                    </div>
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">Max Nodes</span>
+                        <span class="doc-metric-value">Unlimited</span>
+                    </div>
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">Data Stored</span>
+                        <span class="doc-metric-value">Zero</span>
+                    </div>
+                </div>
+            </div>
+            <div class="doc-block">
+                <div class="doc-block-title">Privacy Architecture</div>
+                <ul>
+                    <li>No video recording, storage, or transmission at any point</li>
+                    <li>Events are pure JSON geometry — no pixel data included</li>
+                    <li>No facial recognition, gait analysis, or biometric ID</li>
+                    <li>Compliant with GDPR, CCPA, and BIPA out of the box</li>
+                    <li>Node firmware is open to audit under Commercial License</li>
+                </ul>
+            </div>
+            <div class="doc-block full">
+                <div class="doc-block-title">Deployment Environments</div>
+                <p>AurigaSentinel is designed for residential care facilities, private homes with elderly or mobility-impaired residents, and commercial spaces requiring non-intrusive occupancy awareness. The CLASSIC variant mounts visibly as a deterrent. The CAMALEÓ variant integrates into architectural elements or outdoor fixtures with solar power for off-grid mesh nodes. Both variants run identically on any Android device or Raspberry Pi with a camera module.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACQUISITION -->
+    <div class="acquisition-wrapper">
+        <div class="acq-header">
+            <span class="acq-header-title">⬡ Acquisition Guide — AurigaSentinel</span>
+            <span class="acq-badge">COMMERCIAL LICENSE REQUIRED</span>
+        </div>
+        <div class="acq-steps">
+
+            <div class="acq-step">
+                <div class="acq-step-number">01</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Select Your Sentinel Variant</div>
+                    <div class="acq-step-desc">AurigaSentinel ships in two physical configurations. The software is identical — only the enclosure and power method differ.</div>
+                    <ul class="acq-substeps">
+                        <li><span class="sub-num">CLASSIC</span> Visible deterrent enclosure. Mains or PoE powered. Ideal for indoor corridors, care home common areas, and high-visibility perimeter use.</li>
+                        <li><span class="sub-num">CAMALEÓ</span> Concealed or architecturally integrated. Solar + battery powered. Designed for outdoor use, nature environments, or aesthetic integration into buildings. LoRa mesh capable for off-grid deployments.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="acq-step">
+                <div class="acq-step-number">02</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Submit a Commercial License Request</div>
+                    <div class="acq-step-desc">AurigaSentinel is available under Commercial License only ($2,499/yr per deployment). To acquire, email acquisitions@drakosanctis.com with the following information:</div>
+                    <ul class="acq-substeps">
+                        <li><span class="sub-num">A</span> Organisation name and registered address</li>
+                        <li><span class="sub-num">B</span> Deployment environment type (residential, commercial, industrial, outdoor)</li>
+                        <li><span class="sub-num">C</span> Number of nodes required</li>
+                        <li><span class="sub-num">D</span> Preferred mesh protocol (LoRa / Wi-Fi 6 / DrakoLink)</li>
+                        <li><span class="sub-num">E</span> Target hardware (Android device model or Raspberry Pi variant)</li>
+                    </ul>
+                    <div class="acq-step-note cyan">ℹ Government and NGO organisations may qualify for site license pricing. Include your registration number in the acquisition request.</div>
+                </div>
+            </div>
+
+            <div class="acq-step">
+                <div class="acq-step-number">03</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Receive & Flash Your Node Identity</div>
+                    <div class="acq-step-desc">After license approval, DrakoSanctis issues a signed node identity package. This is a cryptographically signed configuration file that binds your node to your deployment environment and mesh protocol. Install it as follows:</div>
+                    <ul class="acq-substeps">
+                        <li><span class="sub-num">3.1</span> Download the node identity package (.drako file) from the DrakoSanctis partner portal.</li>
+                        <li><span class="sub-num">3.2</span> On your node device (Android or Pi), open the AurigaSentinel app or run the CLI installer. Navigate to Settings → Node Identity → Import.</li>
+                        <li><span class="sub-num">3.3</span> Select your .drako file. The app will verify the RSA-2048 signature automatically. A valid identity will show "✓ Node Authenticated" with your unique node ID (format: SN-XXXXXXXX).</li>
+                        <li><span class="sub-num">3.4</span> Configure your mesh protocol in Settings → Mesh → select LoRa, Wi-Fi 6, or DrakoLink. Enter your mesh group key provided in the partner portal.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="acq-step">
+                <div class="acq-step-number">04</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Mount, Calibrate & Activate</div>
+                    <div class="acq-step-desc">Physical installation and the one-time spatial calibration for your environment.</div>
+                    <ul class="acq-substeps">
+                        <li><span class="sub-num">4.1</span> Mount the node at a height of 2.0m–3.0m, angled 20–30° downward. This gives the widest effective coverage zone for human detection.</li>
+                        <li><span class="sub-num">4.2</span> In the app, navigate to Calibration → Environment Scan. The node will take 30 seconds to build a background model of the empty space. Ensure no people are in the field of view during this step.</li>
+                        <li><span class="sub-num">4.3</span> After the background model is established, tap ACTIVATE NODE. The status indicator will turn amber (standby) then green (monitoring).</li>
+                        <li><span class="sub-num">4.4</span> Test the fall detection: have a person walk into view, then simulate a fall (carefully lower themselves to the floor). The node should generate a FALL_DETECTED JSON event within 1 second and push a notification to the configured caregiver contact.</li>
+                    </ul>
+                    <div class="acq-step-note">⚠ The background model must be re-captured any time the physical environment changes significantly (furniture moved, new permanent fixtures added).</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div style="display:flex;gap:20px;margin-top:30px;flex-wrap:wrap;justify-content:center;">
+        <button class="cta-btn" onclick="openSentinelAcquisition('CLASSIC')">SENTINEL CLASSIC</button>
+        <button class="cta-btn" style="border-color:var(--warning-amber);color:var(--warning-amber);" onclick="openSentinelAcquisition('CAMALEO')">SENTINEL CAMALEÓ</button>
+    </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     5. AERO
+══════════════════════════════════════ -->
+<section id="aero">
+    <h2 style="color:var(--auriga-cyan);margin-bottom:6px;">AURIGA AERO</h2>
+    <p style="margin-bottom:36px;color:var(--cobalt-blue);font-family:'Orbitron';font-size:0.7rem;letter-spacing:4px;">DRONE & ROBOTICS SPATIAL SDK</p>
+
+    <div class="hud-wrapper">
+        <div class="hud-header-bar">
+            <span class="hud-label">⬡ AurigaAero SDK — Flight Spatial Engine v1.0</span>
+            <span class="hud-status"><span class="status-dot"></span> FLIGHT MODE ACTIVE</span>
+        </div>
+        <div class="hud-container">
+            <div class="context-bg" style="background-image:url('https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&q=80&w=1000');"></div>
+            <div class="hud-scanlines"></div>
+            <div class="hud-readout" style="top:40px;left:40px;">
+                <span class="label">ALTITUDE</span>
+                <span class="value" id="aero-alt">15.4m</span>
+            </div>
+            <div class="hud-readout" style="top:40px;right:40px;text-align:right;">
+                <span class="label">VECTOR</span>
+                <span class="value" id="aero-vec">092° N</span>
+            </div>
+            <div class="hud-readout" style="bottom:40px;left:50%;transform:translateX(-50%);text-align:center;">
+                <span class="label">FLIGHT PATH</span>
+                <span class="value" style="font-size:1.5rem;color:var(--auriga-cyan);">OPTIMIZED</span>
+            </div>
+        </div>
+
+        <!-- DOCUMENTATION PANEL -->
+        <div class="doc-panel">
+            <div class="doc-block">
+                <div class="doc-block-title">SDK Overview</div>
+                <p>AurigaAero exposes the full TruePath™ spatial geometry engine as a developer SDK targeting drone flight controllers, robotic navigation stacks, and autonomous vehicle systems. The SDK provides real-time obstacle distance, bearing, and clearance height from any camera feed — no LiDAR, no depth sensor, no specialist hardware required. It compiles to ARMv8 (Raspberry Pi / Jetson Nano), ESP32-S3, and STM32 Cortex-M4 targets.</p>
+            </div>
+            <div class="doc-block">
+                <div class="doc-block-title">Core SDK Features</div>
+                <ul>
+                    <li>AurigaCore C++ library — JNI for Android, native for Linux/Pi</li>
+                    <li>Real-time obstacle distance, bearing, and clearance height</li>
+                    <li>Configurable HFOV input for any camera module</li>
+                    <li>3-column spatial scan at 30+ FPS on Raspberry Pi 4</li>
+                    <li>DepthFallback (MiDaS TFLite) for low-contrast environments</li>
+                    <li>GhostAnchor™ SLAM for vibration-resistant aerial platforms</li>
+                    <li>MAVLink-compatible output for ArduPilot / PX4 integration</li>
+                </ul>
+            </div>
+            <div class="doc-block">
+                <div class="doc-block-title">Supported Targets</div>
+                <div class="doc-metric-row">
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">Pi 4 / Jetson</span>
+                        <span class="doc-metric-value">Full</span>
+                    </div>
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">ESP32-S3</span>
+                        <span class="doc-metric-value">Core</span>
+                    </div>
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">STM32</span>
+                        <span class="doc-metric-value">LUT</span>
+                    </div>
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">Android</span>
+                        <span class="doc-metric-value">Full</span>
+                    </div>
+                </div>
+            </div>
+            <div class="doc-block">
+                <div class="doc-block-title">Integration Time</div>
+                <ul>
+                    <li>Android integration: 2–4 hours with provided .aar library</li>
+                    <li>Raspberry Pi integration: 1 hour with provided .so binary</li>
+                    <li>ESP32 integration: 4–8 hours with provided .h headers</li>
+                    <li>Full MAVLink bridge example included in SDK package</li>
+                    <li>Developer support included for first 30 days post-acquisition</li>
+                </ul>
+            </div>
+            <div class="doc-block full">
+                <div class="doc-block-title">Licensing Note</div>
+                <p>AurigaAero SDK is available under Developer License ($299/yr, single deployment target) or Commercial License ($2,499/yr, unlimited targets). The SDK binary does not include source code. The AurigaCore engine is provided as a pre-compiled library with a documented API surface. Redistribution of the compiled binary as part of a commercial product requires a Commercial License and a co-branding agreement with DrakoSanctis.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACQUISITION -->
+    <div class="acquisition-wrapper">
+        <div class="acq-header">
+            <span class="acq-header-title">⬡ SDK Acquisition Guide — AurigaAero</span>
+            <span class="acq-badge">DEVELOPER / COMMERCIAL</span>
+        </div>
+        <div class="acq-steps">
+
+            <div class="acq-step">
+                <div class="acq-step-number">01</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Request Developer Access</div>
+                    <div class="acq-step-desc">Email sdk@drakosanctis.com with your target platform, camera module specifications (resolution and HFOV), and intended use case. You will receive a Developer Access token within 48 hours.</div>
+                    <div class="acq-step-note cyan">ℹ Include your camera module datasheet if available. This allows DrakoSanctis to pre-configure the HardwareHAL for your exact sensor, reducing your integration time significantly.</div>
+                </div>
+            </div>
+
+            <div class="acq-step">
+                <div class="acq-step-number">02</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Download the SDK Package</div>
+                    <div class="acq-step-desc">After token approval, log into the DrakoSanctis Partner Portal and download the SDK package for your target architecture.</div>
+                    <div class="acq-code">// Android (.aar)
+implementation files('libs/auriga-core-aero-v1.0.aar')
+
+// Raspberry Pi / Linux (.so)
+gcc -o your_app your_app.c -L./lib -lauriga-core -lm
+
+// ESP32 (Arduino IDE)
+#include "AurigaCore.h"
+AurigaCore::init(HFOV_DEG, FRAME_WIDTH, FRAME_HEIGHT);</div>
+                </div>
+            </div>
+
+            <div class="acq-step">
+                <div class="acq-step-number">03</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Run the Fiducial Calibration</div>
+                    <div class="acq-step-desc">The same 10-point colored square calibration used in AurigaNavi applies here. Run it once per camera module on each platform. The calibration data is stored as a JSON file and can be transferred between devices of the same hardware configuration.</div>
+                    <div class="acq-code">// Call once per camera session
+AurigaCore::addTrainingPoint(0.5f, observedPixelWidth);
+// Repeat for all 10 distance points, then:
+AurigaCore::buildLUT(); // Computes the cubic spline</div>
+                    <div class="acq-step-note">⚠ For aerial platforms, perform calibration on the ground before flight. The calibration assumes a flat ground plane — it is not affected by altitude during normal flight operations.</div>
+                </div>
+            </div>
+
+            <div class="acq-step">
+                <div class="acq-step-number">04</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Integrate Into Your Flight Stack</div>
+                    <div class="acq-step-desc">Call the triangulation engine on each camera frame. The output FloatArray maps directly to MAVLink DISTANCE_SENSOR messages for ArduPilot/PX4.</div>
+                    <div class="acq-code">// Per-frame call
+float[] result = AurigaCore::triangulate(
+    baseLeft, baseCenter, baseRight,
+    horizonY, frameHeight, focalLengthPx
+);
+// result[0] = distLeft (m)
+// result[1] = distCenter (m)
+// result[2] = distRight (m)
+// result[3] = bearing (degrees)
+// result[4] = clearanceHeight (m)</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <button class="cta-btn" style="margin-top:30px;" onclick="openInstallFlow('AERO')">ACQUIRE AERO SDK</button>
+</section>
+
+<!-- ══════════════════════════════════════
+     6. INDUSTRIAL
+══════════════════════════════════════ -->
+<section id="industrial">
+    <h2 style="color:var(--auriga-cyan);margin-bottom:6px;">AURIGA INDUSTRIAL</h2>
+    <p style="margin-bottom:36px;color:var(--cobalt-blue);font-family:'Orbitron';font-size:0.7rem;letter-spacing:4px;">WAREHOUSE SAFETY LOGIC</p>
+
+    <div class="hud-wrapper">
+        <div class="hud-header-bar">
+            <span class="hud-label">⬡ AurigaIndustrial — SkyShield™ Forklift Guard Active</span>
+            <span class="hud-status"><span class="status-dot" style="background:var(--warning-amber);box-shadow:0 0 8px var(--warning-amber);"></span> MONITORING</span>
+        </div>
+        <div class="hud-container">
+            <div class="context-bg" style="background-image:url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=1000');"></div>
+            <div class="hud-scanlines"></div>
+            <div class="hud-readout" style="top:40px;left:40px;">
+                <span class="label">HAZARD ZONE</span>
+                <span class="value" id="ind-hazard">3.2m</span>
+            </div>
+            <div class="hud-readout" style="top:40px;right:40px;text-align:right;">
+                <span class="label">SPEED</span>
+                <span class="value" id="ind-speed">4 km/h</span>
+            </div>
+            <div class="hud-readout" style="bottom:40px;left:50%;transform:translateX(-50%);text-align:center;">
+                <span class="label">SKYSHIELD™</span>
+                <span class="value" id="ind-skyshield" style="font-size:1.5rem;color:var(--warning-amber);">ACTIVE</span>
+            </div>
+        </div>
+
+        <!-- DOCUMENTATION PANEL -->
+        <div class="doc-panel">
+            <div class="doc-block">
+                <div class="doc-block-title">How It Works</div>
+                <p>AurigaIndustrial mounts a low-cost Android tablet or ESP32-CAM module on a forklift, pallet jack, or warehouse robot. The TruePath™ engine measures real-world distance to obstacles in the vehicle's path continuously. SkyShield™ simultaneously monitors the overhead clearance zone — detecting low-hanging beams, racks, and suspended hazards that operators cannot see from the cab. Alerts are visual (screen), audible (beep), and haptic (vibration on attached wristband).</p>
+            </div>
+            <div class="doc-block">
+                <div class="doc-block-title">Safety Features</div>
+                <ul>
+                    <li>Forward obstacle distance with 3-column scan coverage</li>
+                    <li>SkyShield™ overhead clearance height in real-time</li>
+                    <li>Automatic speed recommendation based on proximity</li>
+                    <li>Fleet-wide alert broadcast via Wi-Fi mesh</li>
+                    <li>Incident logging with timestamp and distance data</li>
+                    <li>No internet required — fully offline operation</li>
+                    <li>Compatible with OSHA hazard zone regulations</li>
+                </ul>
+            </div>
+            <div class="doc-block">
+                <div class="doc-block-title">Hardware Requirements</div>
+                <div class="doc-metric-row">
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">Min Android</span>
+                        <span class="doc-metric-value">5.0</span>
+                    </div>
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">Min RAM</span>
+                        <span class="doc-metric-value">2 GB</span>
+                    </div>
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">Camera</span>
+                        <span class="doc-metric-value">Any</span>
+                    </div>
+                    <div class="doc-metric">
+                        <span class="doc-metric-label">APK Size</span>
+                        <span class="doc-metric-value">&lt;10MB</span>
+                    </div>
+                </div>
+            </div>
+            <div class="doc-block">
+                <div class="doc-block-title">ROI Summary</div>
+                <ul>
+                    <li>Average warehouse forklift incident cost: $38,000 USD</li>
+                    <li>AurigaIndustrial fleet license: $2,499/yr per site</li>
+                    <li>One prevented incident pays for 15+ years of licensing</li>
+                    <li>No hardware investment — runs on existing Android tablets</li>
+                    <li>Zero IT infrastructure required — no servers, no cloud</li>
+                </ul>
+            </div>
+            <div class="doc-block full">
+                <div class="doc-block-title">Compliance & Standards</div>
+                <p>AurigaIndustrial is designed to assist in meeting OSHA 29 CFR 1910.178 (powered industrial trucks) proximity hazard requirements. It functions as a supplementary electronic warning system and does not replace mandated physical safety equipment or operator training. DrakoSanctis provides a compliance documentation package with every Commercial License for use in safety audits and insurance applications.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACQUISITION -->
+    <div class="acquisition-wrapper">
+        <div class="acq-header">
+            <span class="acq-header-title">⬡ Fleet Acquisition Guide — AurigaIndustrial</span>
+            <span class="acq-badge">COMMERCIAL LICENSE — FLEET PRICING AVAILABLE</span>
+        </div>
+        <div class="acq-steps">
+
+            <div class="acq-step">
+                <div class="acq-step-number">01</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Submit a Fleet Inquiry</div>
+                    <div class="acq-step-desc">Email fleet@drakosanctis.com with your facility details. Fleet pricing is available for 5+ vehicles at a reduced per-unit rate. Include the following in your inquiry:</div>
+                    <ul class="acq-substeps">
+                        <li><span class="sub-num">A</span> Number of vehicles to be equipped</li>
+                        <li><span class="sub-num">B</span> Existing Android tablet model (if any) or tablet procurement preference</li>
+                        <li><span class="sub-num">C</span> Warehouse ceiling height (relevant for SkyShield™ calibration)</li>
+                        <li><span class="sub-num">D</span> Preferred alert method: screen only, audible, haptic wristband, or all three</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="acq-step">
+                <div class="acq-step-number">02</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Install the Fleet APK on Each Device</div>
+                    <div class="acq-step-desc">The Industrial APK is a hardened build of AurigaNavi with the IndustrialAlert module enabled and the UI optimised for forklift cab mounting (large text, glove-friendly controls). Install it on each tablet using the fleet provisioning tool or manually via the signed APK.</div>
+                    <div class="acq-step-note cyan">ℹ All devices must share the same Wi-Fi network for fleet-wide alert broadcasting. The app creates a local UDP broadcast mesh — no external server or internet required.</div>
+                </div>
+            </div>
+
+            <div class="acq-step">
+                <div class="acq-step-number">03</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Calibrate Each Vehicle Unit</div>
+                    <div class="acq-step-desc">Each tablet must complete the 10-point TruePath™ calibration with the camera mounted in its operational position on the vehicle. The calibration must be done with the vehicle stationary on a flat warehouse floor.</div>
+                    <ul class="acq-substeps">
+                        <li><span class="sub-num">3.1</span> Mount the tablet bracket on the forklift cab at eye level, angled toward the direction of travel.</li>
+                        <li><span class="sub-num">3.2</span> Place the 20cm colored square at each of the 10 calibration distances directly in the vehicle's forward path.</li>
+                        <li><span class="sub-num">3.3</span> Complete the calibration as per the standard AurigaNavi calibration guide (Step 04 above).</li>
+                        <li><span class="sub-num">3.4</span> After ground calibration, run the SkyShield™ overhead calibration: drive slowly through the warehouse and tap "Scan Ceiling" — the engine maps the minimum overhead clearance for the environment automatically.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="acq-step">
+                <div class="acq-step-number">04</div>
+                <div class="acq-step-body">
+                    <div class="acq-step-title">Activate & Test the Safety System</div>
+                    <div class="acq-step-desc">With calibration complete, run the acceptance test protocol before deploying vehicles to active operations.</div>
+                    <ul class="acq-substeps">
+                        <li><span class="sub-num">4.1</span> Place a safety cone at 1.0m directly in front of the vehicle. The screen should show a red COLLISION alert and emit a rapid beep pattern.</li>
+                        <li><span class="sub-num">4.2</span> Hold a flat board at head height (approx. 2.0m) in the vehicle's path. The SkyShield™ amber alert should trigger immediately.</li>
+                        <li><span class="sub-num">4.3</span> Verify fleet mesh: trigger an alert on one vehicle and confirm it appears on all other tablets in the facility within 2 seconds.</li>
+                        <li><span class="sub-num">4.4</span> Check the incident log in Settings → Fleet Log. All test events should appear with timestamps and distances.</li>
+                    </ul>
+                    <div class="acq-step-note">⚠ Complete the acceptance test with your safety officer present and retain the test log for compliance documentation.</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <button class="cta-btn" style="margin-top:30px;" onclick="openInstallFlow('INDUSTRIAL')">CONFIGURE INDUSTRIAL FLEET</button>
+</section>
+
+<!-- ══════════════════════════════════════
+     MODAL
+══════════════════════════════════════ -->
+<div id="install-modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <div id="modal-body"></div>
+    </div>
+</div>
+
+<footer>
+    <p>&copy; 2026 DRAKOSANCTIS SPATIAL INTELLIGENCE. ALL RIGHTS RESERVED.</p>
+    <p>AURIGA, TRUEPATH™, SKYSHIELD™, AURATEXTURES™, GHOSTANCHOR™, AND DRAKOVOICE™ ARE TRADEMARKS OF DRAKOSANCTIS.</p>
+    <p style="margin-top:10px;color:#333;">PATENT PENDING — FIDUCIAL GROUND-SCALE TRIANGULATION METHOD</p>
+</footer>
+
+<script>
+    // ── ACCESSIBILITY & DRAKOVOICE ──
+    let ttsEnabled = false;
+
+    function srAnnounce(message) {
+        if (!ttsEnabled) return;
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.rate = 1.1; 
+        utterance.pitch = 0.9;
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function toggleHighContrast() {
+        const active = document.body.classList.toggle('high-contrast');
+        const btn = document.getElementById('btn-hc');
+        btn.classList.toggle('active');
+        btn.setAttribute('aria-pressed', active);
+        srAnnounce(active ? 'High contrast enabled' : 'High contrast disabled');
+    }
+
+    function toggleLargeText() {
+        const active = document.body.classList.toggle('large-text');
+        const btn = document.getElementById('btn-lt');
+        btn.classList.toggle('active');
+        btn.setAttribute('aria-pressed', active);
+        srAnnounce(active ? 'Large text enabled' : 'Large text disabled');
+    }
+
+    function toggleReduceMotion() {
+        const active = document.body.classList.toggle('reduce-motion');
+        const btn = document.getElementById('btn-rm');
+        btn.classList.toggle('active');
+        btn.setAttribute('aria-pressed', active);
+        srAnnounce(active ? 'Reduced motion enabled' : 'Reduced motion disabled');
+    }
+
+    function toggleTTS() {
+        ttsEnabled = !ttsEnabled;
+        const btn = document.getElementById('btn-tts');
+        btn.classList.toggle('active');
+        btn.setAttribute('aria-pressed', ttsEnabled);
+        btn.innerText = ttsEnabled ? 'Screen Reader [ON]' : 'Screen Reader [OFF]';
+        if (ttsEnabled) {
+            srAnnounce('DrakoVoice activated. Welcome to the Auriga Ecosystem.');
+        } else {
+            window.speechSynthesis.cancel();
+        }
+    }
+
+    // ── NAVIGATION ──
+    function showSection(id) {
+        document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+        const t = document.getElementById(id);
+        if (t) { t.classList.add('active'); window.scrollTo(0,0); }
+    }
+
+    // ── HUD SIMULATION ──
+    function updateHUDSim() {
+        // NAVI
+        const nd = document.getElementById('navi-dist');
+        const nb = document.getElementById('navi-bearing');
+        if (nd && nb) {
+            const dist = (0.5 + Math.random() * 3).toFixed(1);
+            const bear = Math.floor(Math.random() * 20);
+            const side = Math.random() > 0.5 ? 'L' : 'R';
+            nd.innerText = dist + 'm';
+            nd.style.color = dist < 1.0 ? 'var(--alert-red)' : 'var(--auriga-cyan)';
+            nb.innerText = bear + '° ' + side;
+        }
+
+        // SENTINEL dot
+        const dot = document.getElementById('sentinel-dot');
+        if (dot) {
+            dot.style.top = (20 + Math.random() * 60) + '%';
+            dot.style.left = (20 + Math.random() * 60) + '%';
+        }
+
+        // AERO
+        const aa = document.getElementById('aero-alt');
+        const av = document.getElementById('aero-vec');
+        if (aa && av) {
+            aa.innerText = (15 + (Math.random() * 0.5 - 0.25)).toFixed(1) + 'm';
+            av.innerText = Math.floor(Math.random() * 360) + '° N';
+        }
+
+        // INDUSTRIAL
+        const ih = document.getElementById('ind-hazard');
+        const is = document.getElementById('ind-speed');
+        const isk = document.getElementById('ind-skyshield');
+        if (ih && is && isk) {
+            const dist = (1 + Math.random() * 10).toFixed(1);
+            ih.innerText = dist + 'm';
+            is.innerText = Math.floor(2 + Math.random() * 8) + ' km/h';
+            if (parseFloat(dist) < 3.0) {
+                ih.style.color = 'var(--alert-red)';
+                isk.innerText = '⚠ COLLISION';
+                isk.style.color = 'var(--alert-red)';
+            } else {
+                ih.style.color = 'var(--auriga-cyan)';
+                isk.innerText = 'ACTIVE';
+                isk.style.color = 'var(--warning-amber)';
+            }
+        }
+    }
+    setInterval(updateHUDSim, 1000);
+
+    // ── MODAL FLOWS ──
+    function openInstallFlow(variant) {
+        document.getElementById('install-modal').style.display = 'flex';
+        renderPlatformSelection(variant);
+    }
+
+    function renderPlatformSelection(variant) {
+        document.getElementById('modal-body').innerHTML = `
+            <h2>AURIGA ${variant}</h2>
+            <p>SELECT TARGET HARDWARE ARCHITECTURE</p>
+            <div class="platform-choice">
+                <div class="choice-btn" onclick="renderMobileConfig('${variant}')">
+                    <h4>MOBILE</h4><p>Android Smartphone or Tablet</p>
+                </div>
+                <div class="choice-btn" onclick="renderHardwareConfig('${variant}')">
+                    <h4>HARDWARE SDK</h4><p>Microcontroller / Robotics / Pi</p>
+                </div>
+            </div>
+            <p style="font-size:0.7rem;color:var(--cobalt-blue);">THE CORE ENGINE WILL OPTIMIZE FOR YOUR SELECTION.</p>`;
+    }
+
+    function renderMobileConfig(variant) {
+        document.getElementById('modal-body').innerHTML = `
+            <h2>MOBILE CONFIGURATION</h2>
+            <p>ZERO-CALIBRATION: SELECT YOUR DEVICE MODEL</p>
+            <div class="form-group">
+                <label>DEVICE MODEL</label>
+                <select id="device-model">
+                    <option value="S23">Samsung Galaxy S23 (HFOV: 68°)</option>
+                    <option value="P8">Google Pixel 8 (HFOV: 72°)</option>
+                    <option value="IP15">iPhone 15 Pro (HFOV: 64°)</option>
+                    <option value="A05S">Samsung Galaxy A05s (HFOV: 68°)</option>
+                    <option value="ITEL_A">Itel A-Series / Android Go (HFOV: 65°)</option>
+                    <option value="GENERIC">Generic Android (Standard 68°)</option>
+                </select>
+            </div>
+            <div style="background:white;padding:20px;display:inline-block;margin:20px 0;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://drakosanctis.com/install/${variant.toLowerCase()}" alt="QR Code">
+            </div>
+            <p style="font-size:0.8rem;margin-bottom:20px;">Scan to install the optimized APK for your model.</p>
+            <button class="cta-btn" onclick="simulateInstall('${variant}')">DIRECT DOWNLOAD</button>
+            <button class="cta-btn" style="border-color:#555;color:#555;margin-left:10px;" onclick="renderPlatformSelection('${variant}')">BACK</button>`;
+    }
+
+    function renderHardwareConfig(variant) {
+        document.getElementById('modal-body').innerHTML = `
+            <h2>HARDWARE SDK CONFIG</h2>
+            <p>SPECIFICATIONS FOR BINARY GENERATION</p>
+            <div class="form-group">
+                <label>CAMERA HFOV (DEGREES)</label>
+                <input type="number" id="hfov" placeholder="e.g. 68.0" value="68.0">
+            </div>
+            <div class="form-group">
+                <label>PROCESSOR ARCHITECTURE</label>
+                <select id="arch">
+                    <option>ARMv8 (Raspberry Pi 4 / Jetson Nano)</option>
+                    <option>ESP32-S3 (Xtensa)</option>
+                    <option>PIC18 (Minimal LUT)</option>
+                    <option>STM32 (Cortex-M4)</option>
+                    <option>Java ME (MIDP 2.0 — Feature Phones)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>LICENSE TIER</label>
+                <input type="text" value="DEVELOPER / COMMERCIAL REQUIRED" disabled style="opacity:0.5;">
+            </div>
+            <button class="cta-btn" onclick="generateSDK('${variant}')">GENERATE BINARY</button>
+            <button class="cta-btn" style="border-color:#555;color:#555;margin-left:10px;" onclick="renderPlatformSelection('${variant}')">BACK</button>`;
+    }
+
+    function closeModal() {
+        document.getElementById('install-modal').style.display = 'none';
+    }
+
+    function simulateInstall(variant) {
+        const model = document.getElementById('device-model').value;
+        alert(`DRAKOSANCTIS SECURE INSTALLER\nStarting download of Auriga${variant}_${model}.apk\nRSA-2048 Signed Token Issued.\nInstallation instructions have been sent to your registered email.`);
+        closeModal();
+    }
+
+    function generateSDK(variant) {
+        const hfov = document.getElementById('hfov').value;
+        const arch = document.getElementById('arch').value;
+        alert(`DRAKOSANCTIS CORE ENGINE\nCompiling ${variant} SDK for:\n${arch}\nHFOV = ${hfov}°\n\nPackage will be available in your Partner Portal within 24 hours.`);
+        closeModal();
+    }
+
+    function openSentinelAcquisition(variant) {
+        document.getElementById('install-modal').style.display = 'flex';
+        const desc = variant === 'CLASSIC'
+            ? "Visible deterrent. Ideal for high-visibility perimeter and indoor monitoring."
+            : "Concealed Chameleon. Solar-integrated LoRa node for outdoor and architectural deployment.";
+        document.getElementById('modal-body').innerHTML = `
+            <h2>SENTINEL: ${variant}</h2>
+            <p>${desc}</p>
+            <div class="form-group">
+                <label>DEPLOYMENT ENVIRONMENT</label>
+                <select id="env-spec">
+                    <option>RESIDENTIAL — PRIVATE HOME</option>
+                    <option>RESIDENTIAL — CARE FACILITY</option>
+                    <option>COMMERCIAL — WAREHOUSE</option>
+                    <option>OUTDOOR — CAMALEÓ MESH</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>MESH HANDSHAKE PROTOCOL</label>
+                <select id="mesh-proto">
+                    <option>LoRa (Long Range / Low Power)</option>
+                    <option>Wi-Fi 6 (High Bandwidth Mesh)</option>
+                    <option>DrakoLink (Encrypted P2P)</option>
+                </select>
+            </div>
+            <button class="cta-btn" onclick="completeAcquisition('${variant}')">ACQUIRE & CONFIGURE</button>
+            <button class="cta-btn" style="border-color:#555;color:#555;margin-left:10px;" onclick="closeModal()">CANCEL</button>`;
+    }
+
+    function completeAcquisition(variant) {
+        const env = document.getElementById('env-spec').value;
+        const mesh = document.getElementById('mesh-proto').value;
+        alert(`DRAKOSANCTIS ACQUISITION\nSentinel ${variant}\nEnvironment: ${env}\nMesh: ${mesh}\n\nYour acquisition request has been submitted. A DrakoSanctis engineer will contact you within 48 hours to complete node identity flashing and deployment configuration.`);
+        closeModal();
+    }
+
+    // ── STARFIELD ──
+    const starfield = document.getElementById('starfield');
+    for (let i = 0; i < 120; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        const size = Math.random() * 2 + 1;
+        star.style.width = size + 'px';
+        star.style.height = size + 'px';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 100 + '%';
+        star.style.setProperty('--duration', (Math.random() * 3 + 2) + 's');
+        starfield.appendChild(star);
+    }
+
+    // ── PWA SERVICE WORKER REGISTRATION ──
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('DrakoSanctis PWA Service Worker Registered!'))
+                .catch(err => console.log('Service Worker registration failed: ', err));
+        });
+    }
+</script>
+</body>
+</html>

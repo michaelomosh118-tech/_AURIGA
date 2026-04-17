@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AurigaNavi</string>
+    <string name="company_name">DrakoSanctis</string>
+    <string name="tagline">See Beyond Sight</string>
+    
+    <!-- HUD Labels -->
+    <string name="label_distance">Distance</string>
+    <string name="label_bearing">Bearing</string>
+    <string name="label_mode_nav">AurigaNavi // Navigation Mode</string>
+    <string name="label_mode_calib">AurigaNavi // Calibration Mode</string>
+    
+    <!-- Accessibility / Voice -->
+    <string name="voice_obstacle_alert">%1$s at %2$.1f meters, %3$.0f degrees %4$s</string>
+    <string name="voice_overhang_alert">Warning, overhang at %1$.1f meters</string>
+</resources>
