@@ -103,8 +103,12 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            minifyEnabled true
-            shrinkResources true
+            // Minification/shrinking kept OFF for now so the release build
+            // is byte-for-byte trustworthy and we do not need ProGuard rules
+            // for every reflection-using dependency. Can be re-enabled once
+            // ProGuard rules are curated.
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             // Only attach the release signing config when the keystore is
             // actually available; otherwise fall back to the debug key so
