@@ -20,6 +20,43 @@ android {
         buildConfigField "String", "DEFAULT_LICENSE", "\"AURIGA-PREMIUM-2026-BETA\""
     }
 
+    flavorDimensions += 'product'
+    productFlavors {
+        navi {
+            dimension 'product'
+            // Default brand: keeps the root applicationId so existing
+            // AurigaNavi installs upgrade cleanly.
+            buildConfigField "String", "AURIGA_PRODUCT", "\"NAVI\""
+            resValue "string", "app_name", "AurigaNavi"
+            resValue "color", "flavor_accent", "#00B8D4" // Cyan / Cobalt
+            versionNameSuffix "-navi"
+        }
+        sentinel {
+            dimension 'product'
+            applicationIdSuffix ".sentinel"
+            buildConfigField "String", "AURIGA_PRODUCT", "\"SENTINEL\""
+            resValue "string", "app_name", "AurigaSentinel"
+            resValue "color", "flavor_accent", "#D50000" // High-contrast red
+            versionNameSuffix "-sentinel"
+        }
+        aero {
+            dimension 'product'
+            applicationIdSuffix ".aero"
+            buildConfigField "String", "AURIGA_PRODUCT", "\"AERO\""
+            resValue "string", "app_name", "AurigaAero"
+            resValue "color", "flavor_accent", "#2962FF" // Sky blue
+            versionNameSuffix "-aero"
+        }
+        industrial {
+            dimension 'product'
+            applicationIdSuffix ".industrial"
+            buildConfigField "String", "AURIGA_PRODUCT", "\"INDUSTRIAL\""
+            resValue "string", "app_name", "AurigaIndustrial"
+            resValue "color", "flavor_accent", "#FF6F00" // Caution orange
+            versionNameSuffix "-industrial"
+        }
+    }
+
     signingConfigs {
         debug {
             // Force v1 (JAR) + v2 + v3 signing so the debug APK installs on

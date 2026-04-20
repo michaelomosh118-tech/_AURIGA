@@ -11,6 +11,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: [ navi, sentinel, aero, industrial ]
+
     steps:
     - name: Checkout Source Code
       uses: actions/checkout@v4
@@ -36,28 +41,34 @@ jobs:
         echo "Found project root at: $PROJECT_ROOT"
         echo "project_root=$PROJECT_ROOT" >> "$GITHUB_OUTPUT"
 
-    - name: Build Debug APK
+    - name: Compute flavor task name
+      id: task
+      run: |
+        FLAVOR="${{ matrix.flavor }}"
+        CAP="$(echo "${FLAVOR:0:1}" | tr '[:lower:]' '[:upper:]')${FLAVOR:1}"
+        echo "gradle_task=assemble${CAP}Debug" >> "$GITHUB_OUTPUT"
+        echo "apk_subdir=${FLAVOR}/debug" >> "$GITHUB_OUTPUT"
+
+    - name: Build ${{ matrix.flavor }} Debug APK
       working-directory: ${{ steps.locate.outputs.project_root }}
       run: |
         chmod +x ./gradlew
-        ./gradlew --no-daemon assembleDebug
+        ./gradlew --no-daemon ${{ steps.task.outputs.gradle_task }}
 
     - name: Verify APK Signing
       working-directory: ${{ steps.locate.outputs.project_root }}
       run: |
-        APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+        APK=$(find "app/build/outputs/apk/${{ steps.task.outputs.apk_subdir }}" -name "*.apk" | head -n 1)
         echo "APK: $APK"
         ls -la "$APK"
-        # Use the apksigner bundled with build-tools so we fail fast if the
-        # APK is not installable.
         BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)
         echo "Using build-tools at: $BUILD_TOOLS"
         "$BUILD_TOOLS/apksigner" verify --verbose "$APK"
 
-    - name: Upload Debug APK
+    - name: Upload ${{ matrix.flavor }} APK
       uses: actions/upload-artifact@v4
       with:
-        name: AURIGA-Debug-APK
-        path: "**/app/build/outputs/apk/debug/app-debug.apk"
+        name: AURIGA-${{ matrix.flavor }}-Debug-APK
+        path: "**/app/build/outputs/apk/${{ steps.task.outputs.apk_subdir }}/app-*-debug.apk"
         retention-days: 14
         if-no-files-found: error
