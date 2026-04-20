@@ -59,6 +59,16 @@ android {
 
     signingConfigs {
         debug {
+            // Use a stable, committed debug keystore instead of the
+            // auto-generated per-runner one. Without this, every CI build on
+            // a fresh runner produces an APK signed with a different key,
+            // which causes "App not installed" (signature mismatch) whenever
+            // a user tries to update over a previously-installed build.
+            storeFile rootProject.file("keystore/debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+
             // Force v1 (JAR) + v2 + v3 signing so the debug APK installs on
             // the widest possible range of devices and package installers.
             // Without v1, some Android builds and sideload tools reject the
