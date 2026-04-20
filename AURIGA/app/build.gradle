@@ -26,9 +26,9 @@ android {
             // the widest possible range of devices and package installers.
             // Without v1, some Android builds and sideload tools reject the
             // APK with "App not installed" / "Invalid package".
-            v1SigningEnabled true
-            v2SigningEnabled true
-            v3SigningEnabled true
+            enableV1Signing true
+            enableV2Signing true
+            enableV3Signing true
         }
         release {
             // Populated from environment variables during release builds.
@@ -44,9 +44,9 @@ android {
                 storePassword System.getenv("SIGNING_STORE_PASSWORD")
                 keyAlias System.getenv("SIGNING_KEY_ALIAS")
                 keyPassword System.getenv("SIGNING_KEY_PASSWORD")
-                v1SigningEnabled true
-                v2SigningEnabled true
-                v3SigningEnabled true
+                enableV1Signing true
+                enableV2Signing true
+                enableV3Signing true
             }
         }
     }
