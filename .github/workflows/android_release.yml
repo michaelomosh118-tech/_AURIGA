@@ -1,0 +1,176 @@
+name: AURIGA Release Publisher
+
+# Fires on a semver tag push (v1.2.3, v1.2.3-rc1, etc.). Builds all four
+# product flavors in release mode (APK + AAB) and uploads them as a single
+# GitHub Release so the landing page's "DIRECT DOWNLOAD" button always
+# resolves to the newest signed artifact without any site redeploy.
+#
+# The stable URL the website consumes is:
+#   https://github.com/<owner>/<repo>/releases/latest/download/AurigaNavi-release.apk
+# (and similarly for Sentinel / Aero / Industrial.)
+#
+# Signing behaviour:
+#   - If the AURIGA_RELEASE_KEYSTORE_B64 + friends secrets are populated,
+#     the APK/AAB is signed with the production keystore.
+#   - Otherwise it falls back to the committed debug keystore so a release
+#     can still be cut end-to-end during bootstrap. A warning is logged so
+#     you don't accidentally ship a debug-keyed artifact to users forever.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag to publish (e.g. v0.1.0)'
+        required: true
+        default: 'v0.0.0-manual'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: [ navi, sentinel, aero, industrial ]
+
+    outputs:
+      release_tag: ${{ steps.tag.outputs.value }}
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "value=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Release tag: $TAG"
+
+      - name: Locate Android Project Root
+        id: locate
+        run: |
+          PROJECT_ROOT=$(find . -name "build.gradle" -not -path "*/app/*" -not -path "*/.git/*" -exec dirname {} \; | head -n 1)
+          if [ -z "$PROJECT_ROOT" ]; then
+            echo "Error: Could not find build.gradle in the repository!"
+            exit 1
+          fi
+          echo "project_root=$PROJECT_ROOT" >> "$GITHUB_OUTPUT"
+
+      - name: Decode release keystore (if provided)
+        id: keystore
+        env:
+          AURIGA_RELEASE_KEYSTORE_B64: ${{ secrets.AURIGA_RELEASE_KEYSTORE_B64 }}
+        run: |
+          if [ -n "${AURIGA_RELEASE_KEYSTORE_B64:-}" ]; then
+            KEYSTORE_PATH="${{ steps.locate.outputs.project_root }}/release-key.jks"
+            echo "$AURIGA_RELEASE_KEYSTORE_B64" | base64 -d > "$KEYSTORE_PATH"
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "path=$KEYSTORE_PATH" >> "$GITHUB_OUTPUT"
+            echo "Decoded production release keystore to $KEYSTORE_PATH"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No AURIGA_RELEASE_KEYSTORE_B64 secret set — release build will fall back to the committed debug keystore. Set production secrets before public distribution."
+          fi
+
+      - name: Compute capitalised flavor name
+        id: flavor
+        run: |
+          F="${{ matrix.flavor }}"
+          CAP="$(echo "${F:0:1}" | tr '[:lower:]' '[:upper:]')${F:1}"
+          echo "cap=$CAP" >> "$GITHUB_OUTPUT"
+
+      - name: Assemble ${{ matrix.flavor }} release (APK + AAB)
+        working-directory: ${{ steps.locate.outputs.project_root }}
+        env:
+          SIGNING_STORE_FILE: ${{ steps.keystore.outputs.path }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.AURIGA_RELEASE_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.AURIGA_RELEASE_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.AURIGA_RELEASE_KEY_PASSWORD }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon \
+            "assemble${{ steps.flavor.outputs.cap }}Release" \
+            "bundle${{ steps.flavor.outputs.cap }}Release"
+
+      - name: Stage release artifacts with friendly names
+        id: stage
+        working-directory: ${{ steps.locate.outputs.project_root }}
+        run: |
+          mkdir -p ../_release_out
+          F="${{ matrix.flavor }}"
+          CAP="${{ steps.flavor.outputs.cap }}"
+          APK_SRC=$(find "app/build/outputs/apk/${F}/release" -name "*.apk" | head -n 1)
+          AAB_SRC=$(find "app/build/outputs/bundle/${F}Release" -name "*.aab" | head -n 1)
+          # Friendly names matching what the website download links expect.
+          APK_DST="../_release_out/Auriga${CAP}-release.apk"
+          AAB_DST="../_release_out/Auriga${CAP}-release.aab"
+          cp "$APK_SRC" "$APK_DST"
+          cp "$AAB_SRC" "$AAB_DST"
+          ls -la ../_release_out/
+
+      - name: Verify APK signing
+        working-directory: ${{ steps.locate.outputs.project_root }}
+        run: |
+          BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)
+          CAP="${{ steps.flavor.outputs.cap }}"
+          "$BUILD_TOOLS/apksigner" verify --verbose "../_release_out/Auriga${CAP}-release.apk"
+
+      - name: Upload staged artifacts for release job
+        uses: actions/upload-artifact@v4
+        with:
+          name: auriga-release-${{ matrix.flavor }}
+          path: _release_out/*
+          retention-days: 30
+          if-no-files-found: error
+
+  publish:
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all flavor artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: _release_in
+
+      - name: Flatten download tree
+        run: |
+          mkdir -p _release_final
+          find _release_in -type f \( -name "*.apk" -o -name "*.aab" \) -exec cp {} _release_final/ \;
+          ls -la _release_final/
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.build-and-publish.outputs.release_tag }}
+          name: Auriga ${{ needs.build-and-publish.outputs.release_tag }}
+          generate_release_notes: true
+          files: |
+            _release_final/AurigaNavi-release.apk
+            _release_final/AurigaSentinel-release.apk
+            _release_final/AurigaAero-release.apk
+            _release_final/AurigaIndustrial-release.apk
+            _release_final/AurigaNavi-release.aab
+            _release_final/AurigaSentinel-release.aab
+            _release_final/AurigaAero-release.aab
+            _release_final/AurigaIndustrial-release.aab

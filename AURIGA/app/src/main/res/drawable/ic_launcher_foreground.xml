@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Per-flavor launcher foreground. Always white on flavor_accent background,
+    so all four variants stay visually distinct AND legible at small sizes.
+    The background color is injected per-flavor via resValue "color"
+    "flavor_accent" in app/build.gradle.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Outer radar ring -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:pathData="M54,26 a28,28 0 1,0 0.01,0 Z" />
+    <!-- Mid ring -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:strokeAlpha="0.7"
+        android:pathData="M54,36 a18,18 0 1,0 0.01,0 Z" />
+    <!-- Crosshair horizontal -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:strokeAlpha="0.9"
+        android:pathData="M26,54 L82,54" />
+    <!-- Crosshair vertical -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:strokeAlpha="0.9"
+        android:pathData="M54,26 L54,82" />
+    <!-- Center dot -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,50 a4,4 0 1,0 0.01,0 Z" />
+</vector>
