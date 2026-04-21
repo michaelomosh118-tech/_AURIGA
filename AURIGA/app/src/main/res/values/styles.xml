@@ -5,7 +5,16 @@
         <item name="android:textColor">@color/hud_text</item>
     </style>
 
+    <!--
+        Android 15 (API 35) enforces explicit layout_width / layout_height
+        on every View child of a ViewGroup; earlier Android versions
+        silently defaulted to wrap_content when absent. Baking
+        wrap_content into both HUD styles keeps every styled TextView
+        valid without having to touch every callsite.
+    -->
     <style name="HUDReadoutLarge">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
         <item name="android:textSize">48sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">@color/auriga_cyan</item>
@@ -13,6 +22,8 @@
     </style>
 
     <style name="HUDLabelSmall">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textColor">@color/cobalt_blue</item>
         <item name="android:textAllCaps">true</item>
