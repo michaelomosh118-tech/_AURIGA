@@ -14,32 +14,60 @@ android {
         versionName "1.0.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        
+
         // Build-time configuration for license security
         buildConfigField "String", "LICENSE_SALT", "\"DRAKO_SANCTIS_SECURE_SALT_2026\""
         buildConfigField "String", "DEFAULT_LICENSE", "\"AURIGA-PREMIUM-2026-BETA\""
     }
 
     signingConfigs {
+        debug {
+            // Force v1 (JAR) + v2 + v3 signing so the debug APK installs on
+            // the widest possible range of devices and package installers.
+            // Without v1, some Android builds and sideload tools reject the
+            // APK with "App not installed" / "Invalid package".
+            enableV1Signing true
+            enableV2Signing true
+            enableV3Signing true
+        }
         release {
-            // Placeholder for Play Store signing
-            // In production, these would be populated from environment variables or a secure properties file
-            storeFile file("release-key.jks")
-            storePassword System.getenv("SIGNING_STORE_PASSWORD")
-            keyAlias System.getenv("SIGNING_KEY_ALIAS")
-            keyPassword System.getenv("SIGNING_KEY_PASSWORD")
+            // Populated from environment variables during release builds.
+            // Left empty here so CI debug builds do not fail when the
+            // release keystore or env vars are absent.
+            def storePath = System.getenv("SIGNING_STORE_FILE") ?: "release-key.jks"
+            def releaseKeystore = file(storePath)
+            if (releaseKeystore.exists()
+                    && System.getenv("SIGNING_STORE_PASSWORD") != null
+                    && System.getenv("SIGNING_KEY_ALIAS") != null
+                    && System.getenv("SIGNING_KEY_PASSWORD") != null) {
+                storeFile releaseKeystore
+                storePassword System.getenv("SIGNING_STORE_PASSWORD")
+                keyAlias System.getenv("SIGNING_KEY_ALIAS")
+                keyPassword System.getenv("SIGNING_KEY_PASSWORD")
+                enableV1Signing true
+                enableV2Signing true
+                enableV3Signing true
+            }
         }
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            // Only attach the release signing config when the keystore is
+            // actually available; otherwise fall back to the debug key so
+            // assembleRelease still produces an installable artifact for
+            // internal testing.
+            def releaseConfig = signingConfigs.release
+            signingConfig releaseConfig.storeFile != null ? releaseConfig : signingConfigs.debug
         }
     }
-    
+
     buildFeatures {
         buildConfig true
     }

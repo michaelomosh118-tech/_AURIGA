@@ -1,0 +1,27 @@
+# Build output
+**/build/
+**/.gradle/
+**/.kotlin/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Android local config (contains absolute SDK path)
+local.properties
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Archives / binary bundles that should not live in git
+*.zip
+*.zip.zip
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# Logs
+*.log

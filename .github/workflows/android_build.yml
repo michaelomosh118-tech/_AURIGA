@@ -1,7 +1,9 @@
-name: AURIGA Professional Build Engine (ZIP Mode)
+name: AURIGA Professional Build Engine
 
 on:
   push:
+    branches: [ "main", "master" ]
+  pull_request:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
@@ -22,32 +24,40 @@ jobs:
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: 8.5
 
-    - name: Find Project Root and Build APK
+    - name: Locate Android Project Root
+      id: locate
       run: |
-        # Find where the actual Android project is (where build.gradle lives)
-        PROJECT_ROOT=$(find . -name "build.gradle" -not -path "*/app/*" -exec dirname {} \;)
-        
+        PROJECT_ROOT=$(find . -name "build.gradle" -not -path "*/app/*" -not -path "*/.git/*" -exec dirname {} \; | head -n 1)
         if [ -z "$PROJECT_ROOT" ]; then
           echo "Error: Could not find build.gradle in the repository!"
           exit 1
         fi
-        
         echo "Found project root at: $PROJECT_ROOT"
-        cd "$PROJECT_ROOT"
-        
-        # Make the wrapper executable just in case
-        chmod +x ./gradlew || true
-        
-        # Run the build
-        gradle assembleDebug
+        echo "project_root=$PROJECT_ROOT" >> "$GITHUB_OUTPUT"
 
-    - name: Upload APK Artifact
+    - name: Build Debug APK
+      working-directory: ${{ steps.locate.outputs.project_root }}
+      run: |
+        chmod +x ./gradlew
+        ./gradlew --no-daemon assembleDebug
+
+    - name: Verify APK Signing
+      working-directory: ${{ steps.locate.outputs.project_root }}
+      run: |
+        APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+        echo "APK: $APK"
+        ls -la "$APK"
+        # Use the apksigner bundled with build-tools so we fail fast if the
+        # APK is not installable.
+        BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)
+        echo "Using build-tools at: $BUILD_TOOLS"
+        "$BUILD_TOOLS/apksigner" verify --verbose "$APK"
+
+    - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
         name: AURIGA-Debug-APK
-        # We use a wildcard ** to find the APK no matter how deep the folder is nested
         path: "**/app/build/outputs/apk/debug/app-debug.apk"
-        retention-days: 7
+        retention-days: 14
+        if-no-files-found: error
