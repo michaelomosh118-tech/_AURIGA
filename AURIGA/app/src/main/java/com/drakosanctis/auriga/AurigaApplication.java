@@ -100,7 +100,11 @@ public class AurigaApplication extends Application {
             Log.w(TAG, "Could not create crashes dir at " + crashDir.getAbsolutePath());
         }
 
-        String stamp = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(new Date());
+        // Millisecond granularity so cascading initStep failures on the
+        // main thread (e.g. lut fails → calibrationManager fails → engine
+        // fails, all within the same second) don't collide and overwrite
+        // the root-cause report.
+        String stamp = new SimpleDateFormat("yyyyMMdd-HHmmss-SSS", Locale.US).format(new Date());
         File out = new File(crashDir, "crash-" + stamp + ".txt");
 
         StringWriter sw = new StringWriter();
