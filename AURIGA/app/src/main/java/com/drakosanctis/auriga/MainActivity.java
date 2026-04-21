@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.TextureView;
@@ -11,6 +12,16 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.Manifest;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * MainActivity: The "Orchestrator" of the Auriga Ecosystem.
@@ -68,6 +79,14 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         // up and the voice layer is simply inert.
         initStep("lut",                () -> lut = new FiducialLUT());
         initStep("hal",                () -> hal = new HardwareHAL(this));
+        // Off-main-thread fetch of the shared calibration profile for this
+        // phone model. If a match is found, the LUT is replaced with the
+        // contributed (distanceM, pixelWidth, pixelRow) anchors so the
+        // runtime row lookup stops reading synthetic 640x480 defaults on
+        // devices with a non-reference preview resolution. Silent no-op on
+        // miss or on any network / parse failure -- the engine continues
+        // with the synthetic defaults rather than blocking the HUD.
+        initStep("calibrationProfile", this::fetchCalibrationProfileAsync);
         initStep("licenseManager",     () -> licenseManager = new LicenseManager(this));
         initStep("detector",           () -> detector = new ColorSquareDetector(120.0f, 15.0f));
         // calibrationManager + engine take lut/detector/hal as constructor
@@ -86,6 +105,7 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             requireDep("lut", lut);
             requireDep("hal", hal);
             engine = new TriangulationEngine(lut, hal);
+            engine.setFrameSize(640, 480);
         });
         initStep("processor",          () -> processor = new ImageProcessor());
         initStep("odometry",           () -> odometry = new OdometryManager());
@@ -280,45 +300,196 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     }
 
     private void processNavigationFrame(Bitmap frame) {
-        // 1. Scan for obstacles (3-column)
+        // 1. Scan for obstacles (3-column brightness-edge detector).
         ImageProcessor.ObstacleData[] obstacles = processor.scanFrame(frame);
-        
-        // 2. GhostAnchor™ Stabilization
-        float[] shift = odometry.calculateVisualShift(frame);
-        
-        // 3. Triangulation Math (TruePath™ & SkyShield™)
-        // Center column results for primary feedback
-        // Fix 3 & 4: Pass observed width for classification
-        final TriangulationEngine.SpatialOutput groundRes = engine.calculateGroundDistance(
-                obstacles[1].baseY, 320, obstacles[1].baseWidthPx);
-        final TriangulationEngine.SpatialOutput hangRes = engine.calculateSuspendedHeight(obstacles[1].hangY, 320);
 
-        // 4. Feedback & HUD Update
-        // sonar / haptic / voice are ancillary feedback layers; any of
-        // them can be null if its initStep failed. Null-guard each call
-        // so the spatial loop keeps running (HUD still updates) even
-        // when, say, TTS couldn't load a language pack.
+        // 2. Optional color-square detection running CONCURRENTLY with the
+        //    3-column scanner. When the color detector returns a high-
+        //    confidence box, we swap its (baseY, centerX, pixelWidth) into
+        //    the center column so the calibrated LUT is being queried with
+        //    a row the LUT was actually trained against. When confidence is
+        //    weak, the original 3-column result is used as the fallback.
+        if (detector != null) {
+            try {
+                ColorSquareDetector.DetectionResult colorRes = detector.detect(frame);
+                if (colorRes != null && colorRes.confidence > 0.8f
+                        && colorRes.pixelWidth > 10f) {
+                    obstacles[1].baseY       = (int) colorRes.baseY;
+                    obstacles[1].centerX     = colorRes.centerX;
+                    obstacles[1].baseWidthPx = colorRes.pixelWidth;
+                    obstacles[1].confidence  =
+                            Math.max(obstacles[1].confidence, colorRes.confidence);
+                }
+            } catch (Throwable ignored) {
+                // Color detector failures are non-fatal; fall back to the
+                // 3-column scan results already in `obstacles`.
+            }
+        }
+
+        // 3. GhostAnchor(TM) Stabilization: centroid shift between frames.
+        //    Shift magnitude feeds the smoother, which freezes its state
+        //    when the camera itself is panning hard (otherwise we'd chase
+        //    camera motion instead of object motion).
+        odometry.calculateVisualShift(frame);
+        float shiftMag = odometry.getLastShiftMagnitude();
+
+        // 4. Triangulation Math. Bearing now derives from the actual
+        //    centerX of the detected object instead of the hardcoded
+        //    frame midline; the pitch-aware FiducialLUT lookup inside
+        //    the engine eliminates handheld-tilt bias in distance.
+        final int baseY   = obstacles[1].baseY;
+        final int hangY   = obstacles[1].hangY;
+        final int centerX = (int) obstacles[1].centerX;
+        final float widthPx = obstacles[1].baseWidthPx;
+        final float detConfidence = obstacles[1].confidence;
+
+        final TriangulationEngine.SpatialOutput groundRes =
+                engine.calculateGroundDistance(baseY, centerX, widthPx);
+        final TriangulationEngine.SpatialOutput hangRes =
+                engine.calculateSuspendedHeight(hangY, centerX);
+
+        // 5. Feedback & HUD Update. Confidence from the detector is
+        //    multiplied into the sanityScore from the engine so a frame
+        //    where (a) the edge contrast was weak OR (b) the row-vs-width
+        //    cross-check disagreed gets down-weighted before it reaches
+        //    the low-pass smoother.
         runOnUiThread(() -> {
             if (groundRes != null) {
-                // Fix 9: specify column (1 for center)
-                float dist = odometry.smoothDistance(1, groundRes.distanceM);
-                updateHUD(dist, groundRes.bearingDeg, groundRes.signature);
-                if (sonar != null)  sonar.updateSpatialData(dist, groundRes.bearingDeg, groundRes.signature);
+                float frameConf = detConfidence * groundRes.sanityScore;
+                float dist = odometry.smoothDistance(
+                        1, groundRes.distanceM, frameConf, shiftMag);
+                float bearing = odometry.smoothBearing(
+                        1, groundRes.bearingDeg, frameConf, shiftMag);
+                updateHUD(dist, bearing, groundRes.signature);
+                if (sonar != null)  sonar.updateSpatialData(dist, bearing, groundRes.signature);
                 if (haptic != null) haptic.pulse(dist);
 
                 // Voice announcement logic (debounced)
-                if (voice != null && dist < 1.0f) voice.speak(groundRes.signature, dist, groundRes.bearingDeg);
+                if (voice != null && dist < 1.0f && frameConf > 0.5f) {
+                    voice.speak(groundRes.signature, dist, bearing);
+                }
             }
 
             if (hangRes != null && hangRes.heightM < 2.0f) {
                 alertBanner.setVisibility(View.VISIBLE);
-                alertBanner.setText("⚠ OVERHANG " + String.format("%.1f", hangRes.distanceM) + "m");
+                alertBanner.setText("\u26A0 OVERHANG " + String.format("%.1f", hangRes.distanceM) + "m");
                 if (haptic != null) haptic.alert();
                 if (voice != null) voice.announceAlert("overhang", hangRes.distanceM);
             } else {
                 alertBanner.setVisibility(View.GONE);
             }
         });
+    }
+
+    /**
+     * Downloads the shared calibration-profile JSON from the public
+     * mirror, finds the entry whose (manufacturer, model) matches this
+     * device, and replaces the FiducialLUT anchor set. Runs on a
+     * background thread so the HUD boot is never blocked by the network.
+     *
+     * The profile file lives in the public mirror next to the existing
+     * calibration_library.json. Schema:
+     *   [ { manufacturer, model, codename?, approved,
+     *       calibration_points: [ { distanceM, pixelWidth, pixelRow }, ... ] },
+     *     ... ]
+     * Only entries with approved=true are applied.
+     */
+    // The calibration library website is deployed at drakosanctis.com and
+    // serves data/calibration_profiles.json alongside the
+    // data/calibration_library.json the site itself consumes. Falling back
+    // to the Netlify preview domain keeps staging / non-production builds
+    // working. Both endpoints are plain static JSON; failure is
+    // non-blocking and the app reverts to synthetic LUT defaults with a
+    // Toast prompting the user to run the 10-point calibration walk.
+    private static final String[] CALIBRATION_PROFILE_URLS = {
+            "https://drakosanctis.com/data/calibration_profiles.json",
+            "https://www.drakosanctis.com/data/calibration_profiles.json",
+            "https://auriga-calibration.netlify.app/data/calibration_profiles.json"
+    };
+
+    private void fetchCalibrationProfileAsync() {
+        final String model = Build.MODEL == null ? "" : Build.MODEL.trim();
+        final String manufacturer =
+                Build.MANUFACTURER == null ? "" : Build.MANUFACTURER.trim();
+        new Thread(() -> {
+            String body = null;
+            for (String url : CALIBRATION_PROFILE_URLS) {
+                body = tryFetchText(url);
+                if (body != null) break;
+            }
+            if (body == null) {
+                Log.w(TAG, "Calibration profile fetch: all endpoints failed");
+                return;
+            }
+            List<FiducialLUT.TrainingPoint> matched =
+                    parseProfile(body, manufacturer, model);
+            if (matched != null && matched.size() >= 2 && lut != null) {
+                lut.loadProfile(matched);
+                runOnUiThread(() -> Toast.makeText(
+                        MainActivity.this,
+                        "Loaded calibration for " + model,
+                        Toast.LENGTH_SHORT).show());
+            } else {
+                runOnUiThread(() -> Toast.makeText(
+                        MainActivity.this,
+                        "No calibration profile for " + model
+                                + " - run 10-point calibration or contribute readings.",
+                        Toast.LENGTH_LONG).show());
+            }
+        }, "auriga-cal-fetch").start();
+    }
+
+    private static String tryFetchText(String urlStr) {
+        HttpURLConnection conn = null;
+        try {
+            URL url = new URL(urlStr);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(4000);
+            conn.setReadTimeout(4000);
+            conn.setRequestMethod("GET");
+            int code = conn.getResponseCode();
+            if (code != 200) return null;
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader r = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream()))) {
+                String line;
+                while ((line = r.readLine()) != null) sb.append(line);
+            }
+            return sb.toString();
+        } catch (Throwable t) {
+            return null;
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    private static List<FiducialLUT.TrainingPoint> parseProfile(
+            String json, String manufacturer, String model) {
+        try {
+            JSONArray arr = new JSONArray(json);
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject row = arr.getJSONObject(i);
+                if (!row.optBoolean("approved", false)) continue;
+                String rowManufacturer = row.optString("manufacturer", "").trim();
+                String rowModel = row.optString("model", "").trim();
+                boolean manuMatches = manufacturer.equalsIgnoreCase(rowManufacturer)
+                        || rowManufacturer.isEmpty();
+                boolean modelMatches = model.equalsIgnoreCase(rowModel);
+                if (!(manuMatches && modelMatches)) continue;
+                JSONArray pts = row.optJSONArray("calibration_points");
+                if (pts == null) continue;
+                List<FiducialLUT.TrainingPoint> out = new ArrayList<>();
+                for (int j = 0; j < pts.length(); j++) {
+                    JSONObject p = pts.getJSONObject(j);
+                    out.add(new FiducialLUT.TrainingPoint(
+                            (float) p.getDouble("distanceM"),
+                            (float) p.getDouble("pixelWidth"),
+                            (float) p.getDouble("pixelRow")));
+                }
+                return out;
+            }
+        } catch (Throwable ignored) { }
+        return null;
     }
 
     private void updateHUD(float dist, float bearing, String sig) {
@@ -351,5 +522,9 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         if (voice != null)  voice.shutdown();
         if (sonar != null)  sonar.stop();
         if (haptic != null) haptic.stop();
+        // Sensor listeners leak the Activity (SensorManager -> HardwareHAL
+        // -> Context) if we don't unregister. HardwareHAL.stopPitchSensor()
+        // is idempotent and null-guards internally.
+        if (hal != null) hal.stopPitchSensor();
     }
 }

@@ -24,17 +24,25 @@ public class ColorSquareDetector {
 
     /**
      * DetectionResult: Holds the findings of a scan.
+     *
+     * baseY is the bottom edge of the matching bounding box (i.e. the
+     * ground-contact row for a target resting on the floor). The
+     * TriangulationEngine's row-based LUT lookup is calibrated against
+     * baseY rows, so callers must pass this value rather than centerY
+     * for the TruePath ground-distance path.
      */
     public static class DetectionResult {
         public float pixelWidth;
         public float centerX;
         public float centerY;
+        public float baseY;
         public float confidence; // 0.0 to 1.0
 
-        DetectionResult(float w, float x, float y, float c) {
+        DetectionResult(float w, float x, float y, float baseY, float c) {
             this.pixelWidth = w;
             this.centerX = x;
             this.centerY = y;
+            this.baseY = baseY;
             this.confidence = c;
         }
     }
@@ -69,7 +77,7 @@ public class ColorSquareDetector {
         }
 
         if (matchCount < 50) { // Too few pixels to be the 20cm square
-            return new DetectionResult(0, 0, 0, 0);
+            return new DetectionResult(0, 0, 0, 0, 0);
         }
 
         float detectedWidth = maxX - minX;
@@ -79,7 +87,12 @@ public class ColorSquareDetector {
         float aspectRatio = detectedWidth / detectedHeight;
         float confidence = (aspectRatio > 0.7f && aspectRatio < 1.3f) ? 1.0f : 0.5f;
 
-        return new DetectionResult(detectedWidth, (minX + maxX) / 2.0f, (minY + maxY) / 2.0f, confidence);
+        return new DetectionResult(
+                detectedWidth,
+                (minX + maxX) / 2.0f,
+                (minY + maxY) / 2.0f,
+                maxY,
+                confidence);
     }
 
     private boolean isTargetColor(float[] hsv) {
