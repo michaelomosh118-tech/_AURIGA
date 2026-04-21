@@ -209,7 +209,7 @@ jobs:
           # tag-on-default-branch on its own.
           if gh release view "$RELEASE_TAG" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
             echo "Existing release $RELEASE_TAG found on $MIRROR_REPO — deleting to replace."
-            gh release delete "$RELEASE_TAG" --repo "$MIRROR_REPO" --yes --cleanup-tag || true
+            gh release delete "$RELEASE_TAG" --repo "$MIRROR_REPO" --yes || true
           fi
           gh release create "$RELEASE_TAG" \
             --repo "$MIRROR_REPO" \
