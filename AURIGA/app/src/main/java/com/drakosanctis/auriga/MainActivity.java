@@ -230,21 +230,19 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     }
 
     /**
-     * True iff every field touched by the hot navigation loop is non-null.
-     * If any of these failed to construct during onCreate we refuse to start
-     * the loop at all; the user has already been shown a Toast naming the
-     * failing init step, and a partially-functional HUD would just produce
-     * secondary NPEs that obscure the original failure.
+     * True iff every field required by the spatial navigation math is
+     * non-null. Ancillary feedback layers (sonar / haptic / voice) are
+     * NOT in this gate -- per the graceful-degradation contract stated
+     * in onCreate, a missing TTS language pack or a broken haptic driver
+     * must not kill the HUD. Those callsites are individually null-guarded
+     * inside processNavigationFrame instead.
      */
     private boolean coreEnginesReady() {
         return camera != null
                 && calibrationManager != null
                 && processor != null
                 && odometry != null
-                && engine != null
-                && sonar != null
-                && haptic != null
-                && voice != null;
+                && engine != null;
     }
 
     private void startMainLoop() {
@@ -296,23 +294,27 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         final TriangulationEngine.SpatialOutput hangRes = engine.calculateSuspendedHeight(obstacles[1].hangY, 320);
 
         // 4. Feedback & HUD Update
+        // sonar / haptic / voice are ancillary feedback layers; any of
+        // them can be null if its initStep failed. Null-guard each call
+        // so the spatial loop keeps running (HUD still updates) even
+        // when, say, TTS couldn't load a language pack.
         runOnUiThread(() -> {
             if (groundRes != null) {
                 // Fix 9: specify column (1 for center)
                 float dist = odometry.smoothDistance(1, groundRes.distanceM);
                 updateHUD(dist, groundRes.bearingDeg, groundRes.signature);
-                sonar.updateSpatialData(dist, groundRes.bearingDeg, groundRes.signature);
-                haptic.pulse(dist);
-                
+                if (sonar != null)  sonar.updateSpatialData(dist, groundRes.bearingDeg, groundRes.signature);
+                if (haptic != null) haptic.pulse(dist);
+
                 // Voice announcement logic (debounced)
-                if (dist < 1.0f) voice.speak(groundRes.signature, dist, groundRes.bearingDeg);
+                if (voice != null && dist < 1.0f) voice.speak(groundRes.signature, dist, groundRes.bearingDeg);
             }
-            
+
             if (hangRes != null && hangRes.heightM < 2.0f) {
                 alertBanner.setVisibility(View.VISIBLE);
                 alertBanner.setText("⚠ OVERHANG " + String.format("%.1f", hangRes.distanceM) + "m");
-                haptic.alert();
-                voice.announceAlert("overhang", hangRes.distanceM);
+                if (haptic != null) haptic.alert();
+                if (voice != null) voice.announceAlert("overhang", hangRes.distanceM);
             } else {
                 alertBanner.setVisibility(View.GONE);
             }
