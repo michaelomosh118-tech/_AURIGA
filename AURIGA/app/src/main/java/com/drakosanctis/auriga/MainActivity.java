@@ -5,9 +5,11 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.Manifest;
 
 /**
@@ -39,34 +41,71 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     private TextView distanceText, bearingText, signatureText, alertBanner, modeLabel;
     private View radarView;
 
+    private static final String TAG = "AurigaMain";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        // Initialize HUD UI
-        initUI();
-        applyVariantStyling();
+        // Each step is wrapped individually so a single bad initializer (e.g.
+        // TextToSpeech failing on a device without an en-US language pack,
+        // or a missing drawable resource during layout inflation) does not
+        // kill the whole app on launch. Anything that throws is logged via
+        // AurigaApplication's crash handler and surfaced as a Toast so users
+        // on Samsung/Knox devices can read the failure without adb.
+        if (!initStep("setContentView",    () -> setContentView(R.layout.activity_main))) return;
+        if (!initStep("initUI",            this::initUI))                                 return;
+        if (!initStep("applyVariantStyling", this::applyVariantStyling))                  return;
 
-        // Initialize Core Engine Layers
-        lut = new FiducialLUT();
-        hal = new HardwareHAL(this);
-        licenseManager = new LicenseManager(this);
-        detector = new ColorSquareDetector(120.0f, 15.0f); // Default to Green square
-        calibrationManager = new CalibrationManager(lut, detector);
-        engine = new TriangulationEngine(lut, hal);
-        processor = new ImageProcessor();
-        odometry = new OdometryManager();
-        voice = new DrakoVoice(this);
-        sonar = new SonarManager();
-        haptic = new HapticManager(this);
-        camera = new CameraService(this);
+        initStep("lut",                 () -> lut = new FiducialLUT());
+        initStep("hal",                 () -> hal = new HardwareHAL(this));
+        initStep("licenseManager",      () -> licenseManager = new LicenseManager(this));
+        initStep("detector",            () -> detector = new ColorSquareDetector(120.0f, 15.0f));
+        initStep("calibrationManager",  () -> calibrationManager = new CalibrationManager(lut, detector));
+        initStep("engine",              () -> engine = new TriangulationEngine(lut, hal));
+        initStep("processor",           () -> processor = new ImageProcessor());
+        initStep("odometry",            () -> odometry = new OdometryManager());
+        initStep("voice",               () -> voice = new DrakoVoice(this));
+        initStep("sonar",               () -> sonar = new SonarManager());
+        initStep("haptic",              () -> haptic = new HapticManager(this));
+        initStep("camera",              () -> camera = new CameraService(this));
 
         // Security Heartbeat Check
-        licenseManager.validateLicense(BuildConfig.DEFAULT_LICENSE);
+        initStep("validateLicense", () -> {
+            if (licenseManager != null) {
+                licenseManager.validateLicense(BuildConfig.DEFAULT_LICENSE);
+            }
+        });
 
         // Request Permissions for Google Play Compliance
-        checkPermissions();
+        initStep("checkPermissions", this::checkPermissions);
+    }
+
+    /**
+     * Runs an init step and swallows any Throwable, logging the failure via
+     * the crash-logger pipeline and showing a Toast so the user knows what
+     * failed without having to pull logcat off the phone. Returns true iff
+     * the step completed cleanly. Callers that must short-circuit the rest
+     * of onCreate on failure (e.g. setContentView) check the return value.
+     */
+    private boolean initStep(String name, Runnable step) {
+        try {
+            step.run();
+            return true;
+        } catch (Throwable t) {
+            Log.e(TAG, "Init step '" + name + "' failed", t);
+            Toast.makeText(
+                    this,
+                    "Auriga init failed at: " + name + "\n" + t.getClass().getSimpleName()
+                            + ": " + String.valueOf(t.getMessage()),
+                    Toast.LENGTH_LONG
+            ).show();
+            // Persist a timestamped crash report to the app's external files
+            // directory without terminating the process, so the user can
+            // copy it off the phone via Samsung My Files.
+            AurigaApplication.logNonFatal(t, "initStep:" + name);
+            return false;
+        }
     }
 
     private void checkPermissions() {
