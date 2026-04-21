@@ -130,10 +130,17 @@ public class AurigaApplication extends Application {
 
     private void rememberCrashPath(File f) {
         SharedPreferences sp = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        // commit() (sync) instead of apply() (async) because this is called
+        // from the uncaught-exception handler, which hands off to the
+        // system default handler immediately after -- that kills the
+        // process via SIGKILL and any pending async write would be lost.
+        // The crash *file* is already written synchronously above; we need
+        // the marker to survive the kill too so the next launch can Toast
+        // the user with the path.
         sp.edit()
           .putString(KEY_LAST_CRASH_PATH, f.getAbsolutePath())
           .putLong(KEY_LAST_CRASH_TIME, System.currentTimeMillis())
-          .apply();
+          .commit();
     }
 
     private void surfaceLastCrashIfAny() {
