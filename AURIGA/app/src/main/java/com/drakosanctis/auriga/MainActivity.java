@@ -70,8 +70,23 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         initStep("hal",                () -> hal = new HardwareHAL(this));
         initStep("licenseManager",     () -> licenseManager = new LicenseManager(this));
         initStep("detector",           () -> detector = new ColorSquareDetector(120.0f, 15.0f));
-        initStep("calibrationManager", () -> calibrationManager = new CalibrationManager(lut, detector));
-        initStep("engine",             () -> engine = new TriangulationEngine(lut, hal));
+        // calibrationManager + engine take lut/detector/hal as constructor
+        // args but those collaborators just store the refs without a null
+        // check. Precondition-assert the deps inside the lambda so a failed
+        // lut/detector/hal step short-circuits here with an accurate Toast
+        // ("calibrationManager" failed because "lut was null") instead of
+        // constructing an object with null internals that NPEs on the first
+        // frame in the render loop.
+        initStep("calibrationManager", () -> {
+            requireDep("lut", lut);
+            requireDep("detector", detector);
+            calibrationManager = new CalibrationManager(lut, detector);
+        });
+        initStep("engine", () -> {
+            requireDep("lut", lut);
+            requireDep("hal", hal);
+            engine = new TriangulationEngine(lut, hal);
+        });
         initStep("processor",          () -> processor = new ImageProcessor());
         initStep("odometry",           () -> odometry = new OdometryManager());
         initStep("voice",              () -> voice = new DrakoVoice(this));
@@ -94,6 +109,18 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
 
         // Request Permissions for Google Play Compliance
         initStep("checkPermissions", this::checkPermissions);
+    }
+
+    /**
+     * Throws IllegalStateException if a required init-time collaborator is
+     * null. Used by composite initSteps (calibrationManager, engine) whose
+     * downstream classes do not null-check their constructor args.
+     */
+    private static void requireDep(String name, Object dep) {
+        if (dep == null) {
+            throw new IllegalStateException(
+                    "Missing dependency: " + name + " was null (its initStep failed earlier).");
+        }
     }
 
     /**
