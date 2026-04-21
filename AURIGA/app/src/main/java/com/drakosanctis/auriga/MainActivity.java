@@ -32,6 +32,24 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
 
     private static final int PERMISSION_REQUEST_CODE = 1001;
 
+    // Target bitmap width for the per-frame scan pipeline. Height is
+    // computed dynamically from the live TextureView aspect ratio so a
+    // 1600x720 preview (Galaxy A07) downsamples to 640x288 instead of
+    // being stretched to 640x480. Stretching was the single largest
+    // residual bias in v0.1.3-jitter-fix: the LUT row axis was
+    // measured in 4:3 space but queried in 20:9 space, doubling rows
+    // near the bottom of the frame.
+    private static final int DEFAULT_BITMAP_W = 640;
+    private static final int DEFAULT_BITMAP_H = 480;
+
+    // Active bitmap size for the current preview. Written once the
+    // TextureView reports its first size; read on every frame. volatile
+    // so the render-loop thread observes the updated values without a
+    // memory fence. Defaults to the legacy 640x480 so callers that
+    // never get a size callback keep their old behavior.
+    private volatile int activeBitmapW = DEFAULT_BITMAP_W;
+    private volatile int activeBitmapH = DEFAULT_BITMAP_H;
+
     // --- Core Engine Layers ---
     private AurigaConfig config;
     private FiducialLUT lut;
@@ -50,7 +68,16 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     // --- UI Components ---
     private TextureView textureView;
     private TextView distanceText, bearingText, signatureText, alertBanner, modeLabel;
+    private TextView diagnosticOverlay;
     private View radarView;
+
+    // Diagnostic overlay state. Toggled by long-pressing the mode_label
+    // HUD title. When on, processNavigationFrame publishes per-frame
+    // metrics (pitch, GhostAnchor shift, raw LUT row, confidence,
+    // sanity, active bitmap size, whether a trained profile is loaded)
+    // to the overlay TextView so a field operator can see which layer
+    // is flickering without attaching adb.
+    private volatile boolean diagnosticVisible = false;
 
     private static final String TAG = "AurigaMain";
 
@@ -79,13 +106,22 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         // up and the voice layer is simply inert.
         initStep("lut",                () -> lut = new FiducialLUT());
         initStep("hal",                () -> hal = new HardwareHAL(this));
+        // Bundled fallback profile. Ships inside the APK as
+        // assets/default_profile_<Build.MODEL>.json and is loaded BEFORE
+        // the network fetch so a device with a known calibration
+        // (currently SM-A057F for the dev A07) never runs off the
+        // synthetic 640x480 defaults even on first launch / offline.
+        // Any approved entry returned by fetchCalibrationProfileAsync
+        // will replace the bundled anchors when the network call
+        // resolves.
+        initStep("bundledProfile",     this::loadBundledCalibrationProfile);
         // Off-main-thread fetch of the shared calibration profile for this
         // phone model. If a match is found, the LUT is replaced with the
         // contributed (distanceM, pixelWidth, pixelRow) anchors so the
         // runtime row lookup stops reading synthetic 640x480 defaults on
         // devices with a non-reference preview resolution. Silent no-op on
         // miss or on any network / parse failure -- the engine continues
-        // with the synthetic defaults rather than blocking the HUD.
+        // with whatever profile is already loaded (bundled or synthetic).
         initStep("calibrationProfile", this::fetchCalibrationProfileAsync);
         initStep("licenseManager",     () -> licenseManager = new LicenseManager(this));
         initStep("detector",           () -> detector = new ColorSquareDetector(120.0f, 15.0f));
@@ -105,9 +141,12 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             requireDep("lut", lut);
             requireDep("hal", hal);
             engine = new TriangulationEngine(lut, hal);
-            engine.setFrameSize(640, 480);
+            engine.setFrameSize(DEFAULT_BITMAP_W, DEFAULT_BITMAP_H);
         });
-        initStep("processor",          () -> processor = new ImageProcessor());
+        initStep("processor",          () -> {
+            processor = new ImageProcessor();
+            processor.setFrameSize(DEFAULT_BITMAP_W, DEFAULT_BITMAP_H);
+        });
         initStep("odometry",           () -> odometry = new OdometryManager());
         initStep("voice",              () -> voice = new DrakoVoice(this));
         initStep("sonar",              () -> sonar = new SonarManager());
@@ -195,6 +234,36 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         signatureText = findViewById(R.id.object_signature);
         alertBanner = findViewById(R.id.alert_banner);
         radarView = findViewById(R.id.radar_sweep);
+        diagnosticOverlay = findViewById(R.id.diagnostic_overlay);
+
+        // Long-press on the mode label toggles the diagnostic overlay.
+        // Click target is small but consistent with the "hidden dev
+        // gesture" pattern; does not collide with any existing gesture
+        // because the mode label is otherwise non-interactive.
+        if (modeLabel != null) {
+            modeLabel.setLongClickable(true);
+            modeLabel.setOnLongClickListener(v -> {
+                toggleDiagnosticOverlay();
+                return true;
+            });
+        }
+    }
+
+    /**
+     * Flip the diagnostic-overlay visibility and announce the new
+     * state via DrakoVoice so visually-impaired devs can tell the
+     * gesture landed. Called from the UI thread (long-press callback).
+     */
+    private void toggleDiagnosticOverlay() {
+        diagnosticVisible = !diagnosticVisible;
+        if (diagnosticOverlay != null) {
+            diagnosticOverlay.setVisibility(
+                    diagnosticVisible ? View.VISIBLE : View.GONE);
+            if (!diagnosticVisible) diagnosticOverlay.setText("");
+        }
+        Toast.makeText(this,
+                diagnosticVisible ? "Diagnostics ON" : "Diagnostics OFF",
+                Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -245,8 +314,48 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             Log.w(TAG, "Surface ready but one or more engine layers were not constructed; skipping main loop.");
             return;
         }
+        // Derive an aspect-preserving bitmap size the first time we see
+        // the TextureView dimensions. Stretching a 20:9 preview into a
+        // 4:3 bitmap was the dominant residual distance bias; by
+        // locking the bitmap height to the texture's real aspect, rows
+        // and the horizon stay where the LUT expects them.
+        applyBitmapSizeFromTexture(width, height);
         camera.start(surface);
         startMainLoop();
+    }
+
+    /**
+     * Chooses a bitmap width+height that matches the TextureView's
+     * aspect ratio, capped by DEFAULT_BITMAP_W on the long edge so the
+     * per-frame JNI pixel cost stays bounded. Result is published to
+     * ImageProcessor and TriangulationEngine so both the 3-column scan
+     * and the pinhole bearing math use the same coordinate system.
+     *
+     * Fallback: if texWidth or texHeight is non-positive (can happen
+     * in rare Samsung preview reconfig paths), we keep the current
+     * active size rather than propagating a divide-by-zero.
+     */
+    private void applyBitmapSizeFromTexture(int texWidth, int texHeight) {
+        if (texWidth <= 0 || texHeight <= 0) return;
+        int targetW;
+        int targetH;
+        if (texWidth >= texHeight) {
+            targetW = DEFAULT_BITMAP_W;
+            targetH = Math.max(
+                    1, Math.round((float) DEFAULT_BITMAP_W * texHeight / texWidth));
+        } else {
+            // Portrait preview (rare on TextureView but defensive).
+            targetH = DEFAULT_BITMAP_W;
+            targetW = Math.max(
+                    1, Math.round((float) DEFAULT_BITMAP_W * texWidth / texHeight));
+        }
+        if (targetW == activeBitmapW && targetH == activeBitmapH) return;
+        activeBitmapW = targetW;
+        activeBitmapH = targetH;
+        if (processor != null) processor.setFrameSize(targetW, targetH);
+        if (engine != null)    engine.setFrameSize(targetW, targetH);
+        Log.i(TAG, "Bitmap size -> " + targetW + "x" + targetH
+                + " (texture " + texWidth + "x" + texHeight + ")");
     }
 
     /**
@@ -271,11 +380,17 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             @Override
             public void run() {
                 while (!isFinishing()) {
-                    // Fix 6: getBitmap() must be called from the UI thread
+                    // Fix 6: getBitmap() must be called from the UI thread.
+                    // Size is the aspect-preserving active bitmap computed
+                    // from the TextureView geometry in onSurfaceTextureAvailable;
+                    // re-reading the volatile each iteration picks up any
+                    // subsequent surface-size changes without racing.
                     final Bitmap[] frameHolder = new Bitmap[1];
+                    final int bmW = activeBitmapW;
+                    final int bmH = activeBitmapH;
                     runOnUiThread(() -> {
                         if (textureView.isAvailable()) {
-                            frameHolder[0] = textureView.getBitmap(640, 480);
+                            frameHolder[0] = textureView.getBitmap(bmW, bmH);
                         }
                     });
 
@@ -297,6 +412,72 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
                 }
             }
         }).start();
+    }
+
+    /**
+     * Build + post the diagnostic overlay string for this frame. Pitch
+     * comes from HardwareHAL's smoothed accelerometer reading, LUT
+     * point count + profile flag come from FiducialLUT, and the
+     * GhostAnchor shift is the raw centroid delta from
+     * {@link OdometryManager#calculateVisualShift}. Rendered into a
+     * single multi-line monospace string so field operators can
+     * scan-read which layer is flickering.
+     *
+     * Called only when the toggle is on; the cost is one format +
+     * one setText on the UI thread. The obstacles reference is passed
+     * through from processNavigationFrame so we do not redundantly
+     * re-scan the frame here.
+     */
+    private void publishDiagnostics(int baseY, int centerX, float widthPx,
+                                    float detConfidence, float shiftMag,
+                                    TriangulationEngine.SpatialOutput groundRes,
+                                    TriangulationEngine.SpatialOutput hangRes) {
+        if (diagnosticOverlay == null) return;
+
+        // Pull once per frame; HAL fields are already volatile so
+        // reads are cheap. Missing HAL (init failure) drops to 0 so
+        // the overlay still renders something.
+        float pitchRad = (hal != null) ? hal.getPitchRadians() : 0f;
+        float pitchDeg = (float) Math.toDegrees(pitchRad);
+        float focalPx  = (hal != null) ? hal.getFocalLengthPx(activeBitmapW) : 0f;
+
+        boolean trainedProfile = (lut != null) && lut.isUsingTrainedProfile();
+        int lutPoints          = (lut != null) ? lut.getPointCount() : 0;
+        float rawRowDist       = (lut != null)
+                ? lut.getDistanceFromRowWithPitch(baseY, pitchRad, focalPx) : -1f;
+        float rawWidthDist     = (lut != null && widthPx > 0f)
+                ? lut.getDistanceFromWidth(widthPx) : -1f;
+
+        float groundDist = groundRes != null ? groundRes.distanceM  : Float.NaN;
+        float groundBear = groundRes != null ? groundRes.bearingDeg : Float.NaN;
+        float groundSane = groundRes != null ? groundRes.sanityScore : 0f;
+
+        String msg = String.format(java.util.Locale.US,
+                "AURIGA DIAG\n"
+                + "bitmap   : %dx%d\n"
+                + "pitch    : %6.2f deg (%.4f rad)\n"
+                + "focalPx  : %7.1f\n"
+                + "baseY    : %4d   centerX : %4d\n"
+                + "widthPx  : %6.1f  conf    : %5.2f\n"
+                + "rowDist  : %5.2f m  widthD  : %5.2f m\n"
+                + "ground   : %5.2f m @ %+6.1f deg\n"
+                + "sanity   : %4.2f   shift   : %5.2f px\n"
+                + "profile  : %s (%d pts)",
+                activeBitmapW, activeBitmapH,
+                pitchDeg, pitchRad,
+                focalPx,
+                baseY, centerX,
+                widthPx, detConfidence,
+                rawRowDist, rawWidthDist,
+                groundDist, groundBear,
+                groundSane, shiftMag,
+                trainedProfile ? "trained" : "synthetic", lutPoints);
+
+        runOnUiThread(() -> {
+            if (diagnosticOverlay != null && diagnosticVisible) {
+                diagnosticOverlay.setText(msg);
+            }
+        });
     }
 
     private void processNavigationFrame(Bitmap frame) {
@@ -347,6 +528,13 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
                 engine.calculateGroundDistance(baseY, centerX, widthPx);
         final TriangulationEngine.SpatialOutput hangRes =
                 engine.calculateSuspendedHeight(hangY, centerX);
+
+        // 4.5 Publish per-frame diagnostics if the overlay is enabled.
+        // Cheap: only builds the string when the toggle is on, so
+        // zero overhead on end-user devices with the overlay hidden.
+        if (diagnosticVisible) publishDiagnostics(
+                baseY, centerX, widthPx, detConfidence, shiftMag,
+                groundRes, hangRes);
 
         // 5. Feedback & HUD Update. Confidence from the detector is
         //    multiplied into the sanityScore from the engine so a frame
@@ -406,6 +594,28 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             "https://www.drakosanctis.com/data/calibration_profiles.json",
             "https://auriga-calibration.netlify.app/data/calibration_profiles.json"
     };
+
+    /**
+     * Synchronous boot-time load of the bundled profile asset. Runs on
+     * the main thread during onCreate so the FiducialLUT has
+     * device-matching anchors before the first frame ticks. A missing
+     * asset is the common case on non-dev devices and is a silent
+     * no-op. Any profile loaded here will be overwritten by the
+     * network fetch once it resolves.
+     */
+    private void loadBundledCalibrationProfile() {
+        if (lut == null) return;
+        String model = Build.MODEL == null ? "" : Build.MODEL.trim();
+        String manufacturer =
+                Build.MANUFACTURER == null ? "" : Build.MANUFACTURER.trim();
+        if (model.isEmpty()) return;
+        String assetPath = "default_profile_" + model + ".json";
+        boolean loaded = lut.loadFromAssetJson(
+                this, assetPath, manufacturer, model);
+        if (loaded) {
+            Log.i(TAG, "Loaded bundled calibration profile: " + assetPath);
+        }
+    }
 
     private void fetchCalibrationProfileAsync() {
         final String model = Build.MODEL == null ? "" : Build.MODEL.trim();
@@ -503,7 +713,14 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     }
 
     @Override
-    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) { }
+    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+        // Preview can reconfigure mid-session on Samsung after a
+        // rotate / camera swap; keep the bitmap target aligned so a
+        // resized surface does not reintroduce the aspect-stretch
+        // bias. applyBitmapSizeFromTexture is a no-op if the target
+        // already matches.
+        applyBitmapSizeFromTexture(width, height);
+    }
     @Override
     public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
         // Fires during teardown regardless of init outcome; skip cleanly if

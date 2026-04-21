@@ -1,0 +1,23 @@
+[
+  {
+    "manufacturer": "samsung",
+    "model": "SM-A057F",
+    "codename": "a05s",
+    "approved": true,
+    "notes": "PLACEHOLDER seed profile. Calibration values are the 640x480 synthetic defaults rescaled to a 640x288 aspect-preserving bitmap (preview 1600x720 downsampled width-first). Replace with real 10-point walk measurements once captured on the target device. This bundled fallback is loaded at boot BEFORE the remote calibration-library fetch; any approved entry in the network JSON overrides it.",
+    "reference_frame_width": 640,
+    "reference_frame_height": 288,
+    "calibration_points": [
+      { "distanceM": 0.5, "pixelWidth": 800.0, "pixelRow": 276.0 },
+      { "distanceM": 1.0, "pixelWidth": 400.0, "pixelRow": 240.0 },
+      { "distanceM": 1.5, "pixelWidth": 266.0, "pixelRow": 216.0 },
+      { "distanceM": 2.0, "pixelWidth": 200.0, "pixelRow": 198.0 },
+      { "distanceM": 2.5, "pixelWidth": 160.0, "pixelRow": 186.0 },
+      { "distanceM": 3.0, "pixelWidth": 133.0, "pixelRow": 177.0 },
+      { "distanceM": 3.5, "pixelWidth": 114.0, "pixelRow": 171.0 },
+      { "distanceM": 4.0, "pixelWidth": 100.0, "pixelRow": 165.0 },
+      { "distanceM": 4.5, "pixelWidth":  89.0, "pixelRow": 161.0 },
+      { "distanceM": 5.0, "pixelWidth":  80.0, "pixelRow": 157.0 }
+    ]
+  }
+]

@@ -1,5 +1,14 @@
 package com.drakosanctis.auriga;
 
+import android.content.Context;
+import android.content.res.AssetManager;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -136,6 +145,86 @@ public class FiducialLUT {
 
     public int getPointCount() {
         return points.size();
+    }
+
+    /**
+     * Bundled-asset fallback profile loader. Boot order is:
+     *   1. synthetic constructor defaults (640x480 reference);
+     *   2. bundled asset {@code default_profile_<Build.MODEL>.json} if
+     *      present (written pre-release once a device is calibrated
+     *      in-house);
+     *   3. remotely-fetched profile from the calibration-library
+     *      mirror, which overwrites 2 when it arrives;
+     *   4. on-device 10-point calibration by the user, which overwrites
+     *      3 via {@link #loadProfile(List)}.
+     *
+     * Schema matches the network profile: a JSON array of objects with
+     * a {@code calibration_points} array of {@code distanceM,
+     * pixelWidth, pixelRow} entries. Multi-entry arrays are supported
+     * so one asset can serve several related models (e.g., SM-A057F
+     * and SM-A057M).
+     *
+     * Returns true iff a usable profile was parsed and loaded.
+     */
+    public boolean loadFromAssetJson(Context ctx, String assetPath,
+                                     String manufacturer, String model) {
+        if (ctx == null || assetPath == null) return false;
+        AssetManager assets = ctx.getAssets();
+        if (assets == null) return false;
+        String body;
+        try (InputStream in = assets.open(assetPath);
+             BufferedReader r = new BufferedReader(new InputStreamReader(in))) {
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = r.readLine()) != null) sb.append(line);
+            body = sb.toString();
+        } catch (Throwable t) {
+            // Asset not present is the common path on non-calibrated
+            // devices; do not treat that as an error.
+            return false;
+        }
+        List<TrainingPoint> matched = parseProfileJson(body, manufacturer, model);
+        if (matched == null || matched.size() < 2) return false;
+        loadProfile(matched);
+        return true;
+    }
+
+    /**
+     * Shared JSON parser used by both the bundled-asset loader above
+     * and {@code MainActivity.fetchCalibrationProfileAsync}. The
+     * network fetch has its own copy today (pre-refactor); this one
+     * lives on the LUT so non-UI callers (tests, background services)
+     * do not need to depend on the MainActivity.
+     */
+    public static List<TrainingPoint> parseProfileJson(
+            String json, String manufacturer, String model) {
+        try {
+            JSONArray arr = new JSONArray(json);
+            String wantedManu = manufacturer == null ? "" : manufacturer.trim();
+            String wantedModel = model == null ? "" : model.trim();
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject row = arr.getJSONObject(i);
+                if (!row.optBoolean("approved", false)) continue;
+                String rowManu = row.optString("manufacturer", "").trim();
+                String rowModel = row.optString("model", "").trim();
+                boolean manuMatches = rowManu.isEmpty()
+                        || wantedManu.equalsIgnoreCase(rowManu);
+                boolean modelMatches = wantedModel.equalsIgnoreCase(rowModel);
+                if (!(manuMatches && modelMatches)) continue;
+                JSONArray pts = row.optJSONArray("calibration_points");
+                if (pts == null) continue;
+                List<TrainingPoint> out = new ArrayList<>(pts.length());
+                for (int j = 0; j < pts.length(); j++) {
+                    JSONObject p = pts.getJSONObject(j);
+                    out.add(new TrainingPoint(
+                            (float) p.getDouble("distanceM"),
+                            (float) p.getDouble("pixelWidth"),
+                            (float) p.getDouble("pixelRow")));
+                }
+                return out;
+            }
+        } catch (Throwable ignored) { }
+        return null;
     }
 
     public void persist() {

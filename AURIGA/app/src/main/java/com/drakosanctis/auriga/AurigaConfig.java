@@ -98,6 +98,80 @@ public class AurigaConfig {
         return CURRENT_PRODUCT == Product.SENTINEL;
     }
 
+    // --- PHASE 1-7 VARIANT FEATURE GATES ---
+    //
+    // These gates decide which Phase-1+ modules are wired into a given
+    // product's APK. They are driven purely by CURRENT_PRODUCT so the
+    // same core engine can ship as four specialised sub-apps (Navi full
+    // suite, Sentinel security focus, Aero mobility focus, Industrial
+    // scanning focus) without parallel code forks. Each Phase checks
+    // the relevant flag before instantiating its own activity /
+    // detector / download manager, so unused features drop out of the
+    // build path entirely and do not consume RAM, model weights, or
+    // permissions on variants that do not need them.
+
+    /**
+     * TargetLocator: Object-Locator-style "find my thing" narration.
+     * User selects COCO classes; the camera pipeline narrates bearing
+     * and distance for every instance on screen. Ships in Navi (full
+     * suite) and Aero (mobility); Industrial gets the detector later
+     * as a barcode-aid; Sentinel does not need a live object finder.
+     */
+    public static boolean hasTargetLocator() {
+        return CURRENT_PRODUCT == Product.NAVI
+                || CURRENT_PRODUCT == Product.AERO;
+    }
+
+    /**
+     * OCR: camera-over-text reading via PaddleOCR + Piper TTS.
+     * Navi uses it for signage / menus / labels; Industrial uses it
+     * for package labels, work orders, and shipping barcodes. Sentinel
+     * and Aero do not ship an OCR surface.
+     */
+    public static boolean hasOCR() {
+        return CURRENT_PRODUCT == Product.NAVI
+                || CURRENT_PRODUCT == Product.INDUSTRIAL;
+    }
+
+    /**
+     * BookReader: EPUB / PDF / scanned-page voice reading.
+     * Navi only. Security, mobility, and warehouse variants do not
+     * bundle the parser or the extra voices; keeps their APKs small.
+     */
+    public static boolean hasBookReader() {
+        return CURRENT_PRODUCT == Product.NAVI;
+    }
+
+    /**
+     * SceneDescription: template-based + optional Moondream-2 caption.
+     * Navi only today; may extend to Sentinel for "what is the camera
+     * seeing at the front door" in a future phase.
+     */
+    public static boolean hasSceneDescription() {
+        return CURRENT_PRODUCT == Product.NAVI;
+    }
+
+    /**
+     * FaceRecognition: local InsightFace ArcFace gallery.
+     * Sentinel is the primary target (security / known-visitor
+     * recognition). Navi also ships it for "who is in front of me"
+     * accessibility prompts. No uploads; gallery stays on-device.
+     */
+    public static boolean hasFaceRecognition() {
+        return CURRENT_PRODUCT == Product.NAVI
+                || CURRENT_PRODUCT == Product.SENTINEL;
+    }
+
+    /**
+     * BarcodeScan: ZXing + Open Food Facts mirror.
+     * Industrial flavor's core scanning loop; Navi also ships it for
+     * grocery / product identification in the reading surface.
+     */
+    public static boolean hasBarcodeScan() {
+        return CURRENT_PRODUCT == Product.NAVI
+                || CURRENT_PRODUCT == Product.INDUSTRIAL;
+    }
+
     // --- BRANDING ---
     public static final String COMPANY_NAME = "DrakoSanctis";
     public static final String TAGLINE = "See Beyond Sight";
