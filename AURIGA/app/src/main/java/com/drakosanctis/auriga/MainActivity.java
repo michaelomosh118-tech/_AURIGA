@@ -53,22 +53,37 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         // kill the whole app on launch. Anything that throws is logged via
         // AurigaApplication's crash handler and surfaced as a Toast so users
         // on Samsung/Knox devices can read the failure without adb.
-        if (!initStep("setContentView",    () -> setContentView(R.layout.activity_main))) return;
-        if (!initStep("initUI",            this::initUI))                                 return;
-        if (!initStep("applyVariantStyling", this::applyVariantStyling))                  return;
+        // Structural UI: if these throw there is no viable HUD, so bail out
+        // after the Toast fires rather than wiring SurfaceTextureListener
+        // callbacks that will crash later against partially-constructed
+        // engine state.
+        if (!initStep("setContentView", () -> setContentView(R.layout.activity_main))) return;
+        if (!initStep("initUI",          this::initUI))                                return;
 
-        initStep("lut",                 () -> lut = new FiducialLUT());
-        initStep("hal",                 () -> hal = new HardwareHAL(this));
-        initStep("licenseManager",      () -> licenseManager = new LicenseManager(this));
-        initStep("detector",            () -> detector = new ColorSquareDetector(120.0f, 15.0f));
-        initStep("calibrationManager",  () -> calibrationManager = new CalibrationManager(lut, detector));
-        initStep("engine",              () -> engine = new TriangulationEngine(lut, hal));
-        initStep("processor",           () -> processor = new ImageProcessor());
-        initStep("odometry",            () -> odometry = new OdometryManager());
-        initStep("voice",               () -> voice = new DrakoVoice(this));
-        initStep("sonar",               () -> sonar = new SonarManager());
-        initStep("haptic",              () -> haptic = new HapticManager(this));
-        initStep("camera",              () -> camera = new CameraService(this));
+        // Engine layers. Order matters: calibrationManager depends on lut +
+        // detector, engine depends on lut + hal, applyVariantStyling depends
+        // on calibrationManager. Each runs best-effort so a single failure
+        // does not cascade — e.g. if DrakoVoice's TextToSpeech init throws
+        // because the device has no en-US language pack, the HUD still comes
+        // up and the voice layer is simply inert.
+        initStep("lut",                () -> lut = new FiducialLUT());
+        initStep("hal",                () -> hal = new HardwareHAL(this));
+        initStep("licenseManager",     () -> licenseManager = new LicenseManager(this));
+        initStep("detector",           () -> detector = new ColorSquareDetector(120.0f, 15.0f));
+        initStep("calibrationManager", () -> calibrationManager = new CalibrationManager(lut, detector));
+        initStep("engine",             () -> engine = new TriangulationEngine(lut, hal));
+        initStep("processor",          () -> processor = new ImageProcessor());
+        initStep("odometry",           () -> odometry = new OdometryManager());
+        initStep("voice",              () -> voice = new DrakoVoice(this));
+        initStep("sonar",              () -> sonar = new SonarManager());
+        initStep("haptic",             () -> haptic = new HapticManager(this));
+        initStep("camera",             () -> camera = new CameraService(this));
+
+        // Variant styling reads calibrationManager.getState(), so must run
+        // AFTER the engine-layer block above. Previously this ran before the
+        // engine block and NPE'd on every launch — which was the real cause
+        // of the A07 "instant crash on tap" the user reported.
+        initStep("applyVariantStyling", this::applyVariantStyling);
 
         // Security Heartbeat Check
         initStep("validateLicense", () -> {
@@ -141,9 +156,13 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
      */
     private void applyVariantStyling() {
         String variantName = "AURIGA " + AurigaConfig.CURRENT_PRODUCT.name();
-        String modeDesc = (calibrationManager.getState() == CalibrationManager.State.DETECTING) 
-                ? "CALIBRATION" : "SPATIAL ENGINE";
-        
+        // Null-safe state read: if the calibration manager failed to init we
+        // still want the HUD to render, just with the default SPATIAL ENGINE
+        // label instead of aborting styling entirely.
+        boolean detecting = calibrationManager != null
+                && calibrationManager.getState() == CalibrationManager.State.DETECTING;
+        String modeDesc = detecting ? "CALIBRATION" : "SPATIAL ENGINE";
+
         modeLabel.setText(variantName + " // " + modeDesc);
 
         // Variant-specific UI tweaks
@@ -170,6 +189,13 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
 
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+        // camera/engine layers may be null if their initStep failed; guard so
+        // we surface the original init failure (already Toast'd + logged)
+        // instead of a noisier secondary NPE on the surface callback.
+        if (camera == null) {
+            Log.w(TAG, "Surface ready but camera layer was not constructed; skipping main loop.");
+            return;
+        }
         camera.start(surface);
         startMainLoop();
     }
