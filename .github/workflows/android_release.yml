@@ -194,19 +194,19 @@ jobs:
       - name: Mirror release to public auriga-releases repo
         if: ${{ env.HAS_MIRROR_TOKEN == 'true' }}
         env:
-          PUBLIC_RELEASES_TOKEN: ${{ secrets.AURIGA_PUBLIC_RELEASES_TOKEN }}
+          # Setting GH_TOKEN directly lets the gh CLI authenticate as the PAT
+          # without calling `gh auth login --with-token`, which insists on a
+          # `read:org` scope the mirror PAT has no business holding.
+          GH_TOKEN: ${{ secrets.AURIGA_PUBLIC_RELEASES_TOKEN }}
           RELEASE_TAG: ${{ needs.build-and-publish.outputs.release_tag }}
           MIRROR_REPO: michaelomosh118-tech/auriga-releases
         run: |
           set -euo pipefail
           echo "Mirroring $RELEASE_TAG to $MIRROR_REPO ..."
-          # Authenticate gh CLI against the mirror repo using the PAT.
-          echo "$PUBLIC_RELEASES_TOKEN" | gh auth login --with-token
           # Idempotent: delete any preexisting release with this tag, then
           # recreate with the freshly-built artifacts. We do NOT delete the
-          # remote git tag because the mirror repo may not have commits for
-          # arbitrary version tags, and `gh release create` will create a
-          # tag-on-default-branch on its own.
+          # associated git tag on the mirror repo — `gh release create` will
+          # either reuse an existing tag or create a tag-on-default-branch.
           if gh release view "$RELEASE_TAG" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
             echo "Existing release $RELEASE_TAG found on $MIRROR_REPO — deleting to replace."
             gh release delete "$RELEASE_TAG" --repo "$MIRROR_REPO" --yes || true
