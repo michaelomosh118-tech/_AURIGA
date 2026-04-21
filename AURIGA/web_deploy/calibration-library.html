@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DrakoSanctis | Auriga Calibration Library</title>
+    <meta name="description" content="Accessibility calibration presets for Auriga. Browse 115+ phone profiles or contribute your own — skip the visual 10-point TruePath™ square calibration if you are visually impaired.">
+    <link rel="icon" href="logo.png">
+    <style>
+        :root {
+            --auriga-cyan:    #00ffff;
+            --alert-red:      #ff0033;
+            --hud-text:       #8cffff;
+            --hud-bg:         #000a0e;
+            --hud-bg-2:       #001018;
+            --hud-border:     rgba(0,255,255,0.25);
+            --hud-border-hi:  rgba(0,255,255,0.6);
+            --warn-amber:     #ffaa00;
+            --ok-green:       #44ff88;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            background: var(--hud-bg);
+            color: var(--hud-text);
+            font-family: 'Courier New', Courier, ui-monospace, monospace;
+            min-height: 100vh;
+        }
+        body {
+            background-image:
+                radial-gradient(ellipse at top left,  rgba(0,255,255,0.06), transparent 60%),
+                radial-gradient(ellipse at bottom right, rgba(255,0,51,0.04), transparent 60%);
+        }
+        a { color: var(--auriga-cyan); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        h1, h2, h3 { font-family: 'Courier New', Courier, monospace; letter-spacing: 0.04em; }
+
+        /* Skip link */
+        .skip-link {
+            position: absolute; left: -1000px; top: 12px;
+            background: var(--auriga-cyan); color: #000;
+            padding: 8px 12px; z-index: 10000;
+        }
+        .skip-link:focus { left: 12px; }
+
+        /* Top bar */
+        .topbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 18px 28px;
+            border-bottom: 1px solid var(--hud-border);
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(6px);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .topbar .brand { display: flex; align-items: center; gap: 10px; font-weight: bold; color: var(--alert-red); }
+        .topbar .brand img { height: 32px; }
+        .topbar nav a { margin-left: 22px; font-size: 14px; letter-spacing: 0.08em; }
+        .topbar nav a.cta { color: var(--alert-red); }
+        @media (max-width: 700px) {
+            .topbar { flex-direction: column; gap: 10px; padding: 12px; }
+            .topbar nav a { margin: 0 10px; }
+        }
+
+        /* Hero */
+        .hero {
+            padding: 56px 28px 28px;
+            max-width: 1100px; margin: 0 auto;
+        }
+        .hero .kicker {
+            color: var(--alert-red); letter-spacing: 0.2em; font-size: 12px;
+        }
+        .hero h1 {
+            font-size: 38px; color: var(--auriga-cyan); margin: 6px 0 14px;
+            text-shadow: 0 0 18px rgba(0,255,255,0.35);
+        }
+        .hero p { font-size: 15px; line-height: 1.6; max-width: 780px; opacity: 0.95; }
+        .hero .why {
+            margin-top: 18px; padding: 14px 16px;
+            border-left: 3px solid var(--warn-amber);
+            background: rgba(255,170,0,0.06);
+            color: #ffe7b0; font-size: 14px; line-height: 1.55;
+            max-width: 780px;
+        }
+
+        /* Search row */
+        .search-row {
+            max-width: 1100px; margin: 24px auto 0;
+            padding: 0 28px; display: grid;
+            grid-template-columns: 1fr 220px 180px;
+            gap: 12px;
+        }
+        @media (max-width: 820px) {
+            .search-row { grid-template-columns: 1fr; }
+        }
+        input[type="text"], select {
+            width: 100%;
+            background: var(--hud-bg-2);
+            color: var(--hud-text);
+            border: 1px solid var(--hud-border);
+            padding: 12px 14px;
+            font-family: inherit; font-size: 14px;
+            outline: none;
+        }
+        input[type="text"]:focus, select:focus {
+            border-color: var(--auriga-cyan);
+            box-shadow: 0 0 0 2px rgba(0,255,255,0.25);
+        }
+        input[type="text"]::placeholder { color: rgba(140,255,255,0.4); }
+
+        /* Chip bar */
+        .chips {
+            max-width: 1100px; margin: 14px auto 0;
+            padding: 0 28px; display: flex; flex-wrap: wrap; gap: 8px;
+        }
+        .chip {
+            background: transparent;
+            color: var(--hud-text);
+            border: 1px solid var(--hud-border);
+            padding: 6px 12px;
+            font-family: inherit; font-size: 12px;
+            letter-spacing: 0.08em; text-transform: uppercase;
+            cursor: pointer;
+        }
+        .chip.active, .chip:hover {
+            background: var(--auriga-cyan); color: #000;
+            border-color: var(--auriga-cyan);
+        }
+
+        /* Results summary */
+        .summary {
+            max-width: 1100px; margin: 18px auto 0;
+            padding: 0 28px; font-size: 13px; color: var(--hud-text); opacity: 0.7;
+        }
+
+        /* Profile grid */
+        .grid {
+            max-width: 1100px; margin: 8px auto 40px;
+            padding: 14px 28px; display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 14px;
+        }
+        .card {
+            background: var(--hud-bg-2);
+            border: 1px solid var(--hud-border);
+            padding: 14px 16px;
+            position: relative;
+            transition: border-color 0.15s, transform 0.15s;
+        }
+        .card:hover {
+            border-color: var(--hud-border-hi);
+            transform: translateY(-1px);
+        }
+        .card .mfr {
+            font-size: 11px; letter-spacing: 0.15em;
+            color: var(--auriga-cyan); text-transform: uppercase;
+        }
+        .card .model {
+            font-size: 17px; font-weight: bold;
+            color: #fff; margin: 4px 0 2px;
+        }
+        .card .codename {
+            font-size: 11px; opacity: 0.6;
+            font-family: ui-monospace, monospace;
+        }
+        .card .badges { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+        .badge {
+            font-size: 10px; letter-spacing: 0.1em;
+            padding: 2px 8px; border: 1px solid var(--hud-border);
+            text-transform: uppercase;
+        }
+        .badge.os-android { border-color: var(--ok-green); color: var(--ok-green); }
+        .badge.os-ios     { border-color: var(--warn-amber); color: var(--warn-amber); }
+        .badge.os-harmony { border-color: var(--alert-red); color: var(--alert-red); }
+        .badge.approved   { border-color: var(--ok-green); color: var(--ok-green); }
+        .card .spec-grid {
+            margin-top: 12px; display: grid;
+            grid-template-columns: 1fr 1fr; gap: 6px 12px;
+            font-size: 12px;
+        }
+        .card .spec-grid .k { opacity: 0.55; }
+        .card .spec-grid .v { color: #fff; }
+        .card details {
+            margin-top: 10px; font-size: 12px;
+            border-top: 1px dashed var(--hud-border); padding-top: 8px;
+        }
+        .card details summary { cursor: pointer; color: var(--auriga-cyan); }
+        .card details pre {
+            margin-top: 6px; padding: 8px;
+            background: rgba(0,0,0,0.4);
+            font-size: 11px; overflow-x: auto;
+            color: #aef;
+        }
+        .card .notes {
+            margin-top: 10px; padding: 6px 8px;
+            background: rgba(255,170,0,0.08);
+            border-left: 2px solid var(--warn-amber);
+            font-size: 11px; color: #ffe7b0;
+        }
+
+        /* Empty state */
+        .empty {
+            max-width: 1100px; margin: 40px auto;
+            padding: 40px 28px; text-align: center;
+            border: 1px dashed var(--hud-border);
+        }
+        .empty h3 { color: var(--warn-amber); margin-bottom: 8px; }
+
+        /* Contribute section */
+        .contribute {
+            max-width: 1100px; margin: 30px auto 60px;
+            padding: 32px 28px;
+            border: 1px solid var(--hud-border);
+            background: var(--hud-bg-2);
+        }
+        .contribute h2 {
+            color: var(--alert-red); font-size: 22px; margin-bottom: 10px;
+            letter-spacing: 0.08em;
+        }
+        .contribute .flow {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 10px; margin: 18px 0 24px;
+        }
+        @media (max-width: 820px) {
+            .contribute .flow { grid-template-columns: 1fr 1fr; }
+        }
+        .flow-step {
+            padding: 10px 12px;
+            border: 1px solid var(--hud-border);
+            font-size: 12px;
+        }
+        .flow-step .step-n {
+            font-size: 18px; color: var(--auriga-cyan); font-weight: bold;
+        }
+        .contribute form { display: grid; gap: 12px; margin-top: 8px; }
+        .contribute label {
+            display: block; font-size: 12px; letter-spacing: 0.08em;
+            text-transform: uppercase; opacity: 0.75; margin-bottom: 4px;
+        }
+        .contribute .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 700px) { .contribute .row2 { grid-template-columns: 1fr; } }
+        .contribute textarea {
+            width: 100%; min-height: 80px;
+            background: var(--hud-bg); color: var(--hud-text);
+            border: 1px solid var(--hud-border);
+            padding: 10px; font-family: inherit; font-size: 13px;
+            resize: vertical;
+        }
+        .contribute button[type="submit"] {
+            justify-self: start;
+            background: var(--alert-red); color: #fff;
+            border: none; padding: 12px 28px;
+            font-family: inherit; font-weight: bold;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            cursor: pointer;
+        }
+        .contribute button[type="submit"]:hover { background: #ff1a4a; }
+        .contribute .small {
+            font-size: 11px; opacity: 0.6; margin-top: 8px;
+        }
+
+        /* Footer */
+        footer {
+            max-width: 1100px; margin: 0 auto; padding: 20px 28px 40px;
+            font-size: 11px; opacity: 0.6; text-align: center;
+            border-top: 1px solid var(--hud-border);
+        }
+    </style>
+</head>
+<body>
+
+<a href="#search" class="skip-link">Skip to search</a>
+
+<header class="topbar" role="banner">
+    <div class="brand">
+        <img src="logo.png" alt="" onerror="this.style.display='none'">
+        DRAKOSANCTIS // AURIGA
+    </div>
+    <nav aria-label="Primary">
+        <a href="index.html">HOME</a>
+        <a href="index.html#ecosystem">ECOSYSTEM</a>
+        <a href="#library" class="cta">CALIBRATION LIBRARY</a>
+        <a href="#contribute">CONTRIBUTE</a>
+    </nav>
+</header>
+
+<section class="hero" id="library">
+    <div class="kicker">AURIGA // ACCESSIBILITY CALIBRATION</div>
+    <h1>Pre-Calibrated Phone Library</h1>
+    <p>
+        Auriga's TruePath™ distance engine normally requires a one-time 10-point
+        visual calibration using a physical 20×20cm colored square. For users who
+        are <strong>blind or visually impaired</strong> — the people Auriga exists
+        to serve — the visual square is a barrier, not a tool.
+    </p>
+    <p style="margin-top:10px;">
+        This library bypasses that step: pick your phone model from the list
+        below and Auriga loads DrakoSanctis-certified preset measurements
+        directly into the algorithm. All presets are sourced from manufacturer
+        spec sheets (<code>source: oem_spec</code>) and human-population averages
+        (<code>source: derived</code>) — never guessed.
+    </p>
+    <div class="why">
+        <strong>Don't see your phone?</strong> Scroll to the
+        <a href="#contribute">CONTRIBUTE</a> section. Submit your measurements
+        with a short reference video; the DrakoSanctis team reviews and
+        certifies every entry before it appears here. Unapproved contributions
+        are never shown to the public.
+    </div>
+</section>
+
+<div class="search-row" role="search">
+    <input id="q" type="text" placeholder="Search by manufacturer, model, codename…" autocomplete="off" aria-label="Search phone models">
+    <select id="osFilter" aria-label="Filter by OS">
+        <option value="">All operating systems</option>
+        <option value="Android">Android</option>
+        <option value="iOS">iOS (reference)</option>
+        <option value="HarmonyOS">HarmonyOS</option>
+    </select>
+    <select id="sortBy" aria-label="Sort by">
+        <option value="mfr">Sort: manufacturer</option>
+        <option value="year-desc">Sort: newest first</option>
+        <option value="year-asc">Sort: oldest first</option>
+        <option value="dpi-desc">Sort: highest DPI</option>
+    </select>
+</div>
+
+<div class="chips" id="mfrChips" role="group" aria-label="Filter by manufacturer"></div>
+
+<p class="summary" id="summary" aria-live="polite">Loading library…</p>
+
+<main class="grid" id="results" aria-label="Calibration profiles"></main>
+
+<div class="empty" id="empty" hidden>
+    <h3>No profiles match your search</h3>
+    <p>Try a broader search term, clear the manufacturer filter, or
+    <a href="#contribute">contribute your phone</a>.</p>
+</div>
+
+<!-- ═════ CONTRIBUTION FORM ═════════════════════════════════════════════
+     Uses Netlify Forms when the site is hosted on Netlify — zero-backend
+     form handling. On non-Netlify hosts the form falls back to mailto: via
+     the onSubmit handler below. Submissions are queued for DrakoSanctis
+     team review; only entries with approved:true ever land in the JSON.
+─────────────────────────────────────────────────────────────────────── -->
+<section class="contribute" id="contribute">
+    <h2>Contribute a Calibration Profile</h2>
+    <p>
+        Help build the most complete accessibility calibration library in the
+        industry. The DrakoSanctis certification team reviews every submission
+        for accuracy before publishing.
+    </p>
+
+    <div class="flow" aria-label="Contribution workflow">
+        <div class="flow-step"><div class="step-n">1</div> You submit specs + short video</div>
+        <div class="flow-step"><div class="step-n">2</div> Team reviews & measures independently</div>
+        <div class="flow-step"><div class="step-n">3</div> Approved entry is signed & added to JSON</div>
+        <div class="flow-step"><div class="step-n">4</div> Your phone auto-appears in the library</div>
+    </div>
+
+    <form name="auriga-calibration-contribution"
+          method="POST"
+          data-netlify="true"
+          data-netlify-honeypot="bot-field"
+          id="contribForm">
+        <input type="hidden" name="form-name" value="auriga-calibration-contribution">
+        <p hidden><label>Don't fill this out: <input name="bot-field"></label></p>
+
+        <div class="row2">
+            <div>
+                <label for="contrib-mfr">Manufacturer *</label>
+                <input id="contrib-mfr" name="manufacturer" type="text" placeholder="e.g. Samsung" required>
+            </div>
+            <div>
+                <label for="contrib-model">Model *</label>
+                <input id="contrib-model" name="model" type="text" placeholder="e.g. Galaxy A07" required>
+            </div>
+        </div>
+
+        <div class="row2">
+            <div>
+                <label for="contrib-codename">Model codename (SM-xxx, etc.)</label>
+                <input id="contrib-codename" name="codename" type="text" placeholder="e.g. SM-A075F">
+            </div>
+            <div>
+                <label for="contrib-os">Operating system</label>
+                <select id="contrib-os" name="os">
+                    <option>Android</option>
+                    <option>iOS</option>
+                    <option>HarmonyOS</option>
+                    <option>Other</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row2">
+            <div>
+                <label for="contrib-w">Screen width (pixels)</label>
+                <input id="contrib-w" name="screen_width_px" type="text" inputmode="numeric" placeholder="e.g. 2340">
+            </div>
+            <div>
+                <label for="contrib-h">Screen height (pixels)</label>
+                <input id="contrib-h" name="screen_height_px" type="text" inputmode="numeric" placeholder="e.g. 1080">
+            </div>
+        </div>
+
+        <div class="row2">
+            <div>
+                <label for="contrib-dpi">Screen DPI</label>
+                <input id="contrib-dpi" name="screen_dpi" type="text" inputmode="numeric" placeholder="e.g. 400">
+            </div>
+            <div>
+                <label for="contrib-inches">Screen size (inches)</label>
+                <input id="contrib-inches" name="screen_size_inches" type="text" inputmode="decimal" placeholder="e.g. 6.4">
+            </div>
+        </div>
+
+        <div class="row2">
+            <div>
+                <label for="contrib-fovh">Rear camera FOV horizontal (deg)</label>
+                <input id="contrib-fovh" name="camera_fov_horizontal_deg" type="text" inputmode="decimal" placeholder="e.g. 78">
+            </div>
+            <div>
+                <label for="contrib-fovv">Rear camera FOV vertical (deg)</label>
+                <input id="contrib-fovv" name="camera_fov_vertical_deg" type="text" inputmode="decimal" placeholder="e.g. 62">
+            </div>
+        </div>
+
+        <div>
+            <label for="contrib-video">Reference video URL (YouTube / Drive / Dropbox)</label>
+            <input id="contrib-video" name="reference_video_url" type="url" placeholder="https://...">
+        </div>
+
+        <div>
+            <label for="contrib-notes">Notes (how you measured, any quirks)</label>
+            <textarea id="contrib-notes" name="notes" placeholder="Measured with a printed 20cm square at 0.5m–5m in 0.5m increments…"></textarea>
+        </div>
+
+        <div class="row2">
+            <div>
+                <label for="contrib-name">Your name (public credit)</label>
+                <input id="contrib-name" name="contributor_name" type="text">
+            </div>
+            <div>
+                <label for="contrib-email">Your email (private; for follow-up) *</label>
+                <input id="contrib-email" name="contributor_email" type="email" required>
+            </div>
+        </div>
+
+        <button type="submit">SUBMIT FOR CERTIFICATION</button>
+        <p class="small">
+            Submissions land in a DrakoSanctis review queue. We respond within
+            48 business hours with either certification confirmation or clarifying
+            questions. Approved entries are committed to
+            <a href="https://github.com/michaelomosh118-tech/auriga-releases" target="_blank" rel="noopener">auriga-releases</a>
+            and picked up on the next website deploy.
+        </p>
+    </form>
+</section>
+
+<footer>
+    © <span id="year"></span> DrakoSanctis · Auriga Calibration Library ·
+    Schema <span id="schema"></span> · <a href="https://github.com/michaelomosh118-tech/auriga-releases/blob/main/INSTALL.md" target="_blank" rel="noopener">Install guide</a>
+</footer>
+
+<script>
+(function() {
+    "use strict";
+
+    const DATA_URL = "data/calibration_library.json";
+    const state = {
+        all: [],
+        filtered: [],
+        q: "",
+        os: "",
+        mfr: "",
+        sort: "mfr"
+    };
+
+    const $q      = document.getElementById("q");
+    const $osF    = document.getElementById("osFilter");
+    const $sortBy = document.getElementById("sortBy");
+    const $chips  = document.getElementById("mfrChips");
+    const $sum    = document.getElementById("summary");
+    const $grid   = document.getElementById("results");
+    const $empty  = document.getElementById("empty");
+    const $year   = document.getElementById("year");
+    const $schema = document.getElementById("schema");
+
+    $year.textContent = new Date().getFullYear();
+
+    function osBadgeClass(os) {
+        if (os === "iOS") return "os-ios";
+        if (os === "HarmonyOS") return "os-harmony";
+        return "os-android";
+    }
+
+    function render() {
+        // Apply filters to state.all -> state.filtered
+        const q = state.q.trim().toLowerCase();
+        state.filtered = state.all.filter(p => {
+            if (state.os && p.os !== state.os) return false;
+            if (state.mfr && p.manufacturer !== state.mfr) return false;
+            if (q) {
+                const hay = (p.manufacturer + " " + p.model + " " + (p.codename || "")).toLowerCase();
+                if (!hay.includes(q)) return false;
+            }
+            return true;
+        });
+
+        // Sort
+        state.filtered.sort((a, b) => {
+            switch (state.sort) {
+                case "year-desc": return (b.year || 0) - (a.year || 0);
+                case "year-asc":  return (a.year || 0) - (b.year || 0);
+                case "dpi-desc":  return (b.screen?.dpi || 0) - (a.screen?.dpi || 0);
+                default:
+                    return (a.manufacturer + a.model).localeCompare(b.manufacturer + b.model);
+            }
+        });
+
+        // Summary
+        $sum.textContent = `Showing ${state.filtered.length} of ${state.all.length} certified profiles`;
+
+        // Render cards
+        $grid.innerHTML = "";
+        if (state.filtered.length === 0) {
+            $empty.hidden = false;
+            return;
+        }
+        $empty.hidden = true;
+
+        const frag = document.createDocumentFragment();
+        state.filtered.forEach(p => frag.appendChild(card(p)));
+        $grid.appendChild(frag);
+    }
+
+    function card(p) {
+        const el = document.createElement("article");
+        el.className = "card";
+        el.setAttribute("aria-label", `${p.manufacturer} ${p.model} calibration profile`);
+        const notes = p.notes
+            ? `<div class="notes">${escapeHtml(p.notes)}</div>`
+            : "";
+        el.innerHTML = `
+            <div class="mfr">${escapeHtml(p.manufacturer)} · ${p.year || "—"}</div>
+            <div class="model">${escapeHtml(p.model)}</div>
+            <div class="codename">${escapeHtml(p.codename || "")}</div>
+            <div class="badges">
+                <span class="badge ${osBadgeClass(p.os)}">${escapeHtml(p.os || "Android")}</span>
+                ${p.approved ? '<span class="badge approved">certified</span>' : ""}
+            </div>
+            <div class="spec-grid">
+                <span class="k">Resolution</span><span class="v">${p.screen.width_px}×${p.screen.height_px}</span>
+                <span class="k">DPI</span><span class="v">${p.screen.dpi}</span>
+                <span class="k">Screen</span><span class="v">${p.screen.size_inches}" @ ${p.screen.refresh_rate_hz} Hz</span>
+                <span class="k">Cam FOV</span><span class="v">${p.camera.fov_horizontal_deg}° × ${p.camera.fov_vertical_deg}°</span>
+            </div>
+            ${notes}
+            <details>
+                <summary>Full JSON</summary>
+                <pre>${escapeHtml(JSON.stringify(p, null, 2))}</pre>
+            </details>
+        `;
+        return el;
+    }
+
+    function escapeHtml(s) {
+        if (s === null || s === undefined) return "";
+        return String(s)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    function buildChips() {
+        const mfrs = Array.from(new Set(state.all.map(p => p.manufacturer))).sort();
+        const all = document.createElement("button");
+        all.className = "chip active";
+        all.type = "button";
+        all.textContent = "All manufacturers";
+        all.addEventListener("click", () => {
+            state.mfr = "";
+            [...$chips.children].forEach(c => c.classList.remove("active"));
+            all.classList.add("active");
+            render();
+        });
+        $chips.appendChild(all);
+
+        mfrs.forEach(m => {
+            const c = document.createElement("button");
+            c.className = "chip";
+            c.type = "button";
+            c.textContent = m;
+            c.addEventListener("click", () => {
+                state.mfr = m;
+                [...$chips.children].forEach(x => x.classList.remove("active"));
+                c.classList.add("active");
+                render();
+            });
+            $chips.appendChild(c);
+        });
+    }
+
+    // Contribution form — if not hosted on Netlify, fall back to mailto:
+    // Netlify intercepts any POST with data-netlify="true" before this fires
+    // because it replaces the form action server-side. The submit event still
+    // runs client-side on non-Netlify hosts, where we want the mailto: path.
+    const $form = document.getElementById("contribForm");
+    $form.addEventListener("submit", function(e) {
+        // Heuristic: if we're on a Netlify-hosted domain, let the form submit
+        // normally. Otherwise (e.g. GitHub Pages / local server / custom
+        // non-Netlify host), intercept and open mailto: as a graceful fallback.
+        const host = location.hostname;
+        const onNetlify = /\.netlify\.app$/i.test(host) ||
+                          host === "drakosanctis.com" ||
+                          host === "www.drakosanctis.com";
+        if (onNetlify) return; // let Netlify handle it
+        e.preventDefault();
+        const fd = new FormData($form);
+        const lines = [];
+        fd.forEach((v, k) => { if (k !== "bot-field" && k !== "form-name" && v) lines.push(k + ": " + v); });
+        const body = encodeURIComponent(
+            "New Auriga Calibration Library submission:\n\n" + lines.join("\n") +
+            "\n\n--\nSubmitted from " + location.href
+        );
+        const subject = encodeURIComponent("[Auriga Calibration] " +
+            (fd.get("manufacturer") || "?") + " " + (fd.get("model") || "?"));
+        window.location.href = "mailto:calibration@drakosanctis.com?subject=" + subject + "&body=" + body;
+    });
+
+    // Event wiring
+    $q.addEventListener("input",  () => { state.q = $q.value; render(); });
+    $osF.addEventListener("change", () => { state.os = $osF.value; render(); });
+    $sortBy.addEventListener("change", () => { state.sort = $sortBy.value; render(); });
+
+    // Fetch library
+    fetch(DATA_URL, { cache: "no-store" })
+        .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+        .then(data => {
+            state.all = (data.profiles || []).filter(p => p.approved === true);
+            $schema.textContent = data.schema_version || "1.0";
+            buildChips();
+            render();
+        })
+        .catch(err => {
+            $sum.textContent = "Failed to load library: " + err.message;
+            console.error(err);
+        });
+})();
+</script>
+
+</body>
+</html>

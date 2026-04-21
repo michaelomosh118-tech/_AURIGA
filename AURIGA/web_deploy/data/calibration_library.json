@@ -1,0 +1,3574 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-04-21",
+  "profile_count": 115,
+  "ipd_population_default_mm": 63,
+  "notes": "Calibration presets for the Auriga accessibility fallback. Preset values bypass the visual 10-point TruePath square calibration for visually-impaired users.",
+  "profiles": [
+    {
+      "id": "56923dbffc",
+      "manufacturer": "Samsung",
+      "model": "Galaxy S24 Ultra",
+      "codename": "SM-S928B",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 3120,
+        "height_px": 1440,
+        "dpi": 505,
+        "size_inches": 6.8,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 81,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.4
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "b4cd706771",
+      "manufacturer": "Samsung",
+      "model": "Galaxy S24+",
+      "codename": "SM-S926B",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 3120,
+        "height_px": 1440,
+        "dpi": 513,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 81,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.0
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "63924e7319",
+      "manufacturer": "Samsung",
+      "model": "Galaxy S24",
+      "codename": "SM-S921B",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 2340,
+        "height_px": 1080,
+        "dpi": 416,
+        "size_inches": 6.2,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 81,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.7
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "c935a415a3",
+      "manufacturer": "Samsung",
+      "model": "Galaxy S23 Ultra",
+      "codename": "SM-S918B",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 3088,
+        "height_px": 1440,
+        "dpi": 500,
+        "size_inches": 6.8,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 81,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.7
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "563723b85b",
+      "manufacturer": "Samsung",
+      "model": "Galaxy S23+",
+      "codename": "SM-S916B",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2340,
+        "height_px": 1080,
+        "dpi": 393,
+        "size_inches": 6.6,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 81,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.5
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "c7f0b09d46",
+      "manufacturer": "Samsung",
+      "model": "Galaxy S23",
+      "codename": "SM-S911B",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2340,
+        "height_px": 1080,
+        "dpi": 425,
+        "size_inches": 6.1,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 81,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "089702a983",
+      "manufacturer": "Samsung",
+      "model": "Galaxy S22 Ultra",
+      "codename": "SM-S908B",
+      "year": 2022,
+      "os": "Android",
+      "screen": {
+        "width_px": 3088,
+        "height_px": 1440,
+        "dpi": 500,
+        "size_inches": 6.8,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 85,
+        "fov_vertical_deg": 67,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.7
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "82c56b6e63",
+      "manufacturer": "Samsung",
+      "model": "Galaxy S22",
+      "codename": "SM-S901B",
+      "year": 2022,
+      "os": "Android",
+      "screen": {
+        "width_px": 2340,
+        "height_px": 1080,
+        "dpi": 425,
+        "size_inches": 6.1,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 85,
+        "fov_vertical_deg": 67,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "1fcfbd8895",
+      "manufacturer": "Samsung",
+      "model": "Galaxy S21 Ultra",
+      "codename": "SM-G998B",
+      "year": 2021,
+      "os": "Android",
+      "screen": {
+        "width_px": 3200,
+        "height_px": 1440,
+        "dpi": 515,
+        "size_inches": 6.8,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 83,
+        "fov_vertical_deg": 65,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.8
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "f156256e7a",
+      "manufacturer": "Samsung",
+      "model": "Galaxy S21",
+      "codename": "SM-G991B",
+      "year": 2021,
+      "os": "Android",
+      "screen": {
+        "width_px": 2400,
+        "height_px": 1080,
+        "dpi": 421,
+        "size_inches": 6.2,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 83,
+        "fov_vertical_deg": 65,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.1
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "b2a097ddb8",
+      "manufacturer": "Samsung",
+      "model": "Galaxy S20 Ultra",
+      "codename": "SM-G988B",
+      "year": 2020,
+      "os": "Android",
+      "screen": {
+        "width_px": 3200,
+        "height_px": 1440,
+        "dpi": 511,
+        "size_inches": 6.9,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 61,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "2a5d93bb07",
+      "manufacturer": "Samsung",
+      "model": "Galaxy S20",
+      "codename": "SM-G980F",
+      "year": 2020,
+      "os": "Android",
+      "screen": {
+        "width_px": 3200,
+        "height_px": 1440,
+        "dpi": 563,
+        "size_inches": 6.2,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 61,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.1
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "44900820cb",
+      "manufacturer": "Samsung",
+      "model": "Galaxy Note 20 Ultra",
+      "codename": "SM-N986B",
+      "year": 2020,
+      "os": "Android",
+      "screen": {
+        "width_px": 3088,
+        "height_px": 1440,
+        "dpi": 496,
+        "size_inches": 6.9,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 61,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 31.1
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "4d641f8a66",
+      "manufacturer": "Samsung",
+      "model": "Galaxy Note 10+",
+      "codename": "SM-N975F",
+      "year": 2019,
+      "os": "Android",
+      "screen": {
+        "width_px": 3040,
+        "height_px": 1440,
+        "dpi": 498,
+        "size_inches": 6.8,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 61,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 31.1
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "bfe7d78935",
+      "manufacturer": "Samsung",
+      "model": "Galaxy Z Fold 5",
+      "codename": "SM-F946B",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2176,
+        "height_px": 1812,
+        "dpi": 374,
+        "size_inches": 7.6,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 83,
+        "fov_vertical_deg": 65,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 51.9
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": "Inner display specs. Cover display differs."
+    },
+    {
+      "id": "b9701cab45",
+      "manufacturer": "Samsung",
+      "model": "Galaxy Z Flip 5",
+      "codename": "SM-F731B",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2640,
+        "height_px": 1080,
+        "dpi": 425,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 83,
+        "fov_vertical_deg": 65,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.1
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "fca874162a",
+      "manufacturer": "Samsung",
+      "model": "Galaxy A54 5G",
+      "codename": "SM-A546B",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2340,
+        "height_px": 1080,
+        "dpi": 403,
+        "size_inches": 6.4,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 28.6
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "ff0bd9b2ba",
+      "manufacturer": "Samsung",
+      "model": "Galaxy A34 5G",
+      "codename": "SM-A346B",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2340,
+        "height_px": 1080,
+        "dpi": 390,
+        "size_inches": 6.6,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.5
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "abeefd7935",
+      "manufacturer": "Samsung",
+      "model": "Galaxy A14",
+      "codename": "SM-A145F",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2408,
+        "height_px": 1080,
+        "dpi": 400,
+        "size_inches": 6.6,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 28.8
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "942b864f04",
+      "manufacturer": "Samsung",
+      "model": "Galaxy A07",
+      "codename": "SM-A075F",
+      "year": 2025,
+      "os": "Android",
+      "screen": {
+        "width_px": 1600,
+        "height_px": 720,
+        "dpi": 270,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": "User's reference device. Budget tier."
+    },
+    {
+      "id": "ca4c36dc7f",
+      "manufacturer": "Samsung",
+      "model": "Galaxy A05s",
+      "codename": "SM-A057F",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2340,
+        "height_px": 1080,
+        "dpi": 392,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.0
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "4ee678bba3",
+      "manufacturer": "Samsung",
+      "model": "Galaxy M54 5G",
+      "codename": "SM-M546B",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2340,
+        "height_px": 1080,
+        "dpi": 390,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.0
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "ccc3bcc124",
+      "manufacturer": "Samsung",
+      "model": "Galaxy F14 5G",
+      "codename": "SM-E146B",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2408,
+        "height_px": 1080,
+        "dpi": 399,
+        "size_inches": 6.6,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 28.8
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "d035c14964",
+      "manufacturer": "Samsung",
+      "model": "Galaxy Xcover 6 Pro",
+      "codename": "SM-G736B",
+      "year": 2022,
+      "os": "Android",
+      "screen": {
+        "width_px": 2408,
+        "height_px": 1080,
+        "dpi": 399,
+        "size_inches": 6.6,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 28.8
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": "Rugged variant, Knox Vault."
+    },
+    {
+      "id": "65effbaf80",
+      "manufacturer": "Samsung",
+      "model": "Galaxy Tab S9 Ultra",
+      "codename": "SM-X916B",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2960,
+        "height_px": 1848,
+        "dpi": 239,
+        "size_inches": 14.6,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 82,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 82.5
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "13ede9b31b",
+      "manufacturer": "Google",
+      "model": "Pixel 9 Pro XL",
+      "codename": "GU3FE",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 2992,
+        "height_px": 1344,
+        "dpi": 486,
+        "size_inches": 6.8,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 82,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.7
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "fd1c9a2aee",
+      "manufacturer": "Google",
+      "model": "Pixel 9 Pro",
+      "codename": "GT7DK",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 2856,
+        "height_px": 1280,
+        "dpi": 495,
+        "size_inches": 6.3,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 82,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.5
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "1e77bd6c87",
+      "manufacturer": "Google",
+      "model": "Pixel 9",
+      "codename": "GC27B",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 2424,
+        "height_px": 1080,
+        "dpi": 422,
+        "size_inches": 6.3,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 82,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.4
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "9da2121fd9",
+      "manufacturer": "Google",
+      "model": "Pixel 8 Pro",
+      "codename": "GC3VE",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2992,
+        "height_px": 1344,
+        "dpi": 489,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 82,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "2e17f5dc06",
+      "manufacturer": "Google",
+      "model": "Pixel 8",
+      "codename": "GKWS6",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2400,
+        "height_px": 1080,
+        "dpi": 428,
+        "size_inches": 6.2,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 82,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.1
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "f93d7e9fad",
+      "manufacturer": "Google",
+      "model": "Pixel 7a",
+      "codename": "GHL1X",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2400,
+        "height_px": 1080,
+        "dpi": 429,
+        "size_inches": 6.1,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 26.7
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "2e558d8418",
+      "manufacturer": "Google",
+      "model": "Pixel 7 Pro",
+      "codename": "GP4BC",
+      "year": 2022,
+      "os": "Android",
+      "screen": {
+        "width_px": 3120,
+        "height_px": 1440,
+        "dpi": 512,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 82,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.0
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "9b4374cd29",
+      "manufacturer": "Google",
+      "model": "Pixel 7",
+      "codename": "GVU6C",
+      "year": 2022,
+      "os": "Android",
+      "screen": {
+        "width_px": 2400,
+        "height_px": 1080,
+        "dpi": 416,
+        "size_inches": 6.3,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 82,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.6
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "21fafb6f3c",
+      "manufacturer": "Google",
+      "model": "Pixel 6 Pro",
+      "codename": "GLU0G",
+      "year": 2021,
+      "os": "Android",
+      "screen": {
+        "width_px": 3120,
+        "height_px": 1440,
+        "dpi": 512,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 82,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.0
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "1c3889deb7",
+      "manufacturer": "Google",
+      "model": "Pixel 6",
+      "codename": "GB7N6",
+      "year": 2021,
+      "os": "Android",
+      "screen": {
+        "width_px": 2400,
+        "height_px": 1080,
+        "dpi": 411,
+        "size_inches": 6.4,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 82,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 28.0
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "136db35561",
+      "manufacturer": "Google",
+      "model": "Pixel 5",
+      "codename": "GD1YQ",
+      "year": 2020,
+      "os": "Android",
+      "screen": {
+        "width_px": 2340,
+        "height_px": 1080,
+        "dpi": 432,
+        "size_inches": 6.0,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 83,
+        "fov_vertical_deg": 65,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 26.8
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "ad02cf6b47",
+      "manufacturer": "Google",
+      "model": "Pixel 4a",
+      "codename": "G025N",
+      "year": 2020,
+      "os": "Android",
+      "screen": {
+        "width_px": 2340,
+        "height_px": 1080,
+        "dpi": 443,
+        "size_inches": 5.8,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 83,
+        "fov_vertical_deg": 65,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 25.9
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "138447f01e",
+      "manufacturer": "Google",
+      "model": "Pixel 4 XL",
+      "codename": "G020J",
+      "year": 2019,
+      "os": "Android",
+      "screen": {
+        "width_px": 3040,
+        "height_px": 1440,
+        "dpi": 537,
+        "size_inches": 6.3,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 77,
+        "fov_vertical_deg": 60,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 28.8
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "747f75cea7",
+      "manufacturer": "Google",
+      "model": "Pixel 3a",
+      "codename": "G020G",
+      "year": 2019,
+      "os": "Android",
+      "screen": {
+        "width_px": 2220,
+        "height_px": 1080,
+        "dpi": 441,
+        "size_inches": 5.6,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 76,
+        "fov_vertical_deg": 59,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 26.1
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "e513e8f0aa",
+      "manufacturer": "Apple",
+      "model": "iPhone 16 Pro Max",
+      "codename": "A3294",
+      "year": 2024,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2868,
+        "height_px": 1320,
+        "dpi": 460,
+        "size_inches": 6.9,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.8
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": "Reference entry. Auriga for iOS not yet released."
+    },
+    {
+      "id": "caef94161b",
+      "manufacturer": "Apple",
+      "model": "iPhone 16 Pro",
+      "codename": "A3292",
+      "year": 2024,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2622,
+        "height_px": 1206,
+        "dpi": 460,
+        "size_inches": 6.3,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 28.1
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "98edc9e0c5",
+      "manufacturer": "Apple",
+      "model": "iPhone 16 Plus",
+      "codename": "A3288",
+      "year": 2024,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2796,
+        "height_px": 1290,
+        "dpi": 460,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.9
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "37f273dbc0",
+      "manufacturer": "Apple",
+      "model": "iPhone 16",
+      "codename": "A3287",
+      "year": 2024,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2556,
+        "height_px": 1179,
+        "dpi": 460,
+        "size_inches": 6.1,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "47d1b3d4ed",
+      "manufacturer": "Apple",
+      "model": "iPhone 15 Pro Max",
+      "codename": "A2849",
+      "year": 2023,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2796,
+        "height_px": 1290,
+        "dpi": 460,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.9
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "2be4e81f4c",
+      "manufacturer": "Apple",
+      "model": "iPhone 15 Pro",
+      "codename": "A2848",
+      "year": 2023,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2556,
+        "height_px": 1179,
+        "dpi": 460,
+        "size_inches": 6.1,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "e335677b71",
+      "manufacturer": "Apple",
+      "model": "iPhone 15 Plus",
+      "codename": "A2847",
+      "year": 2023,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2796,
+        "height_px": 1290,
+        "dpi": 460,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.9
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "b2062c9e53",
+      "manufacturer": "Apple",
+      "model": "iPhone 15",
+      "codename": "A2846",
+      "year": 2023,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2556,
+        "height_px": 1179,
+        "dpi": 460,
+        "size_inches": 6.1,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "ee9f99ed29",
+      "manufacturer": "Apple",
+      "model": "iPhone 14 Pro Max",
+      "codename": "A2651",
+      "year": 2022,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2796,
+        "height_px": 1290,
+        "dpi": 460,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.9
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "da7f4896c3",
+      "manufacturer": "Apple",
+      "model": "iPhone 14 Pro",
+      "codename": "A2650",
+      "year": 2022,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2556,
+        "height_px": 1179,
+        "dpi": 460,
+        "size_inches": 6.1,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "abf3c5eb8c",
+      "manufacturer": "Apple",
+      "model": "iPhone 14",
+      "codename": "A2649",
+      "year": 2022,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2532,
+        "height_px": 1170,
+        "dpi": 460,
+        "size_inches": 6.1,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "36477b8e50",
+      "manufacturer": "Apple",
+      "model": "iPhone 13 Pro Max",
+      "codename": "A2484",
+      "year": 2021,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2778,
+        "height_px": 1284,
+        "dpi": 458,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 77,
+        "fov_vertical_deg": 60,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.0
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "9cf2ab5ab6",
+      "manufacturer": "Apple",
+      "model": "iPhone 13",
+      "codename": "A2482",
+      "year": 2021,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2532,
+        "height_px": 1170,
+        "dpi": 460,
+        "size_inches": 6.1,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 77,
+        "fov_vertical_deg": 60,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "d6241d294d",
+      "manufacturer": "Apple",
+      "model": "iPhone 12 Pro",
+      "codename": "A2341",
+      "year": 2020,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2532,
+        "height_px": 1170,
+        "dpi": 460,
+        "size_inches": 6.1,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 77,
+        "fov_vertical_deg": 60,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "d093860903",
+      "manufacturer": "Apple",
+      "model": "iPhone 12 mini",
+      "codename": "A2176",
+      "year": 2020,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2340,
+        "height_px": 1080,
+        "dpi": 476,
+        "size_inches": 5.4,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 77,
+        "fov_vertical_deg": 60,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 24.1
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "f5708a609d",
+      "manufacturer": "Apple",
+      "model": "iPhone SE (3rd gen)",
+      "codename": "A2595",
+      "year": 2022,
+      "os": "iOS",
+      "screen": {
+        "width_px": 1334,
+        "height_px": 750,
+        "dpi": 326,
+        "size_inches": 4.7,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 65,
+        "fov_vertical_deg": 50,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 24.6
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "89fa1d4a31",
+      "manufacturer": "Apple",
+      "model": "iPhone 11",
+      "codename": "A2111",
+      "year": 2019,
+      "os": "iOS",
+      "screen": {
+        "width_px": 1792,
+        "height_px": 828,
+        "dpi": 326,
+        "size_inches": 6.1,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "b8807e001f",
+      "manufacturer": "Apple",
+      "model": "iPhone XS",
+      "codename": "A1920",
+      "year": 2018,
+      "os": "iOS",
+      "screen": {
+        "width_px": 2436,
+        "height_px": 1125,
+        "dpi": 458,
+        "size_inches": 5.8,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 61,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 25.9
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "95c4ca05c2",
+      "manufacturer": "Apple",
+      "model": "iPhone 8 Plus",
+      "codename": "A1864",
+      "year": 2017,
+      "os": "iOS",
+      "screen": {
+        "width_px": 1920,
+        "height_px": 1080,
+        "dpi": 401,
+        "size_inches": 5.5,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 61,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 28.8
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "cf78a3216c",
+      "manufacturer": "Apple",
+      "model": "iPhone 8",
+      "codename": "A1863",
+      "year": 2017,
+      "os": "iOS",
+      "screen": {
+        "width_px": 1334,
+        "height_px": 750,
+        "dpi": 326,
+        "size_inches": 4.7,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 61,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 24.6
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "342d8ddd0b",
+      "manufacturer": "OnePlus",
+      "model": "12",
+      "codename": "CPH2583",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 3168,
+        "height_px": 1440,
+        "dpi": 510,
+        "size_inches": 6.82,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.1
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "689ba97a95",
+      "manufacturer": "OnePlus",
+      "model": "12R",
+      "codename": "CPH2609",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 2780,
+        "height_px": 1264,
+        "dpi": 450,
+        "size_inches": 6.78,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.9
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "6865ce280f",
+      "manufacturer": "OnePlus",
+      "model": "11",
+      "codename": "CPH2449",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 3216,
+        "height_px": 1440,
+        "dpi": 525,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "8a2efa5658",
+      "manufacturer": "OnePlus",
+      "model": "10 Pro",
+      "codename": "NE2210",
+      "year": 2022,
+      "os": "Android",
+      "screen": {
+        "width_px": 3216,
+        "height_px": 1440,
+        "dpi": 525,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "d474d8b7cd",
+      "manufacturer": "OnePlus",
+      "model": "9 Pro",
+      "codename": "LE2121",
+      "year": 2021,
+      "os": "Android",
+      "screen": {
+        "width_px": 3216,
+        "height_px": 1440,
+        "dpi": 525,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "5d0cfd907b",
+      "manufacturer": "OnePlus",
+      "model": "Nord 3",
+      "codename": "CPH2493",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2800,
+        "height_px": 1260,
+        "dpi": 451,
+        "size_inches": 6.74,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.5
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "ef29f51bb1",
+      "manufacturer": "OnePlus",
+      "model": "Nord CE 3 Lite",
+      "codename": "CPH2465",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2400,
+        "height_px": 1080,
+        "dpi": 391,
+        "size_inches": 6.72,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.4
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "7edf84d0eb",
+      "manufacturer": "Xiaomi",
+      "model": "14 Ultra",
+      "codename": "24031PN0DC",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 3200,
+        "height_px": 1440,
+        "dpi": 522,
+        "size_inches": 6.73,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.5
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "282ce37d7c",
+      "manufacturer": "Xiaomi",
+      "model": "14 Pro",
+      "codename": "23116PN5BC",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 3200,
+        "height_px": 1440,
+        "dpi": 522,
+        "size_inches": 6.73,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.5
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "dd311bc2c5",
+      "manufacturer": "Xiaomi",
+      "model": "14",
+      "codename": "23127PN0CC",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2670,
+        "height_px": 1200,
+        "dpi": 460,
+        "size_inches": 6.36,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.8
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "40abdefe1f",
+      "manufacturer": "Xiaomi",
+      "model": "13 Pro",
+      "codename": "2210132G",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 3200,
+        "height_px": 1440,
+        "dpi": 522,
+        "size_inches": 6.73,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.5
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "e8893c0124",
+      "manufacturer": "Xiaomi",
+      "model": "13T Pro",
+      "codename": "23078PND5G",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2712,
+        "height_px": 1220,
+        "dpi": 446,
+        "size_inches": 6.67,
+        "refresh_rate_hz": 144,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "c3a61e3521",
+      "manufacturer": "Xiaomi",
+      "model": "12 Pro",
+      "codename": "2201122G",
+      "year": 2022,
+      "os": "Android",
+      "screen": {
+        "width_px": 3200,
+        "height_px": 1440,
+        "dpi": 521,
+        "size_inches": 6.73,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.5
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "20ed05891a",
+      "manufacturer": "Xiaomi",
+      "model": "Mi 11",
+      "codename": "M2011K2G",
+      "year": 2021,
+      "os": "Android",
+      "screen": {
+        "width_px": 3200,
+        "height_px": 1440,
+        "dpi": 515,
+        "size_inches": 6.81,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.8
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "397581acfa",
+      "manufacturer": "Redmi",
+      "model": "Note 13 Pro+",
+      "codename": "23090RA98G",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2712,
+        "height_px": 1220,
+        "dpi": 446,
+        "size_inches": 6.67,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "ad333323b0",
+      "manufacturer": "Redmi",
+      "model": "Note 13 Pro",
+      "codename": "23117RA68G",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2712,
+        "height_px": 1220,
+        "dpi": 446,
+        "size_inches": 6.67,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "85fce46f85",
+      "manufacturer": "Redmi",
+      "model": "Note 12 Pro 5G",
+      "codename": "22101316G",
+      "year": 2022,
+      "os": "Android",
+      "screen": {
+        "width_px": 2400,
+        "height_px": 1080,
+        "dpi": 395,
+        "size_inches": 6.67,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "49ad3b7dc4",
+      "manufacturer": "Redmi",
+      "model": "Note 11",
+      "codename": "21121119SG",
+      "year": 2022,
+      "os": "Android",
+      "screen": {
+        "width_px": 2400,
+        "height_px": 1080,
+        "dpi": 409,
+        "size_inches": 6.43,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 28.1
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "a2f3eec118",
+      "manufacturer": "Redmi",
+      "model": "12C",
+      "codename": "22120RN86G",
+      "year": 2022,
+      "os": "Android",
+      "screen": {
+        "width_px": 1650,
+        "height_px": 720,
+        "dpi": 269,
+        "size_inches": 6.71,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 76,
+        "fov_vertical_deg": 59,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 28.6
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "143f6ece09",
+      "manufacturer": "POCO",
+      "model": "X6 Pro",
+      "codename": "23122PCD1G",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 2712,
+        "height_px": 1220,
+        "dpi": 446,
+        "size_inches": 6.67,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "93a2d36c88",
+      "manufacturer": "POCO",
+      "model": "F5 Pro",
+      "codename": "23013PC75G",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 3200,
+        "height_px": 1440,
+        "dpi": 526,
+        "size_inches": 6.67,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "69a699936f",
+      "manufacturer": "POCO",
+      "model": "M6 Pro 5G",
+      "codename": "23076PC4BI",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2400,
+        "height_px": 1080,
+        "dpi": 395,
+        "size_inches": 6.79,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.7
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "099bebb67c",
+      "manufacturer": "OPPO",
+      "model": "Find X7 Ultra",
+      "codename": "PHY110",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 3168,
+        "height_px": 1440,
+        "dpi": 510,
+        "size_inches": 6.82,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.1
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "eaee681f87",
+      "manufacturer": "OPPO",
+      "model": "Find X6 Pro",
+      "codename": "PGFM10",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 3168,
+        "height_px": 1440,
+        "dpi": 510,
+        "size_inches": 6.82,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.1
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "3db6051a84",
+      "manufacturer": "OPPO",
+      "model": "Reno 11 Pro",
+      "codename": "CPH2607",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 2412,
+        "height_px": 1080,
+        "dpi": 394,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "96199d1ea9",
+      "manufacturer": "OPPO",
+      "model": "A78 5G",
+      "codename": "CPH2565",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2400,
+        "height_px": 1080,
+        "dpi": 393,
+        "size_inches": 6.56,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 28.7
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "f6d6d90486",
+      "manufacturer": "Realme",
+      "model": "GT5 Pro",
+      "codename": "RMX3800",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2780,
+        "height_px": 1264,
+        "dpi": 451,
+        "size_inches": 6.78,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.9
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "eb0a2f6be7",
+      "manufacturer": "Realme",
+      "model": "11 Pro+",
+      "codename": "RMX3741",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2412,
+        "height_px": 1080,
+        "dpi": 394,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "a2eccfe270",
+      "manufacturer": "Realme",
+      "model": "C55",
+      "codename": "RMX3710",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2408,
+        "height_px": 1080,
+        "dpi": 401,
+        "size_inches": 6.72,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "df961afa6d",
+      "manufacturer": "vivo",
+      "model": "X100 Pro",
+      "codename": "V2324A",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2800,
+        "height_px": 1260,
+        "dpi": 452,
+        "size_inches": 6.78,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.7
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "8c86a753a0",
+      "manufacturer": "vivo",
+      "model": "V29",
+      "codename": "V2250",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2800,
+        "height_px": 1260,
+        "dpi": 452,
+        "size_inches": 6.78,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.7
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "26a42e49ef",
+      "manufacturer": "vivo",
+      "model": "Y27",
+      "codename": "V2247",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2408,
+        "height_px": 1080,
+        "dpi": 392,
+        "size_inches": 6.64,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.0
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "64b0921976",
+      "manufacturer": "Huawei",
+      "model": "Mate 60 Pro",
+      "codename": "BRA-AL00",
+      "year": 2023,
+      "os": "HarmonyOS",
+      "screen": {
+        "width_px": 2720,
+        "height_px": 1260,
+        "dpi": 428,
+        "size_inches": 6.82,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.6
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": "HarmonyOS; no Google Services. Sideload-only for Auriga."
+    },
+    {
+      "id": "77e03642c2",
+      "manufacturer": "Huawei",
+      "model": "P60 Pro",
+      "codename": "MNA-AL00",
+      "year": 2023,
+      "os": "HarmonyOS",
+      "screen": {
+        "width_px": 2700,
+        "height_px": 1220,
+        "dpi": 444,
+        "size_inches": 6.67,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "4d81349f0c",
+      "manufacturer": "Huawei",
+      "model": "Nova 11 Pro",
+      "codename": "GOA-AL00",
+      "year": 2023,
+      "os": "HarmonyOS",
+      "screen": {
+        "width_px": 2652,
+        "height_px": 1200,
+        "dpi": 436,
+        "size_inches": 6.78,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.8
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "482aaa94a5",
+      "manufacturer": "Honor",
+      "model": "Magic 6 Pro",
+      "codename": "BVL-N49",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 2800,
+        "height_px": 1280,
+        "dpi": 453,
+        "size_inches": 6.8,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "7367c9042a",
+      "manufacturer": "Honor",
+      "model": "Magic 5 Pro",
+      "codename": "PGT-N19",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2848,
+        "height_px": 1312,
+        "dpi": 460,
+        "size_inches": 6.81,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 30.4
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "b536cff72b",
+      "manufacturer": "Honor",
+      "model": "90",
+      "codename": "REA-NX9",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2664,
+        "height_px": 1200,
+        "dpi": 435,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.4
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "4cc5b129d0",
+      "manufacturer": "Honor",
+      "model": "X9b",
+      "codename": "ALI-NX1",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2652,
+        "height_px": 1200,
+        "dpi": 429,
+        "size_inches": 6.78,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.8
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "a03c422577",
+      "manufacturer": "Motorola",
+      "model": "Edge 50 Ultra",
+      "codename": "XT2401",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 2712,
+        "height_px": 1220,
+        "dpi": 446,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 144,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "bc858a09ea",
+      "manufacturer": "Motorola",
+      "model": "Edge 40 Pro",
+      "codename": "XT2301",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2400,
+        "height_px": 1080,
+        "dpi": 394,
+        "size_inches": 6.67,
+        "refresh_rate_hz": 165,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "84ad44b143",
+      "manufacturer": "Motorola",
+      "model": "Moto G Stylus 5G",
+      "codename": "XT2315",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2400,
+        "height_px": 1080,
+        "dpi": 396,
+        "size_inches": 6.6,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 28.9
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "d9aae93aa7",
+      "manufacturer": "Motorola",
+      "model": "Moto G Power",
+      "codename": "XT2311",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 1640,
+        "height_px": 720,
+        "dpi": 270,
+        "size_inches": 6.5,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 76,
+        "fov_vertical_deg": 59,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.9
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "8f73706df3",
+      "manufacturer": "Motorola",
+      "model": "Razr 40 Ultra",
+      "codename": "XT2321",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2640,
+        "height_px": 1080,
+        "dpi": 413,
+        "size_inches": 6.9,
+        "refresh_rate_hz": 165,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.9
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "a9a5ffd7d3",
+      "manufacturer": "Nokia",
+      "model": "X30 5G",
+      "codename": "TA-1450",
+      "year": 2022,
+      "os": "Android",
+      "screen": {
+        "width_px": 2400,
+        "height_px": 1080,
+        "dpi": 409,
+        "size_inches": 6.43,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 28.1
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "8d8e29a7ca",
+      "manufacturer": "Nokia",
+      "model": "G42 5G",
+      "codename": "TA-1581",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2408,
+        "height_px": 1080,
+        "dpi": 400,
+        "size_inches": 6.56,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 28.6
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "04d0679887",
+      "manufacturer": "Asus",
+      "model": "ROG Phone 8 Pro",
+      "codename": "AI2401",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 2400,
+        "height_px": 1080,
+        "dpi": 395,
+        "size_inches": 6.78,
+        "refresh_rate_hz": 165,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.7
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": "Gaming phone. High refresh may stress thermal envelope."
+    },
+    {
+      "id": "6be3f2c179",
+      "manufacturer": "Asus",
+      "model": "Zenfone 10",
+      "codename": "AI2302",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2400,
+        "height_px": 1080,
+        "dpi": 445,
+        "size_inches": 5.9,
+        "refresh_rate_hz": 144,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 79,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 25.8
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "98c27dc9a4",
+      "manufacturer": "Sony",
+      "model": "Xperia 1 V",
+      "codename": "XQ-DQ54",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 3840,
+        "height_px": 1644,
+        "dpi": 643,
+        "size_inches": 6.5,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 82,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.3
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "b0f609e3a5",
+      "manufacturer": "Sony",
+      "model": "Xperia 5 V",
+      "codename": "XQ-DE54",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2520,
+        "height_px": 1080,
+        "dpi": 449,
+        "size_inches": 6.1,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 82,
+        "fov_vertical_deg": 64,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 25.6
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "e0b522c5d5",
+      "manufacturer": "Sony",
+      "model": "Xperia 10 V",
+      "codename": "XQ-DC54",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2520,
+        "height_px": 1080,
+        "dpi": 449,
+        "size_inches": 6.1,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 25.6
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "1066f63ac1",
+      "manufacturer": "Fairphone",
+      "model": "Fairphone 5",
+      "codename": "FP5",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2770,
+        "height_px": 1224,
+        "dpi": 453,
+        "size_inches": 6.46,
+        "refresh_rate_hz": 90,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 78,
+        "fov_vertical_deg": 62,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 27.9
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": "Ethically-produced. 5-year OS support."
+    },
+    {
+      "id": "4661a5524c",
+      "manufacturer": "Nothing",
+      "model": "Phone (2)",
+      "codename": "A065",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2412,
+        "height_px": 1080,
+        "dpi": 394,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "274bfdf955",
+      "manufacturer": "Nothing",
+      "model": "Phone (2a)",
+      "codename": "A142",
+      "year": 2024,
+      "os": "Android",
+      "screen": {
+        "width_px": 2412,
+        "height_px": 1080,
+        "dpi": 394,
+        "size_inches": 6.7,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.2
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "cb2bc78500",
+      "manufacturer": "TCL",
+      "model": "40 XL",
+      "codename": "T608M",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 1612,
+        "height_px": 720,
+        "dpi": 269,
+        "size_inches": 6.75,
+        "refresh_rate_hz": 60,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 76,
+        "fov_vertical_deg": 59,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.4
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    },
+    {
+      "id": "1089a98b5b",
+      "manufacturer": "ZTE",
+      "model": "Axon 50 Ultra",
+      "codename": "A2023H",
+      "year": 2023,
+      "os": "Android",
+      "screen": {
+        "width_px": 2480,
+        "height_px": 1116,
+        "dpi": 400,
+        "size_inches": 6.8,
+        "refresh_rate_hz": 120,
+        "source": "oem_spec"
+      },
+      "camera": {
+        "fov_horizontal_deg": 80,
+        "fov_vertical_deg": 63,
+        "offset_from_screen_center_mm": {
+          "x": 0,
+          "y": 29.8
+        },
+        "source": "oem_spec"
+      },
+      "ipd_default_mm": 63,
+      "ipd_source": "derived",
+      "contributed_by": "drakosanctis_team",
+      "approved": true,
+      "approval_date": "2026-04-21",
+      "notes": ""
+    }
+  ]
+}
