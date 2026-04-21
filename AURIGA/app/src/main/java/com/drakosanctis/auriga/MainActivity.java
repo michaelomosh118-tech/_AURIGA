@@ -5,9 +5,11 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.Manifest;
 
 /**
@@ -39,34 +41,113 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     private TextView distanceText, bearingText, signatureText, alertBanner, modeLabel;
     private View radarView;
 
+    private static final String TAG = "AurigaMain";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        // Initialize HUD UI
-        initUI();
-        applyVariantStyling();
+        // Each step is wrapped individually so a single bad initializer (e.g.
+        // TextToSpeech failing on a device without an en-US language pack,
+        // or a missing drawable resource during layout inflation) does not
+        // kill the whole app on launch. Anything that throws is logged via
+        // AurigaApplication's crash handler and surfaced as a Toast so users
+        // on Samsung/Knox devices can read the failure without adb.
+        // Structural UI: if these throw there is no viable HUD, so bail out
+        // after the Toast fires rather than wiring SurfaceTextureListener
+        // callbacks that will crash later against partially-constructed
+        // engine state.
+        if (!initStep("setContentView", () -> setContentView(R.layout.activity_main))) return;
+        if (!initStep("initUI",          this::initUI))                                return;
 
-        // Initialize Core Engine Layers
-        lut = new FiducialLUT();
-        hal = new HardwareHAL(this);
-        licenseManager = new LicenseManager(this);
-        detector = new ColorSquareDetector(120.0f, 15.0f); // Default to Green square
-        calibrationManager = new CalibrationManager(lut, detector);
-        engine = new TriangulationEngine(lut, hal);
-        processor = new ImageProcessor();
-        odometry = new OdometryManager();
-        voice = new DrakoVoice(this);
-        sonar = new SonarManager();
-        haptic = new HapticManager(this);
-        camera = new CameraService(this);
+        // Engine layers. Order matters: calibrationManager depends on lut +
+        // detector, engine depends on lut + hal, applyVariantStyling depends
+        // on calibrationManager. Each runs best-effort so a single failure
+        // does not cascade — e.g. if DrakoVoice's TextToSpeech init throws
+        // because the device has no en-US language pack, the HUD still comes
+        // up and the voice layer is simply inert.
+        initStep("lut",                () -> lut = new FiducialLUT());
+        initStep("hal",                () -> hal = new HardwareHAL(this));
+        initStep("licenseManager",     () -> licenseManager = new LicenseManager(this));
+        initStep("detector",           () -> detector = new ColorSquareDetector(120.0f, 15.0f));
+        // calibrationManager + engine take lut/detector/hal as constructor
+        // args but those collaborators just store the refs without a null
+        // check. Precondition-assert the deps inside the lambda so a failed
+        // lut/detector/hal step short-circuits here with an accurate Toast
+        // ("calibrationManager" failed because "lut was null") instead of
+        // constructing an object with null internals that NPEs on the first
+        // frame in the render loop.
+        initStep("calibrationManager", () -> {
+            requireDep("lut", lut);
+            requireDep("detector", detector);
+            calibrationManager = new CalibrationManager(lut, detector);
+        });
+        initStep("engine", () -> {
+            requireDep("lut", lut);
+            requireDep("hal", hal);
+            engine = new TriangulationEngine(lut, hal);
+        });
+        initStep("processor",          () -> processor = new ImageProcessor());
+        initStep("odometry",           () -> odometry = new OdometryManager());
+        initStep("voice",              () -> voice = new DrakoVoice(this));
+        initStep("sonar",              () -> sonar = new SonarManager());
+        initStep("haptic",             () -> haptic = new HapticManager(this));
+        initStep("camera",             () -> camera = new CameraService(this));
+
+        // Variant styling reads calibrationManager.getState(), so must run
+        // AFTER the engine-layer block above. Previously this ran before the
+        // engine block and NPE'd on every launch — which was the real cause
+        // of the A07 "instant crash on tap" the user reported.
+        initStep("applyVariantStyling", this::applyVariantStyling);
 
         // Security Heartbeat Check
-        licenseManager.validateLicense(BuildConfig.DEFAULT_LICENSE);
+        initStep("validateLicense", () -> {
+            if (licenseManager != null) {
+                licenseManager.validateLicense(BuildConfig.DEFAULT_LICENSE);
+            }
+        });
 
         // Request Permissions for Google Play Compliance
-        checkPermissions();
+        initStep("checkPermissions", this::checkPermissions);
+    }
+
+    /**
+     * Throws IllegalStateException if a required init-time collaborator is
+     * null. Used by composite initSteps (calibrationManager, engine) whose
+     * downstream classes do not null-check their constructor args.
+     */
+    private static void requireDep(String name, Object dep) {
+        if (dep == null) {
+            throw new IllegalStateException(
+                    "Missing dependency: " + name + " was null (its initStep failed earlier).");
+        }
+    }
+
+    /**
+     * Runs an init step and swallows any Throwable, logging the failure via
+     * the crash-logger pipeline and showing a Toast so the user knows what
+     * failed without having to pull logcat off the phone. Returns true iff
+     * the step completed cleanly. Callers that must short-circuit the rest
+     * of onCreate on failure (e.g. setContentView) check the return value.
+     */
+    private boolean initStep(String name, Runnable step) {
+        try {
+            step.run();
+            return true;
+        } catch (Throwable t) {
+            Log.e(TAG, "Init step '" + name + "' failed", t);
+            Toast.makeText(
+                    this,
+                    "Auriga init failed at: " + name + "\n" + t.getClass().getSimpleName()
+                            + ": " + String.valueOf(t.getMessage()),
+                    Toast.LENGTH_LONG
+            ).show();
+            // Persist a timestamped crash report to the app's external files
+            // directory without terminating the process, so the user can
+            // copy it off the phone via Samsung My Files.
+            AurigaApplication.logNonFatal(t, "initStep:" + name);
+            return false;
+        }
     }
 
     private void checkPermissions() {
@@ -102,9 +183,13 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
      */
     private void applyVariantStyling() {
         String variantName = "AURIGA " + AurigaConfig.CURRENT_PRODUCT.name();
-        String modeDesc = (calibrationManager.getState() == CalibrationManager.State.DETECTING) 
-                ? "CALIBRATION" : "SPATIAL ENGINE";
-        
+        // Null-safe state read: if the calibration manager failed to init we
+        // still want the HUD to render, just with the default SPATIAL ENGINE
+        // label instead of aborting styling entirely.
+        boolean detecting = calibrationManager != null
+                && calibrationManager.getState() == CalibrationManager.State.DETECTING;
+        String modeDesc = detecting ? "CALIBRATION" : "SPATIAL ENGINE";
+
         modeLabel.setText(variantName + " // " + modeDesc);
 
         // Variant-specific UI tweaks
@@ -131,8 +216,33 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
 
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+        // Any engine layer may be null if its initStep failed; start the
+        // camera + main loop only when the full dependency chain is intact.
+        // Otherwise we'd NPE inside the render loop (calibrationManager /
+        // processor / engine / odometry / etc.) on every frame and spam
+        // the crash log long after the user already got the initStep Toast.
+        if (!coreEnginesReady()) {
+            Log.w(TAG, "Surface ready but one or more engine layers were not constructed; skipping main loop.");
+            return;
+        }
         camera.start(surface);
         startMainLoop();
+    }
+
+    /**
+     * True iff every field required by the spatial navigation math is
+     * non-null. Ancillary feedback layers (sonar / haptic / voice) are
+     * NOT in this gate -- per the graceful-degradation contract stated
+     * in onCreate, a missing TTS language pack or a broken haptic driver
+     * must not kill the HUD. Those callsites are individually null-guarded
+     * inside processNavigationFrame instead.
+     */
+    private boolean coreEnginesReady() {
+        return camera != null
+                && calibrationManager != null
+                && processor != null
+                && odometry != null
+                && engine != null;
     }
 
     private void startMainLoop() {
@@ -184,23 +294,27 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         final TriangulationEngine.SpatialOutput hangRes = engine.calculateSuspendedHeight(obstacles[1].hangY, 320);
 
         // 4. Feedback & HUD Update
+        // sonar / haptic / voice are ancillary feedback layers; any of
+        // them can be null if its initStep failed. Null-guard each call
+        // so the spatial loop keeps running (HUD still updates) even
+        // when, say, TTS couldn't load a language pack.
         runOnUiThread(() -> {
             if (groundRes != null) {
                 // Fix 9: specify column (1 for center)
                 float dist = odometry.smoothDistance(1, groundRes.distanceM);
                 updateHUD(dist, groundRes.bearingDeg, groundRes.signature);
-                sonar.updateSpatialData(dist, groundRes.bearingDeg, groundRes.signature);
-                haptic.pulse(dist);
-                
+                if (sonar != null)  sonar.updateSpatialData(dist, groundRes.bearingDeg, groundRes.signature);
+                if (haptic != null) haptic.pulse(dist);
+
                 // Voice announcement logic (debounced)
-                if (dist < 1.0f) voice.speak(groundRes.signature, dist, groundRes.bearingDeg);
+                if (voice != null && dist < 1.0f) voice.speak(groundRes.signature, dist, groundRes.bearingDeg);
             }
-            
+
             if (hangRes != null && hangRes.heightM < 2.0f) {
                 alertBanner.setVisibility(View.VISIBLE);
                 alertBanner.setText("⚠ OVERHANG " + String.format("%.1f", hangRes.distanceM) + "m");
-                haptic.alert();
-                voice.announceAlert("overhang", hangRes.distanceM);
+                if (haptic != null) haptic.alert();
+                if (voice != null) voice.announceAlert("overhang", hangRes.distanceM);
             } else {
                 alertBanner.setVisibility(View.GONE);
             }
@@ -221,7 +335,9 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) { }
     @Override
     public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-        camera.stop();
+        // Fires during teardown regardless of init outcome; skip cleanly if
+        // camera's initStep never produced an instance.
+        if (camera != null) camera.stop();
         return true;
     }
     @Override
@@ -230,8 +346,10 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        voice.shutdown();
-        sonar.stop();
-        haptic.stop();
+        // Any of these can be null if their initStep failed; onDestroy must
+        // not turn a degraded launch into a teardown crash.
+        if (voice != null)  voice.shutdown();
+        if (sonar != null)  sonar.stop();
+        if (haptic != null) haptic.stop();
     }
 }
