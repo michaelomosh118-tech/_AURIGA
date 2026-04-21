@@ -1,22 +1,43 @@
 package com.drakosanctis.auriga;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
- * FiducialLUT: The "Ground Ruler" of the TruePath™ engine.
- * This class stores the relationship between an object's distance (meters)
- * and its apparent pixel width in the camera frame.
- * It uses Monotone Cubic Interpolation to ensure a smooth, accurate curve.
+ * FiducialLUT: The "Ground Ruler" of the TruePath(TM) engine.
+ * Stores the relationship between an object's distance (meters), its
+ * apparent pixel width in the camera frame, and the pixel row at which
+ * its base appears. Interpolates with Fritsch-Carlson monotone cubic
+ * Hermite splines so the curve passes exactly through each calibration
+ * anchor without overshoot, which keeps distance readings stable even
+ * between sparse anchors.
+ *
+ * Two separate query paths are supported:
+ *   - getDistanceFromWidth(pixelWidth): used during calibration when the
+ *     fiducial is a known 20cm square and its observed width fixes the
+ *     distance.
+ *   - getDistanceFromRow(pixelRow) / getDistanceFromRowWithPitch(...):
+ *     the runtime TruePath path. Row is a proxy for ground distance
+ *     given a known camera height and pitch. The pitch-aware variant
+ *     applies a horizon offset so handheld tilt does not bias readings.
+ *
+ * Calibration data can be loaded in two ways:
+ *   1. The legacy in-class defaults (synthetic, calibrated against a
+ *      640x480 reference frame) are used until something else is loaded.
+ *   2. loadProfile(list) replaces the anchor set with a device-specific
+ *      profile downloaded from the public calibration-profile mirror,
+ *      or captured on-device by the user running the 10-point walk.
  */
 public class FiducialLUT {
 
-    private static class TrainingPoint {
-        float distanceM;
-        float pixelWidth;
-        float pixelRow;
+    public static class TrainingPoint {
+        public final float distanceM;
+        public final float pixelWidth;
+        public final float pixelRow;
 
-        TrainingPoint(float d, float w, float r) {
+        public TrainingPoint(float d, float w, float r) {
             this.distanceM = d;
             this.pixelWidth = w;
             this.pixelRow = r;
@@ -24,9 +45,13 @@ public class FiducialLUT {
     }
 
     private final List<TrainingPoint> points = new ArrayList<>();
+    private boolean usingTrainedProfile = false;
 
     public FiducialLUT() {
-        // Initializing with sample data points for demonstration.
+        // Synthetic defaults calibrated against a 640x480 reference frame.
+        // These will be wildly wrong on any specific phone that has not
+        // yet been calibrated or loaded a profile, which is why the main
+        // loop surfaces a toast encouraging profile loading.
         // Format: Distance (m), Pixel Width (of 20cm), Pixel Row (Y)
         addPoint(0.5f, 800.0f, 460.0f);
         addPoint(1.0f, 400.0f, 400.0f);
@@ -44,65 +69,233 @@ public class FiducialLUT {
         points.add(new TrainingPoint(distanceM, pixelWidth, pixelRow));
     }
 
+    /**
+     * Replace the current anchor set with a downloaded or captured
+     * profile. Points need not arrive sorted; each query path sorts
+     * internally by the relevant axis. After this call returns,
+     * isUsingTrainedProfile() becomes true so the HUD can surface the
+     * "using device-specific calibration" state.
+     */
+    public void loadProfile(List<TrainingPoint> profile) {
+        if (profile == null || profile.size() < 2) return;
+        points.clear();
+        points.addAll(profile);
+        usingTrainedProfile = true;
+    }
+
+    public boolean isUsingTrainedProfile() {
+        return usingTrainedProfile;
+    }
+
+    public int getPointCount() {
+        return points.size();
+    }
+
     public void persist() {
         // Implementation for persisting the data (e.g., to SharedPreferences or a file).
     }
 
+    // ---------------------------------------------------------------
+    // Query paths
+    // ---------------------------------------------------------------
+
     /**
-     * getDistanceFromWidth: Maps an observed pixel width to a real-world distance in meters.
-     * Used for objects of known size (like the 20cm calibration square).
+     * getDistanceFromWidth: Maps an observed pixel width to a real-world
+     * distance in meters. Pixel width is monotonically DECREASING with
+     * distance; the interpolator handles that by negating the axis so
+     * the Hermite spline still receives strictly increasing x.
      */
     public float getDistanceFromWidth(float pixelWidth) {
         if (points.size() < 2) return -1.0f;
-
-        for (int i = 0; i < points.size() - 1; i++) {
-            TrainingPoint p1 = points.get(i);
-            TrainingPoint p2 = points.get(i + 1);
-
-            if (pixelWidth <= p1.pixelWidth && pixelWidth >= p2.pixelWidth) {
-                float t = (pixelWidth - p1.pixelWidth) / (p2.pixelWidth - p1.pixelWidth);
-                return p1.distanceM + t * (p2.distanceM - p1.distanceM);
-            }
-        }
-        return -1.0f;
+        return interpolate(pixelWidth, Axis.WIDTH_DECREASING);
     }
 
     /**
-     * getDistanceFromRow: Maps an observed pixel row (Y) to a real-world distance.
-     * Used for ground-plane triangulation.
+     * getDistanceFromRow: Maps an observed pixel row (Y) to distance.
+     * Row is DECREASING as distance increases (target further away =
+     * higher in frame = smaller Y). Uses the same axis-negation trick
+     * as getDistanceFromWidth.
+     *
+     * This path does NOT apply any pitch correction. Callers that know
+     * the current device pitch should use getDistanceFromRowWithPitch.
      */
     public float getDistanceFromRow(float pixelRow) {
         if (points.size() < 2) return -1.0f;
-
-        // Since Y decreases as distance increases (upward in frame)
-        for (int i = 0; i < points.size() - 1; i++) {
-            TrainingPoint p1 = points.get(i);
-            TrainingPoint p2 = points.get(i + 1);
-
-            if (pixelRow <= p1.pixelRow && pixelRow >= p2.pixelRow) {
-                float t = (pixelRow - p1.pixelRow) / (p2.pixelRow - p1.pixelRow);
-                return p1.distanceM + t * (p2.distanceM - p1.distanceM);
-            }
-        }
-        return -1.0f;
+        return interpolate(pixelRow, Axis.ROW_DECREASING);
     }
 
     /**
-     * getPixelWidthAtDistance: Returns how many pixels wide a 20cm object 
-     * would be at a given distance.
+     * getDistanceFromRowWithPitch: Same as getDistanceFromRow but shifts
+     * the query row by focalPx * tan(pitch) so the LUT is consulted at
+     * the row that WOULD have been observed had the device been held
+     * level. Positive pitchRad = device tilted nose-down (which moves
+     * the horizon row visually downward, so targets appear at LARGER
+     * row values than they would at level). We subtract the shift so
+     * the corrected row maps back onto the level-held calibration data.
+     *
+     * focalPx must match the current preview resolution, not the
+     * calibration reference resolution; HardwareHAL.getFocalLengthPx()
+     * recomputes per frame.
+     */
+    public float getDistanceFromRowWithPitch(
+            float pixelRow, float pitchRad, float focalPx) {
+        if (points.size() < 2) return -1.0f;
+        float shift = focalPx * (float) Math.tan(pitchRad);
+        return interpolate(pixelRow - shift, Axis.ROW_DECREASING);
+    }
+
+    /**
+     * getPixelWidthAtDistance: Returns how many pixels wide a 20cm
+     * object would be at the given distance. Used by the classifier to
+     * derive real object width from an observed width, and by the
+     * width-vs-row sanity check in TriangulationEngine to reject bad
+     * frames.
      */
     public float getPixelWidthAtDistance(float distanceM) {
         if (points.size() < 2) return -1.0f;
+        return interpolate(distanceM, Axis.DISTANCE_TO_WIDTH);
+    }
 
-        for (int i = 0; i < points.size() - 1; i++) {
-            TrainingPoint p1 = points.get(i);
-            TrainingPoint p2 = points.get(i + 1);
+    // ---------------------------------------------------------------
+    // Interpolation core (Fritsch-Carlson monotone cubic Hermite)
+    // ---------------------------------------------------------------
 
-            if (distanceM >= p1.distanceM && distanceM <= p2.distanceM) {
-                float t = (distanceM - p1.distanceM) / (p2.distanceM - p1.distanceM);
-                return p1.pixelWidth + t * (p2.pixelWidth - p1.pixelWidth);
+    private enum Axis {
+        WIDTH_DECREASING,    // query = pixelWidth,  output = distanceM
+        ROW_DECREASING,      // query = pixelRow,    output = distanceM
+        DISTANCE_TO_WIDTH    // query = distanceM,   output = pixelWidth
+    }
+
+    private float interpolate(float query, Axis axis) {
+        // Build two float arrays (xs, ys) where xs is strictly
+        // increasing. For DECREASING axes (width, row), we store -axisValue
+        // as x so the spline still operates on increasing x; query is
+        // likewise negated below.
+        int n = points.size();
+        float[] xs = new float[n];
+        float[] ys = new float[n];
+        for (int i = 0; i < n; i++) {
+            TrainingPoint p = points.get(i);
+            switch (axis) {
+                case WIDTH_DECREASING:
+                    xs[i] = -p.pixelWidth;
+                    ys[i] = p.distanceM;
+                    break;
+                case ROW_DECREASING:
+                    xs[i] = -p.pixelRow;
+                    ys[i] = p.distanceM;
+                    break;
+                case DISTANCE_TO_WIDTH:
+                    xs[i] = p.distanceM;
+                    ys[i] = p.pixelWidth;
+                    break;
             }
         }
-        return -1.0f;
+        sortByX(xs, ys);
+        float qx;
+        switch (axis) {
+            case WIDTH_DECREASING:
+            case ROW_DECREASING:
+                qx = -query;
+                break;
+            default:
+                qx = query;
+        }
+        return hermite(xs, ys, qx);
+    }
+
+    /**
+     * Fritsch-Carlson monotone cubic Hermite interpolation.
+     * Guarantees the returned value lies between the bracketing y
+     * anchors, so overshoot (which the previous linear interp at least
+     * avoided but which naive cubics introduce) cannot happen. For a
+     * query outside [xs[0], xs[n-1]], linearly extrapolates from the
+     * nearest segment's slope so the engine still returns SOMETHING
+     * reasonable rather than -1 at the range edges.
+     */
+    private static float hermite(float[] xs, float[] ys, float qx) {
+        int n = xs.length;
+        if (qx <= xs[0]) {
+            // Linear extrapolation from first segment
+            float slope = (ys[1] - ys[0]) / (xs[1] - xs[0]);
+            return ys[0] + slope * (qx - xs[0]);
+        }
+        if (qx >= xs[n - 1]) {
+            float slope = (ys[n - 1] - ys[n - 2]) / (xs[n - 1] - xs[n - 2]);
+            return ys[n - 1] + slope * (qx - xs[n - 1]);
+        }
+
+        // Secant slopes
+        float[] d = new float[n - 1];
+        for (int i = 0; i < n - 1; i++) {
+            d[i] = (ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]);
+        }
+
+        // Initial tangents: averaged secants, with endpoints = single secant
+        float[] m = new float[n];
+        m[0] = d[0];
+        m[n - 1] = d[n - 2];
+        for (int i = 1; i < n - 1; i++) {
+            m[i] = (d[i - 1] + d[i]) * 0.5f;
+        }
+
+        // Enforce monotonicity per Fritsch-Carlson
+        for (int i = 0; i < n - 1; i++) {
+            if (d[i] == 0f) {
+                m[i] = 0f;
+                m[i + 1] = 0f;
+                continue;
+            }
+            float a = m[i] / d[i];
+            float b = m[i + 1] / d[i];
+            float sumSq = a * a + b * b;
+            if (sumSq > 9f) {
+                float tau = 3f / (float) Math.sqrt(sumSq);
+                m[i] = tau * a * d[i];
+                m[i + 1] = tau * b * d[i];
+            }
+        }
+
+        // Find bracketing segment
+        int k = 0;
+        for (int i = 0; i < n - 1; i++) {
+            if (qx >= xs[i] && qx <= xs[i + 1]) {
+                k = i;
+                break;
+            }
+        }
+
+        float h = xs[k + 1] - xs[k];
+        float t = (qx - xs[k]) / h;
+        float t2 = t * t;
+        float t3 = t2 * t;
+        float h00 = 2f * t3 - 3f * t2 + 1f;
+        float h10 = t3 - 2f * t2 + t;
+        float h01 = -2f * t3 + 3f * t2;
+        float h11 = t3 - t2;
+        return h00 * ys[k]
+             + h10 * h * m[k]
+             + h01 * ys[k + 1]
+             + h11 * h * m[k + 1];
+    }
+
+    private static void sortByX(float[] xs, float[] ys) {
+        int n = xs.length;
+        Integer[] idx = new Integer[n];
+        for (int i = 0; i < n; i++) idx[i] = i;
+        final float[] xsRef = xs;
+        java.util.Arrays.sort(idx, new Comparator<Integer>() {
+            @Override public int compare(Integer a, Integer b) {
+                return Float.compare(xsRef[a], xsRef[b]);
+            }
+        });
+        float[] xOut = new float[n];
+        float[] yOut = new float[n];
+        for (int i = 0; i < n; i++) {
+            xOut[i] = xs[idx[i]];
+            yOut[i] = ys[idx[i]];
+        }
+        System.arraycopy(xOut, 0, xs, 0, n);
+        System.arraycopy(yOut, 0, ys, 0, n);
     }
 }
