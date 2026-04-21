@@ -44,8 +44,16 @@ public class FiducialLUT {
         }
     }
 
-    private final List<TrainingPoint> points = new ArrayList<>();
-    private boolean usingTrainedProfile = false;
+    // Volatile reference so loadProfile() can atomically swap the anchor
+    // set from the background calibration-fetch thread while the main
+    // navigation loop reads the same field on every frame. ArrayList is
+    // not thread-safe, so we never mutate the referenced list after it
+    // is published: addPoint() and loadProfile() both build a fresh list
+    // and publish it in a single volatile write. Readers capture the
+    // reference locally (see interpolate()) so a concurrent swap can't
+    // split a read across two different lists.
+    private volatile List<TrainingPoint> points = new ArrayList<>();
+    private volatile boolean usingTrainedProfile = false;
 
     public FiducialLUT() {
         // Synthetic defaults calibrated against a 640x480 reference frame.
@@ -66,7 +74,9 @@ public class FiducialLUT {
     }
 
     public void addPoint(float distanceM, float pixelWidth, float pixelRow) {
-        points.add(new TrainingPoint(distanceM, pixelWidth, pixelRow));
+        List<TrainingPoint> next = new ArrayList<>(points);
+        next.add(new TrainingPoint(distanceM, pixelWidth, pixelRow));
+        points = next;
     }
 
     /**
@@ -78,8 +88,12 @@ public class FiducialLUT {
      */
     public void loadProfile(List<TrainingPoint> profile) {
         if (profile == null || profile.size() < 2) return;
-        points.clear();
-        points.addAll(profile);
+        // Defensive copy + atomic publish: callers on the background
+        // fetch thread hand us a list we don't control, and the main
+        // loop is reading `points` concurrently. One volatile write
+        // gives readers either the old list in full or the new list in
+        // full, never a half-cleared view.
+        points = new ArrayList<>(profile);
         usingTrainedProfile = true;
     }
 
@@ -171,11 +185,15 @@ public class FiducialLUT {
         // increasing. For DECREASING axes (width, row), we store -axisValue
         // as x so the spline still operates on increasing x; query is
         // likewise negated below.
-        int n = points.size();
+        // Snapshot the volatile reference once up front so a concurrent
+        // loadProfile() on the fetch thread can't swap the list out
+        // mid-loop.
+        List<TrainingPoint> snapshot = points;
+        int n = snapshot.size();
         float[] xs = new float[n];
         float[] ys = new float[n];
         for (int i = 0; i < n; i++) {
-            TrainingPoint p = points.get(i);
+            TrainingPoint p = snapshot.get(i);
             switch (axis) {
                 case WIDTH_DECREASING:
                     xs[i] = -p.pixelWidth;

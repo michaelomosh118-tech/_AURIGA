@@ -522,5 +522,9 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         if (voice != null)  voice.shutdown();
         if (sonar != null)  sonar.stop();
         if (haptic != null) haptic.stop();
+        // Sensor listeners leak the Activity (SensorManager -> HardwareHAL
+        // -> Context) if we don't unregister. HardwareHAL.stopPitchSensor()
+        // is idempotent and null-guards internally.
+        if (hal != null) hal.stopPitchSensor();
     }
 }
