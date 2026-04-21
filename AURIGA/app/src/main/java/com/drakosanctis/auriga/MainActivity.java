@@ -189,15 +189,35 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
 
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-        // camera/engine layers may be null if their initStep failed; guard so
-        // we surface the original init failure (already Toast'd + logged)
-        // instead of a noisier secondary NPE on the surface callback.
-        if (camera == null) {
-            Log.w(TAG, "Surface ready but camera layer was not constructed; skipping main loop.");
+        // Any engine layer may be null if its initStep failed; start the
+        // camera + main loop only when the full dependency chain is intact.
+        // Otherwise we'd NPE inside the render loop (calibrationManager /
+        // processor / engine / odometry / etc.) on every frame and spam
+        // the crash log long after the user already got the initStep Toast.
+        if (!coreEnginesReady()) {
+            Log.w(TAG, "Surface ready but one or more engine layers were not constructed; skipping main loop.");
             return;
         }
         camera.start(surface);
         startMainLoop();
+    }
+
+    /**
+     * True iff every field touched by the hot navigation loop is non-null.
+     * If any of these failed to construct during onCreate we refuse to start
+     * the loop at all; the user has already been shown a Toast naming the
+     * failing init step, and a partially-functional HUD would just produce
+     * secondary NPEs that obscure the original failure.
+     */
+    private boolean coreEnginesReady() {
+        return camera != null
+                && calibrationManager != null
+                && processor != null
+                && odometry != null
+                && engine != null
+                && sonar != null
+                && haptic != null
+                && voice != null;
     }
 
     private void startMainLoop() {
@@ -286,7 +306,9 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) { }
     @Override
     public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
-        camera.stop();
+        // Fires during teardown regardless of init outcome; skip cleanly if
+        // camera's initStep never produced an instance.
+        if (camera != null) camera.stop();
         return true;
     }
     @Override
@@ -295,8 +317,10 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        voice.shutdown();
-        sonar.stop();
-        haptic.stop();
+        // Any of these can be null if their initStep failed; onDestroy must
+        // not turn a degraded launch into a teardown crash.
+        if (voice != null)  voice.shutdown();
+        if (sonar != null)  sonar.stop();
+        if (haptic != null) haptic.stop();
     }
 }
