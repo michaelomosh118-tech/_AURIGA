@@ -171,6 +171,27 @@ public class HardwareHAL implements SensorEventListener {
         return pitchInitialized ? smoothedPitchRad : 0.0f;
     }
 
+    /**
+     * Reports whether the accelerometer was successfully registered
+     * at construction. Used by the diagnostic overlay to distinguish
+     * "pitch is genuinely 0 because the phone is level" from "pitch
+     * is reading 0 because the sensor failed to register and
+     * horizon-shift correction is silently disabled".
+     */
+    public boolean hasAccelerometer() {
+        return accelerometer != null;
+    }
+
+    /**
+     * Reports whether at least one accelerometer sample has been
+     * received. False here + hasAccelerometer()=true is the "sensor
+     * registered but hasn't delivered a sample yet" transient state
+     * visible on the overlay for <=200 ms after onCreate.
+     */
+    public boolean isPitchInitialized() {
+        return pitchInitialized;
+    }
+
     private String getBackCameraId(CameraManager manager) throws CameraAccessException {
         for (String id : manager.getCameraIdList()) {
             Integer facing = manager.getCameraCharacteristics(id).get(CameraCharacteristics.LENS_FACING);

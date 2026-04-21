@@ -177,6 +177,28 @@
         }
         .nav-links a:hover { color: var(--auriga-cyan); }
 
+        /* Mobile menu toggle button. Hidden on desktop; becomes the
+           primary nav affordance below 768 px where we replace the
+           inline .nav-links row with a slide-down drawer. */
+        .nav-toggle {
+            display: none;
+            background: transparent;
+            border: 1px solid var(--auriga-cyan);
+            color: var(--auriga-cyan);
+            font-family: 'Orbitron';
+            font-size: 0.78rem;
+            padding: 8px 14px;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            border-radius: 4px;
+            min-width: 48px;
+            min-height: 40px;
+        }
+        .nav-toggle:focus-visible {
+            outline: 2px solid var(--auriga-cyan);
+            outline-offset: 2px;
+        }
+
         /* ── SECTIONS ── */
         section {
             min-height: 100vh;
@@ -617,12 +639,42 @@
 
         @media (max-width: 768px) {
             .hero h1 { font-size: 3rem; }
-            .nav-links { display: none; }
             .hud-container { height: 340px; }
             .value { font-size: 1.5rem; }
             .doc-panel { grid-template-columns: 1fr; padding: 24px 20px; }
             .doc-block.full { grid-column: 1; }
             .acq-steps { padding: 24px 20px; }
+
+            /* Reveal the hamburger affordance. */
+            .nav-toggle { display: inline-block; }
+
+            /* Collapse the horizontal row into a drawer that drops
+               from under the nav bar. Closed by default; the JS
+               toggle flips .open to show. Uses position:absolute +
+               full-width so the links are large tap targets for
+               low-vision users. */
+            .nav-links {
+                position: absolute;
+                top: 100%;
+                right: 0;
+                left: 0;
+                flex-direction: column;
+                gap: 0;
+                padding: 8px 5% 16px;
+                background: rgba(10, 10, 15, 0.97);
+                border-top: 1px solid rgba(0, 87, 255, 0.28);
+                border-bottom: 1px solid rgba(0, 87, 255, 0.28);
+                backdrop-filter: blur(12px);
+                display: none;
+            }
+            .nav-links.open { display: flex; }
+            .nav-links a {
+                font-size: 0.95rem;
+                padding: 14px 4px;
+                border-bottom: 1px solid rgba(0, 87, 255, 0.12);
+                min-height: 44px;
+            }
+            .nav-links a:last-child { border-bottom: none; }
         }
     </style>
 </head>
@@ -647,7 +699,12 @@
         <img src="logo.png" alt="DRAKOSANCTIS" onerror="this.style.display='none'">
         DRAKOSANCTIS // AURIGA
     </div>
-    <div class="nav-links">
+    <button type="button" class="nav-toggle" id="navToggle"
+            aria-expanded="false" aria-controls="navLinks"
+            aria-label="Open navigation menu" onclick="toggleNavDrawer()">
+        MENU
+    </button>
+    <div class="nav-links" id="navLinks">
         <a onclick="showSection('home')">HOME</a>
         <a onclick="showSection('ecosystem')">ECOSYSTEM</a>
         <a onclick="showSection('navi')">NAVI</a>
@@ -1480,6 +1537,34 @@ float[] result = AurigaCore::triangulate(
         document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
         const t = document.getElementById(id);
         if (t) { t.classList.add('active'); window.scrollTo(0,0); }
+        // Auto-close the mobile nav drawer after the user picks a
+        // destination. Without this the drawer would cover the top
+        // of the section they just navigated to.
+        closeNavDrawer();
+    }
+
+    // ── MOBILE NAV DRAWER ──
+    // The <= 768 px breakpoint replaces the horizontal nav row with
+    // a slide-down drawer. toggleNavDrawer() flips visibility and
+    // keeps aria-expanded in sync for screen readers. closeNavDrawer
+    // is a safe no-op on desktop because the drawer class is never
+    // rendered and aria-expanded is always "false".
+    function toggleNavDrawer() {
+        const links = document.getElementById('navLinks');
+        const btn   = document.getElementById('navToggle');
+        if (!links || !btn) return;
+        const open = links.classList.toggle('open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.setAttribute('aria-label',
+            open ? 'Close navigation menu' : 'Open navigation menu');
+    }
+    function closeNavDrawer() {
+        const links = document.getElementById('navLinks');
+        const btn   = document.getElementById('navToggle');
+        if (!links || !btn) return;
+        links.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+        btn.setAttribute('aria-label', 'Open navigation menu');
     }
 
     // ── HUD SIMULATION ──

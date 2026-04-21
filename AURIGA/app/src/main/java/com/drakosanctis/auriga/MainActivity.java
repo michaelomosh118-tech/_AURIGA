@@ -441,8 +441,8 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         float pitchDeg = (float) Math.toDegrees(pitchRad);
         float focalPx  = (hal != null) ? hal.getFocalLengthPx(activeBitmapW) : 0f;
 
-        boolean trainedProfile = (lut != null) && lut.isUsingTrainedProfile();
         int lutPoints          = (lut != null) ? lut.getPointCount() : 0;
+        String profileSrc      = (lut != null) ? lut.getProfileSource() : "?";
         float rawRowDist       = (lut != null)
                 ? lut.getDistanceFromRowWithPitch(baseY, pitchRad, focalPx) : -1f;
         float rawWidthDist     = (lut != null && widthPx > 0f)
@@ -452,11 +452,28 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         float groundBear = groundRes != null ? groundRes.bearingDeg : Float.NaN;
         float groundSane = groundRes != null ? groundRes.sanityScore : 0f;
 
+        // Accel state tells the user whether pitch correction is
+        // actually live. "off" = sensor never registered; "warming"
+        // = registered but no sample yet (rare, <=200 ms after
+        // onCreate); "live" = delivering samples. This was the
+        // missing signal in v0.2.0 -- the pitch line showed 0.00 but
+        // there was no way to tell if that was "phone held level" or
+        // "sensor broken".
+        String accelState;
+        if (hal == null || !hal.hasAccelerometer()) {
+            accelState = "off";
+        } else if (!hal.isPitchInitialized()) {
+            accelState = "warming";
+        } else {
+            accelState = "live";
+        }
+
         String msg = String.format(java.util.Locale.US,
                 "AURIGA DIAG\n"
                 + "bitmap   : %dx%d\n"
-                + "pitch    : %6.2f deg (%.4f rad)\n"
+                + "pitch    : %6.2f deg (%.4f rad) %s\n"
                 + "focalPx  : %7.1f\n"
+                + "device   : %s %s\n"
                 + "baseY    : %4d   centerX : %4d\n"
                 + "widthPx  : %6.1f  conf    : %5.2f\n"
                 + "rowDist  : %5.2f m  widthD  : %5.2f m\n"
@@ -464,14 +481,15 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
                 + "sanity   : %4.2f   shift   : %5.2f px\n"
                 + "profile  : %s (%d pts)",
                 activeBitmapW, activeBitmapH,
-                pitchDeg, pitchRad,
+                pitchDeg, pitchRad, accelState,
                 focalPx,
+                safeBuildTag(Build.MANUFACTURER), safeBuildTag(Build.MODEL),
                 baseY, centerX,
                 widthPx, detConfidence,
                 rawRowDist, rawWidthDist,
                 groundDist, groundBear,
                 groundSane, shiftMag,
-                trainedProfile ? "trained" : "synthetic", lutPoints);
+                profileSrc, lutPoints);
 
         runOnUiThread(() -> {
             if (diagnosticOverlay != null && diagnosticVisible) {
@@ -608,13 +626,54 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         String model = Build.MODEL == null ? "" : Build.MODEL.trim();
         String manufacturer =
                 Build.MANUFACTURER == null ? "" : Build.MANUFACTURER.trim();
+        // Always log the actual Build.MODEL + MANUFACTURER so a user
+        // whose profile failed to load can report the exact strings
+        // back to us -- v0.2.0 failed silently on the A07 and we had
+        // no way to know whether the asset filename, the JSON model
+        // field, or the manifest match was the mismatch.
+        Log.i(TAG, "Device: manufacturer='" + manufacturer
+                + "' model='" + model + "' (Build.DEVICE='" + Build.DEVICE
+                + "', Build.PRODUCT='" + Build.PRODUCT + "')");
         if (model.isEmpty()) return;
         String assetPath = "default_profile_" + model + ".json";
         boolean loaded = lut.loadFromAssetJson(
                 this, assetPath, manufacturer, model);
         if (loaded) {
             Log.i(TAG, "Loaded bundled calibration profile: " + assetPath);
+            return;
         }
+        // Fallback #1: retry with the SM-A057F asset for known A07
+        // codename variants. Some A07 ROMs report Build.MODEL as the
+        // codename rather than the sales model.
+        if ("a05s".equalsIgnoreCase(model)
+                || "a057f".equalsIgnoreCase(model)) {
+            boolean alias = lut.loadFromAssetJson(
+                    this, "default_profile_SM-A057F.json", manufacturer, "SM-A057F");
+            if (alias) {
+                Log.i(TAG, "Loaded SM-A057F profile via codename alias '" + model + "'");
+                return;
+            }
+        }
+        Log.w(TAG, "No bundled calibration profile matched "
+                + manufacturer + " " + model + " (asset=" + assetPath + ")");
+    }
+
+    /**
+     * Quick sanitizer for Build.* fields before they are shown on
+     * the diagnostic overlay. Android guarantees these are non-null
+     * but the overlay is mono-spaced and a rogue Unicode char would
+     * break alignment; strip to ASCII printable and cap length.
+     */
+    private static String safeBuildTag(String s) {
+        if (s == null) return "?";
+        String t = s.trim();
+        if (t.isEmpty()) return "?";
+        StringBuilder sb = new StringBuilder(t.length());
+        for (int i = 0; i < t.length() && sb.length() < 24; i++) {
+            char c = t.charAt(i);
+            if (c >= 0x20 && c < 0x7F) sb.append(c);
+        }
+        return sb.length() == 0 ? "?" : sb.toString();
     }
 
     private void fetchCalibrationProfileAsync() {
@@ -634,7 +693,7 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             List<FiducialLUT.TrainingPoint> matched =
                     parseProfile(body, manufacturer, model);
             if (matched != null && matched.size() >= 2 && lut != null) {
-                lut.loadProfile(matched);
+                lut.loadProfile(matched, "network");
                 runOnUiThread(() -> Toast.makeText(
                         MainActivity.this,
                         "Loaded calibration for " + model,

@@ -63,6 +63,17 @@ public class FiducialLUT {
     // split a read across two different lists.
     private volatile List<TrainingPoint> points = new ArrayList<>();
     private volatile boolean usingTrainedProfile = false;
+    // Human-readable tag describing where the currently-loaded profile
+    // came from. Surfaced in the diagnostic overlay so a field
+    // operator can tell at a glance whether the LUT is running off
+    // synthetic defaults, the bundled SM-A057F asset, a network
+    // contribution, or an on-device 10-point calibration. Values are
+    // kept short so the overlay stays inside the mono-spaced column.
+    //   "synthetic" : class-constructor defaults (640x480 reference)
+    //   "asset"     : bundled APK asset (assets/default_profile_*.json)
+    //   "network"   : downloaded from calibration-library mirror
+    //   "on-device" : captured via the 10-point calibration walk
+    private volatile String profileSource = "synthetic";
 
     public FiducialLUT() {
         // Synthetic defaults calibrated against a 640x480 reference frame.
@@ -96,6 +107,16 @@ public class FiducialLUT {
      * "using device-specific calibration" state.
      */
     public void loadProfile(List<TrainingPoint> profile) {
+        loadProfile(profile, "on-device");
+    }
+
+    /**
+     * Overload that also records where the profile came from so the
+     * diagnostic overlay can show e.g. {@code profile : asset (10 pts)}
+     * instead of just "trained". Passing a null or empty source falls
+     * back to "on-device" which matches the pre-overload behavior.
+     */
+    public void loadProfile(List<TrainingPoint> profile, String source) {
         if (profile == null) return;
         // Sanitize first: filter non-finite values, sort by distanceM,
         // and drop entries whose distance / pixelWidth / pixelRow would
@@ -137,10 +158,24 @@ public class FiducialLUT {
         // a half-cleared view.
         points = cleaned;
         usingTrainedProfile = true;
+        if (source != null && !source.trim().isEmpty()) {
+            profileSource = source.trim();
+        } else {
+            profileSource = "on-device";
+        }
     }
 
     public boolean isUsingTrainedProfile() {
         return usingTrainedProfile;
+    }
+
+    /**
+     * Diagnostic label for which path populated the current anchor
+     * set. Never null. See {@link #profileSource} for the full set
+     * of values.
+     */
+    public String getProfileSource() {
+        return profileSource;
     }
 
     public int getPointCount() {
@@ -185,7 +220,7 @@ public class FiducialLUT {
         }
         List<TrainingPoint> matched = parseProfileJson(body, manufacturer, model);
         if (matched == null || matched.size() < 2) return false;
-        loadProfile(matched);
+        loadProfile(matched, "asset");
         return true;
     }
 
