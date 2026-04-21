@@ -35,8 +35,12 @@ public class HardwareHAL implements SensorEventListener {
     // of bearing noise).
     private SensorManager sensorManager;
     private Sensor accelerometer;
-    private float smoothedPitchRad = 0.0f;
-    private boolean pitchInitialized = false;
+    // volatile so the render-loop thread's getPitchRadians() sees writes
+    // from the sensor callback thread without a data race. Without this,
+    // the JIT on the render thread can cache pitchInitialized=false and
+    // silently disable pitch correction entirely.
+    private volatile float smoothedPitchRad = 0.0f;
+    private volatile boolean pitchInitialized = false;
     private static final float PITCH_ALPHA = 0.15f;
 
     public HardwareHAL(Context context) {
