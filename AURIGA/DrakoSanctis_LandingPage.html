@@ -1552,10 +1552,11 @@ float[] result = AurigaCore::triangulate(
             <p style="font-size:0.7rem;color:var(--cobalt-blue);">THE CORE ENGINE WILL OPTIMIZE FOR YOUR SELECTION.</p>`;
     }
 
-    // Public download URL per variant. Points at the latest GitHub Release,
-    // so every tag push on the repo automatically updates what users get
-    // without any website redeploy.
-    const AURIGA_RELEASE_BASE = 'https://github.com/michaelomosh118-tech/_AURIGA/releases/latest/download';
+    // Public download URL per variant. Points at the latest GitHub Release on
+    // the public auriga-releases mirror (the _AURIGA source repo is private,
+    // so its releases are auth-gated; auriga-releases mirrors the signed
+    // artifacts so unauthenticated visitors can download).
+    const AURIGA_RELEASE_BASE = 'https://github.com/michaelomosh118-tech/auriga-releases/releases/latest/download';
     const AURIGA_APK_FILES = {
         NAVI:       'AurigaNavi-release.apk',
         SENTINEL:   'AurigaSentinel-release.apk',
