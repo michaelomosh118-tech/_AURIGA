@@ -191,37 +191,50 @@ jobs:
       # the AURIGA_PUBLIC_RELEASES_TOKEN PAT secret is configured. Skips
       # silently (with a warning) otherwise so tag pushes never break during
       # bootstrap.
-      - name: Mirror release to public auriga-releases repo
+      # Diagnostic: confirm the mirror PAT authenticates correctly and has
+      # write access to the target repo before we try to publish. Output is
+      # scrubbed — `gh api user --jq .login` and a permissions probe, nothing
+      # that can leak the token itself.
+      - name: Diagnose mirror PAT
         if: ${{ env.HAS_MIRROR_TOKEN == 'true' }}
         env:
-          # Setting GH_TOKEN directly lets the gh CLI authenticate as the PAT
-          # without calling `gh auth login --with-token`, which insists on a
-          # `read:org` scope the mirror PAT has no business holding.
           GH_TOKEN: ${{ secrets.AURIGA_PUBLIC_RELEASES_TOKEN }}
-          RELEASE_TAG: ${{ needs.build-and-publish.outputs.release_tag }}
-          MIRROR_REPO: michaelomosh118-tech/auriga-releases
         run: |
-          set -euo pipefail
-          echo "Mirroring $RELEASE_TAG to $MIRROR_REPO ..."
-          # Idempotent: delete any preexisting release with this tag, then
-          # recreate with the freshly-built artifacts. We do NOT delete the
-          # associated git tag on the mirror repo — `gh release create` will
-          # either reuse an existing tag or create a tag-on-default-branch.
-          if gh release view "$RELEASE_TAG" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
-            echo "Existing release $RELEASE_TAG found on $MIRROR_REPO — deleting to replace."
-            gh release delete "$RELEASE_TAG" --repo "$MIRROR_REPO" --yes || true
-          fi
-          gh release create "$RELEASE_TAG" \
-            --repo "$MIRROR_REPO" \
-            --title "Auriga $RELEASE_TAG" \
-            --notes "Public mirror of michaelomosh118-tech/_AURIGA@$RELEASE_TAG. APKs signed v1+v2+v3." \
-            _release_final/AurigaNavi-release.apk \
-            _release_final/AurigaSentinel-release.apk \
-            _release_final/AurigaAero-release.apk \
-            _release_final/AurigaIndustrial-release.apk \
-            _release_final/AurigaNavi-release.aab \
-            _release_final/AurigaSentinel-release.aab \
-            _release_final/AurigaAero-release.aab \
+          set +e
+          echo "PAT authenticates as: $(gh api user --jq .login 2>&1 | tail -1)"
+          echo "Token scopes (classic PATs only):"
+          curl -sSI -H "Authorization: Bearer $GH_TOKEN" https://api.github.com/user \
+            | grep -i '^x-oauth-scopes' || echo "  (fine-grained PAT — scopes header is absent)"
+          echo "auriga-releases repo visibility + our permission set:"
+          gh api repos/michaelomosh118-tech/auriga-releases --jq '{private, permissions}' 2>&1 || true
+          set -e
+
+      - name: Mirror release to public auriga-releases repo
+        if: ${{ env.HAS_MIRROR_TOKEN == 'true' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          # Cross-repo publish using the PAT. The action validates write
+          # permission against the target repo's /releases endpoint only,
+          # which is exactly what the PAT is scoped to do.
+          repository: michaelomosh118-tech/auriga-releases
+          token: ${{ secrets.AURIGA_PUBLIC_RELEASES_TOKEN }}
+          tag_name: ${{ needs.build-and-publish.outputs.release_tag }}
+          name: Auriga ${{ needs.build-and-publish.outputs.release_tag }}
+          body: "Public mirror of michaelomosh118-tech/_AURIGA@${{ needs.build-and-publish.outputs.release_tag }}. APKs signed v1+v2+v3."
+          # If the tag doesn't yet exist on the mirror repo, target the
+          # default branch so the action creates it on the fly.
+          target_commitish: main
+          # Re-publishing an existing release is idempotent: overwrite
+          # assets rather than failing on duplicate file names.
+          overwrite_files: true
+          files: |
+            _release_final/AurigaNavi-release.apk
+            _release_final/AurigaSentinel-release.apk
+            _release_final/AurigaAero-release.apk
+            _release_final/AurigaIndustrial-release.apk
+            _release_final/AurigaNavi-release.aab
+            _release_final/AurigaSentinel-release.aab
+            _release_final/AurigaAero-release.aab
             _release_final/AurigaIndustrial-release.aab
 
       - name: Warn if public mirror token is missing
