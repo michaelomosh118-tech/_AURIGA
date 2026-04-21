@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DrakoSanctis | Auriga Ecosystem - See Beyond Sight</title>
     <link rel="icon" type="image/png" href="logo.png">
+    <link rel="apple-touch-icon" href="logo.png">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0A0A0F">
+    <meta name="description" content="Auriga Ecosystem by DrakoSanctis - Universal Spatial Intelligence">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -1550,7 +1552,23 @@ float[] result = AurigaCore::triangulate(
             <p style="font-size:0.7rem;color:var(--cobalt-blue);">THE CORE ENGINE WILL OPTIMIZE FOR YOUR SELECTION.</p>`;
     }
 
+    // Public download URL per variant. Points at the latest GitHub Release,
+    // so every tag push on the repo automatically updates what users get
+    // without any website redeploy.
+    const AURIGA_RELEASE_BASE = 'https://github.com/michaelomosh118-tech/_AURIGA/releases/latest/download';
+    const AURIGA_APK_FILES = {
+        NAVI:       'AurigaNavi-release.apk',
+        SENTINEL:   'AurigaSentinel-release.apk',
+        AERO:       'AurigaAero-release.apk',
+        INDUSTRIAL: 'AurigaIndustrial-release.apk'
+    };
+    function aurigaApkUrl(variant) {
+        const file = AURIGA_APK_FILES[variant] || AURIGA_APK_FILES.NAVI;
+        return AURIGA_RELEASE_BASE + '/' + file;
+    }
+
     function renderMobileConfig(variant) {
+        const apkUrl = aurigaApkUrl(variant);
         document.getElementById('modal-body').innerHTML = `
             <h2>MOBILE CONFIGURATION</h2>
             <p>ZERO-CALIBRATION: SELECT YOUR DEVICE MODEL</p>
@@ -1559,17 +1577,29 @@ float[] result = AurigaCore::triangulate(
                 <select id="device-model">
                     <option value="S23">Samsung Galaxy S23 (HFOV: 68°)</option>
                     <option value="P8">Google Pixel 8 (HFOV: 72°)</option>
-                    <option value="IP15">iPhone 15 Pro (HFOV: 64°)</option>
+                    <option value="A07">Samsung Galaxy A07 (HFOV: 68°)</option>
                     <option value="A05S">Samsung Galaxy A05s (HFOV: 68°)</option>
                     <option value="ITEL_A">Itel A-Series / Android Go (HFOV: 65°)</option>
                     <option value="GENERIC">Generic Android (Standard 68°)</option>
                 </select>
+                <p style="font-size:0.7rem;color:var(--cobalt-blue);margin-top:6px;">
+                    The same signed APK serves every model; device-model is
+                    recorded for analytics and for future per-device HFOV
+                    presets in the calibration engine.
+                </p>
             </div>
             <div style="background:white;padding:20px;display:inline-block;margin:20px 0;">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://drakosanctis.com/install/${variant.toLowerCase()}" alt="QR Code">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(apkUrl)}"
+                     alt="QR code linking directly to the signed ${variant} release APK">
             </div>
-            <p style="font-size:0.8rem;margin-bottom:20px;">Scan to install the optimized APK for your model.</p>
-            <button class="cta-btn" onclick="simulateInstall('${variant}')">DIRECT DOWNLOAD</button>
+            <p style="font-size:0.8rem;margin-bottom:20px;">Scan on your phone to download the signed Auriga ${variant} APK.</p>
+            <button class="cta-btn" onclick="startRealDownload('${variant}')">DIRECT DOWNLOAD</button>
+            <a class="cta-btn"
+               style="display:inline-block;margin-left:10px;border-color:var(--auriga-cyan);color:var(--auriga-cyan);text-decoration:none;"
+               href="https://github.com/michaelomosh118-tech/_AURIGA/blob/main/INSTALL.md"
+               target="_blank" rel="noopener">
+                INSTALL GUIDE
+            </a>
             <button class="cta-btn" style="border-color:#555;color:#555;margin-left:10px;" onclick="renderPlatformSelection('${variant}')">BACK</button>`;
     }
 
@@ -1603,16 +1633,56 @@ float[] result = AurigaCore::triangulate(
         document.getElementById('install-modal').style.display = 'none';
     }
 
-    function simulateInstall(variant) {
-        const model = document.getElementById('device-model').value;
-        alert(`DRAKOSANCTIS SECURE INSTALLER\nStarting download of Auriga${variant}_${model}.apk\nRSA-2048 Signed Token Issued.\nInstallation instructions have been sent to your registered email.`);
+    function startRealDownload(variant) {
+        // Read the selected model just for analytics / future per-device
+        // HFOV presets. The same signed APK serves every model today.
+        const modelEl = document.getElementById('device-model');
+        const model = modelEl ? modelEl.value : 'GENERIC';
+        const apkUrl = aurigaApkUrl(variant);
+
+        // Fire a normal anchor navigation so mobile browsers hand the file
+        // to the Android package installer rather than rendering it inline.
+        const a = document.createElement('a');
+        a.href = apkUrl;
+        a.rel = 'noopener';
+        // No target=_blank: Android handles .apk via Content-Disposition.
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        // Best-effort analytics hook. Silently no-ops if not present.
+        try {
+            if (window.navigator.sendBeacon) {
+                navigator.sendBeacon(
+                    '/api/download-log',
+                    new Blob([JSON.stringify({ variant, model, ts: Date.now() })],
+                             { type: 'application/json' })
+                );
+            }
+        } catch (_) { /* ignore */ }
+
         closeModal();
+        srAnnounce(`Downloading Auriga ${variant} APK for ${model}. Open your Files app and tap it to install.`);
     }
+
+    // Back-compat alias for any cached buttons pointing at the old name.
+    function simulateInstall(variant) { startRealDownload(variant); }
 
     function generateSDK(variant) {
         const hfov = document.getElementById('hfov').value;
         const arch = document.getElementById('arch').value;
-        alert(`DRAKOSANCTIS CORE ENGINE\nCompiling ${variant} SDK for:\n${arch}\nHFOV = ${hfov}°\n\nPackage will be available in your Partner Portal within 24 hours.`);
+        // Until a real partner portal exists, fire off a mailto: so the
+        // operator can triage the request by hand. The subject + body are
+        // pre-filled from the form inputs.
+        const subject = `Auriga ${variant} SDK request — ${arch}`;
+        const body =
+            `Variant: ${variant}\n` +
+            `Architecture: ${arch}\n` +
+            `Camera HFOV: ${hfov}°\n` +
+            `License tier: DEVELOPER / COMMERCIAL\n\n` +
+            `Please send build + integration docs to this address.`;
+        window.location.href =
+            `mailto:sdk@drakosanctis.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         closeModal();
     }
 

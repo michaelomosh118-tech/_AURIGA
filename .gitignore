@@ -23,5 +23,10 @@ Thumbs.db
 *.jks
 *.keystore
 
+# ...but keep the stable debug keystore committed so every CI / local build
+# signs debug APKs with the same key, preventing "App not installed" failures
+# caused by signature mismatch between successive builds.
+!AURIGA/keystore/debug.keystore
+
 # Logs
 *.log

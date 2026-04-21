@@ -20,8 +20,55 @@ android {
         buildConfigField "String", "DEFAULT_LICENSE", "\"AURIGA-PREMIUM-2026-BETA\""
     }
 
+    flavorDimensions += 'product'
+    productFlavors {
+        navi {
+            dimension 'product'
+            // Default brand: keeps the root applicationId so existing
+            // AurigaNavi installs upgrade cleanly.
+            buildConfigField "String", "AURIGA_PRODUCT", "\"NAVI\""
+            resValue "string", "app_name", "AurigaNavi"
+            resValue "color", "flavor_accent", "#00B8D4" // Cyan / Cobalt
+            versionNameSuffix "-navi"
+        }
+        sentinel {
+            dimension 'product'
+            applicationIdSuffix ".sentinel"
+            buildConfigField "String", "AURIGA_PRODUCT", "\"SENTINEL\""
+            resValue "string", "app_name", "AurigaSentinel"
+            resValue "color", "flavor_accent", "#D50000" // High-contrast red
+            versionNameSuffix "-sentinel"
+        }
+        aero {
+            dimension 'product'
+            applicationIdSuffix ".aero"
+            buildConfigField "String", "AURIGA_PRODUCT", "\"AERO\""
+            resValue "string", "app_name", "AurigaAero"
+            resValue "color", "flavor_accent", "#2962FF" // Sky blue
+            versionNameSuffix "-aero"
+        }
+        industrial {
+            dimension 'product'
+            applicationIdSuffix ".industrial"
+            buildConfigField "String", "AURIGA_PRODUCT", "\"INDUSTRIAL\""
+            resValue "string", "app_name", "AurigaIndustrial"
+            resValue "color", "flavor_accent", "#FF6F00" // Caution orange
+            versionNameSuffix "-industrial"
+        }
+    }
+
     signingConfigs {
         debug {
+            // Use a stable, committed debug keystore instead of the
+            // auto-generated per-runner one. Without this, every CI build on
+            // a fresh runner produces an APK signed with a different key,
+            // which causes "App not installed" (signature mismatch) whenever
+            // a user tries to update over a previously-installed build.
+            storeFile rootProject.file("keystore/debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+
             // Force v1 (JAR) + v2 + v3 signing so the debug APK installs on
             // the widest possible range of devices and package installers.
             // Without v1, some Android builds and sideload tools reject the
@@ -34,8 +81,16 @@ android {
             // Populated from environment variables during release builds.
             // Left empty here so CI debug builds do not fail when the
             // release keystore or env vars are absent.
-            def storePath = System.getenv("SIGNING_STORE_FILE") ?: "release-key.jks"
-            def releaseKeystore = file(storePath)
+            //
+            // If SIGNING_STORE_FILE is absolute we honor it directly; if it
+            // is a bare filename we resolve it against the ROOT project dir
+            // (rootProject.file) so the behaviour matches the debug config
+            // above. Resolving via plain file() here would go to app/ and
+            // silently miss a keystore placed at the project root.
+            def storePathEnv = System.getenv("SIGNING_STORE_FILE") ?: "release-key.jks"
+            def releaseKeystore = new File(storePathEnv).isAbsolute()
+                    ? new File(storePathEnv)
+                    : rootProject.file(storePathEnv)
             if (releaseKeystore.exists()
                     && System.getenv("SIGNING_STORE_PASSWORD") != null
                     && System.getenv("SIGNING_KEY_ALIAS") != null
@@ -56,8 +111,12 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            minifyEnabled true
-            shrinkResources true
+            // Minification/shrinking kept OFF for now so the release build
+            // is byte-for-byte trustworthy and we do not need ProGuard rules
+            // for every reflection-using dependency. Can be re-enabled once
+            // ProGuard rules are curated.
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             // Only attach the release signing config when the keystore is
             // actually available; otherwise fall back to the debug key so

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">AurigaNavi</string>
+    <!-- app_name is generated per product flavor via resValue in app/build.gradle. -->
     <string name="company_name">DrakoSanctis</string>
     <string name="tagline">See Beyond Sight</string>
     

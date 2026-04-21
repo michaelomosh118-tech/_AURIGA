@@ -14,7 +14,22 @@ public class AurigaConfig {
         AERO,        // The Winged One (Drones/Robotics)
         INDUSTRIAL   // The Builder (Warehouse/Logistics)
     }
-    public static Product CURRENT_PRODUCT = Product.NAVI;
+
+    /**
+     * CURRENT_PRODUCT is driven by the active Gradle product flavor via the
+     * {@code AURIGA_PRODUCT} BuildConfig field (see app/build.gradle). Each
+     * flavor produces its own APK with its own applicationId, app name, and
+     * accent color, so all four sub-apps can be installed side by side.
+     */
+    public static Product CURRENT_PRODUCT = resolveProduct();
+
+    private static Product resolveProduct() {
+        try {
+            return Product.valueOf(BuildConfig.AURIGA_PRODUCT);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return Product.NAVI;
+        }
+    }
 
     // --- LICENSE TIERS ---
     public enum Tier {
