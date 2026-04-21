@@ -81,8 +81,16 @@ android {
             // Populated from environment variables during release builds.
             // Left empty here so CI debug builds do not fail when the
             // release keystore or env vars are absent.
-            def storePath = System.getenv("SIGNING_STORE_FILE") ?: "release-key.jks"
-            def releaseKeystore = file(storePath)
+            //
+            // If SIGNING_STORE_FILE is absolute we honor it directly; if it
+            // is a bare filename we resolve it against the ROOT project dir
+            // (rootProject.file) so the behaviour matches the debug config
+            // above. Resolving via plain file() here would go to app/ and
+            // silently miss a keystore placed at the project root.
+            def storePathEnv = System.getenv("SIGNING_STORE_FILE") ?: "release-key.jks"
+            def releaseKeystore = new File(storePathEnv).isAbsolute()
+                    ? new File(storePathEnv)
+                    : rootProject.file(storePathEnv)
             if (releaseKeystore.exists()
                     && System.getenv("SIGNING_STORE_PASSWORD") != null
                     && System.getenv("SIGNING_KEY_ALIAS") != null

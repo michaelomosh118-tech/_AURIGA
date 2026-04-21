@@ -83,13 +83,17 @@ jobs:
           AURIGA_RELEASE_KEYSTORE_B64: ${{ secrets.AURIGA_RELEASE_KEYSTORE_B64 }}
         run: |
           if [ -n "${AURIGA_RELEASE_KEYSTORE_B64:-}" ]; then
-            KEYSTORE_PATH="${{ steps.locate.outputs.project_root }}/release-key.jks"
+            # Write to an ABSOLUTE path so the Gradle release signing config
+            # resolves it unambiguously regardless of which module
+            # build.gradle is being evaluated from.
+            KEYSTORE_PATH="$(cd "${{ steps.locate.outputs.project_root }}" && pwd)/release-key.jks"
             echo "$AURIGA_RELEASE_KEYSTORE_B64" | base64 -d > "$KEYSTORE_PATH"
             echo "present=true" >> "$GITHUB_OUTPUT"
             echo "path=$KEYSTORE_PATH" >> "$GITHUB_OUTPUT"
             echo "Decoded production release keystore to $KEYSTORE_PATH"
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "path=" >> "$GITHUB_OUTPUT"
             echo "::warning::No AURIGA_RELEASE_KEYSTORE_B64 secret set — release build will fall back to the committed debug keystore. Set production secrets before public distribution."
           fi
 
