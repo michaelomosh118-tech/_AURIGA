@@ -42,11 +42,15 @@
             android:id="@+id/mode_label"
             style="@style/HUDLabelSmall"
             android:layout_width="0dp"
+            android:layout_alignParentStart="true"
             android:layout_toStartOf="@id/system_status"
             android:layout_marginEnd="8dp"
             android:ellipsize="end"
             android:singleLine="true"
-            android:text="AURIGANAVI // NAVIGATION MODE" />
+            android:minHeight="48dp"
+            android:gravity="center_vertical"
+            android:text="AURIGANAVI // NAVIGATION MODE"
+            android:contentDescription="Long-press to toggle diagnostic overlay" />
     </RelativeLayout>
 
     <!-- 4. CENTER HUD: RADAR SWEEP -->
