@@ -151,6 +151,11 @@ jobs:
   publish:
     needs: build-and-publish
     runs-on: ubuntu-latest
+    # Evaluated once at the job level so `if:` conditions on steps below
+    # can use env.HAS_MIRROR_TOKEN (the `secrets` context is not permitted
+    # inside step-level `if:` expressions directly).
+    env:
+      HAS_MIRROR_TOKEN: ${{ secrets.AURIGA_PUBLIC_RELEASES_TOKEN != '' }}
     steps:
       - name: Download all flavor artifacts
         uses: actions/download-artifact@v4
@@ -163,7 +168,7 @@ jobs:
           find _release_in -type f \( -name "*.apk" -o -name "*.aab" \) -exec cp {} _release_final/ \;
           ls -la _release_final/
 
-      - name: Publish GitHub Release
+      - name: Publish GitHub Release (private _AURIGA)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.build-and-publish.outputs.release_tag }}
@@ -178,3 +183,48 @@ jobs:
             _release_final/AurigaSentinel-release.aab
             _release_final/AurigaAero-release.aab
             _release_final/AurigaIndustrial-release.aab
+
+      # The _AURIGA source repo is private, so GitHub serves
+      # releases/latest/download/... URLs only to authenticated users.
+      # The public `auriga-releases` repo exists as a public mirror that the
+      # landing page links against. Mirror every tag's artifacts there when
+      # the AURIGA_PUBLIC_RELEASES_TOKEN PAT secret is configured. Skips
+      # silently (with a warning) otherwise so tag pushes never break during
+      # bootstrap.
+      - name: Mirror release to public auriga-releases repo
+        if: ${{ env.HAS_MIRROR_TOKEN == 'true' }}
+        env:
+          PUBLIC_RELEASES_TOKEN: ${{ secrets.AURIGA_PUBLIC_RELEASES_TOKEN }}
+          RELEASE_TAG: ${{ needs.build-and-publish.outputs.release_tag }}
+          MIRROR_REPO: michaelomosh118-tech/auriga-releases
+        run: |
+          set -euo pipefail
+          echo "Mirroring $RELEASE_TAG to $MIRROR_REPO ..."
+          # Authenticate gh CLI against the mirror repo using the PAT.
+          echo "$PUBLIC_RELEASES_TOKEN" | gh auth login --with-token
+          # Idempotent: delete any preexisting release with this tag, then
+          # recreate with the freshly-built artifacts. We do NOT delete the
+          # remote git tag because the mirror repo may not have commits for
+          # arbitrary version tags, and `gh release create` will create a
+          # tag-on-default-branch on its own.
+          if gh release view "$RELEASE_TAG" --repo "$MIRROR_REPO" >/dev/null 2>&1; then
+            echo "Existing release $RELEASE_TAG found on $MIRROR_REPO — deleting to replace."
+            gh release delete "$RELEASE_TAG" --repo "$MIRROR_REPO" --yes --cleanup-tag || true
+          fi
+          gh release create "$RELEASE_TAG" \
+            --repo "$MIRROR_REPO" \
+            --title "Auriga $RELEASE_TAG" \
+            --notes "Public mirror of michaelomosh118-tech/_AURIGA@$RELEASE_TAG. APKs signed v1+v2+v3." \
+            _release_final/AurigaNavi-release.apk \
+            _release_final/AurigaSentinel-release.apk \
+            _release_final/AurigaAero-release.apk \
+            _release_final/AurigaIndustrial-release.apk \
+            _release_final/AurigaNavi-release.aab \
+            _release_final/AurigaSentinel-release.aab \
+            _release_final/AurigaAero-release.aab \
+            _release_final/AurigaIndustrial-release.aab
+
+      - name: Warn if public mirror token is missing
+        if: ${{ env.HAS_MIRROR_TOKEN != 'true' }}
+        run: |
+          echo "::warning::AURIGA_PUBLIC_RELEASES_TOKEN secret not set — this tag was NOT mirrored to the public auriga-releases repo. Add the secret (PAT with public_repo scope) to enable automatic mirroring. Until then the website's DIRECT DOWNLOAD button will continue to serve whichever artifacts were last manually uploaded."
