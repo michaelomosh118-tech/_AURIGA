@@ -17,17 +17,30 @@ public class ImageProcessor {
 
     /**
      * ObstacleData: Holds findings for a single column scan.
+     *
+     * centerX is the horizontal pixel coordinate this column scanned at;
+     * callers need this to derive the correct bearing angle instead of
+     * assuming every obstacle sits on the frame's vertical midline.
+     *
+     * confidence is 0 when no obstacle was detected in this column, and
+     * a float in (0, 1] otherwise; the main loop uses it to gate the
+     * distance smoother so a single low-contrast frame does not poison
+     * the low-pass filter.
      */
     public static class ObstacleData {
         public int baseY;        // Where the object meets the floor
         public int hangY;        // Bottom edge of a suspended obstacle
         public float baseWidthPx; // Apparent width of the object's base
+        public float centerX;     // Horizontal pixel column this scan used
+        public float confidence;  // 0.0 (no detection) .. 1.0 (high contrast)
         public boolean isLowLight;
 
         ObstacleData() {
             this.baseY = -1;
             this.hangY = -1;
             this.baseWidthPx = 0;
+            this.centerX = 0;
+            this.confidence = 0.0f;
             this.isLowLight = false;
         }
     }
@@ -47,6 +60,7 @@ public class ImageProcessor {
 
         for (int i = 0; i < 3; i++) {
             results[i] = scanColumn(frame, cols[i]);
+            results[i].centerX = cols[i];
             results[i].isLowLight = isLowLight;
         }
 
@@ -60,21 +74,40 @@ public class ImageProcessor {
         // Scan up from bottom for ground obstacle (TruePath™)
         int lastBrightness = -1;
         int sensitivity = 40;
+        // Confidence proxy: how sharply the ground→obstacle brightness
+        // edge crossed the sensitivity threshold. A contrast of exactly
+        // `sensitivity` maps to 0, a saturated 255-step edge maps to 1.
+        // This lets the main loop reject weak edges without needing a
+        // full classifier.
+        float edgeContrast = 0.0f;
 
         for (int y = height - 10; y > horizonY; y--) {
             int pixel = frame.getPixel(x, y);
             int brightness = (Color.red(pixel) + Color.green(pixel) + Color.blue(pixel)) / 3;
 
             if (lastBrightness != -1) {
-                if (Math.abs(brightness - lastBrightness) > sensitivity) {
+                int delta = Math.abs(brightness - lastBrightness);
+                if (delta > sensitivity) {
                     data.baseY = y;
                     // Fix: Calculate apparent width at base for classification
                     data.baseWidthPx = calculateWidthAtRow(frame, x, y);
+                    edgeContrast = Math.min(1.0f,
+                            (delta - sensitivity) / (float)(255 - sensitivity));
                     break;
                 }
             }
             lastBrightness = brightness;
         }
+        // Low-light frames get a confidence penalty because edge detection
+        // on dim frames is dominated by sensor noise, not real contrast.
+        float lightPenalty = isLowLight(frame) ? 0.5f : 1.0f;
+        // Unrealistic widths (detector latched onto a tiny speckle or
+        // half the frame) drop confidence further so the smoother can
+        // discard the reading.
+        float widthSanity = (data.baseWidthPx > 15 && data.baseWidthPx < 400) ? 1.0f : 0.5f;
+        data.confidence = (data.baseY >= 0)
+                ? Math.max(0.1f, edgeContrast * lightPenalty * widthSanity)
+                : 0.0f;
 
         // Scan down from top for suspended obstacle (SkyShield™)
         lastBrightness = -1;
