@@ -13,8 +13,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 3120,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3120,
         "dpi": 505,
         "size_inches": 6.8,
         "refresh_rate_hz": 120,
@@ -25,7 +25,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.4
+          "y": 65.9
         },
         "source": "derived"
       },
@@ -44,8 +44,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 3120,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3120,
         "dpi": 513,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -56,7 +56,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.0
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -75,8 +75,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 2340,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2340,
         "dpi": 416,
         "size_inches": 6.2,
         "refresh_rate_hz": 120,
@@ -87,7 +87,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.7
+          "y": 60.1
         },
         "source": "derived"
       },
@@ -106,8 +106,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 3088,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3088,
         "dpi": 500,
         "size_inches": 6.8,
         "refresh_rate_hz": 120,
@@ -118,7 +118,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.7
+          "y": 65.7
         },
         "source": "derived"
       },
@@ -137,8 +137,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2340,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2340,
         "dpi": 393,
         "size_inches": 6.6,
         "refresh_rate_hz": 120,
@@ -149,7 +149,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.5
+          "y": 63.9
         },
         "source": "derived"
       },
@@ -168,8 +168,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2340,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2340,
         "dpi": 425,
         "size_inches": 6.1,
         "refresh_rate_hz": 120,
@@ -180,7 +180,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.3
+          "y": 59.1
         },
         "source": "derived"
       },
@@ -199,8 +199,8 @@
       "year": 2022,
       "os": "Android",
       "screen": {
-        "width_px": 3088,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3088,
         "dpi": 500,
         "size_inches": 6.8,
         "refresh_rate_hz": 120,
@@ -211,7 +211,7 @@
         "fov_vertical_deg": 67,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.7
+          "y": 65.7
         },
         "source": "derived"
       },
@@ -230,8 +230,8 @@
       "year": 2022,
       "os": "Android",
       "screen": {
-        "width_px": 2340,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2340,
         "dpi": 425,
         "size_inches": 6.1,
         "refresh_rate_hz": 120,
@@ -242,7 +242,7 @@
         "fov_vertical_deg": 67,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.3
+          "y": 59.1
         },
         "source": "derived"
       },
@@ -261,8 +261,8 @@
       "year": 2021,
       "os": "Android",
       "screen": {
-        "width_px": 3200,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3200,
         "dpi": 515,
         "size_inches": 6.8,
         "refresh_rate_hz": 120,
@@ -273,7 +273,7 @@
         "fov_vertical_deg": 65,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.8
+          "y": 66.2
         },
         "source": "derived"
       },
@@ -292,8 +292,8 @@
       "year": 2021,
       "os": "Android",
       "screen": {
-        "width_px": 2400,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2400,
         "dpi": 421,
         "size_inches": 6.2,
         "refresh_rate_hz": 120,
@@ -304,7 +304,7 @@
         "fov_vertical_deg": 65,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.1
+          "y": 60.3
         },
         "source": "derived"
       },
@@ -323,8 +323,8 @@
       "year": 2020,
       "os": "Android",
       "screen": {
-        "width_px": 3200,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3200,
         "dpi": 511,
         "size_inches": 6.9,
         "refresh_rate_hz": 120,
@@ -335,7 +335,7 @@
         "fov_vertical_deg": 61,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.2
+          "y": 67.1
         },
         "source": "derived"
       },
@@ -354,8 +354,8 @@
       "year": 2020,
       "os": "Android",
       "screen": {
-        "width_px": 3200,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3200,
         "dpi": 563,
         "size_inches": 6.2,
         "refresh_rate_hz": 120,
@@ -366,7 +366,7 @@
         "fov_vertical_deg": 61,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.1
+          "y": 60.3
         },
         "source": "derived"
       },
@@ -385,8 +385,8 @@
       "year": 2020,
       "os": "Android",
       "screen": {
-        "width_px": 3088,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3088,
         "dpi": 496,
         "size_inches": 6.9,
         "refresh_rate_hz": 120,
@@ -397,7 +397,7 @@
         "fov_vertical_deg": 61,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 31.1
+          "y": 66.7
         },
         "source": "derived"
       },
@@ -416,8 +416,8 @@
       "year": 2019,
       "os": "Android",
       "screen": {
-        "width_px": 3040,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3040,
         "dpi": 498,
         "size_inches": 6.8,
         "refresh_rate_hz": 60,
@@ -428,7 +428,7 @@
         "fov_vertical_deg": 61,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 31.1
+          "y": 65.6
         },
         "source": "derived"
       },
@@ -447,8 +447,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2176,
-        "height_px": 1812,
+        "width_px": 1812,
+        "height_px": 2176,
         "dpi": 374,
         "size_inches": 7.6,
         "refresh_rate_hz": 120,
@@ -459,7 +459,7 @@
         "fov_vertical_deg": 65,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 51.9
+          "y": 62.3
         },
         "source": "derived"
       },
@@ -478,8 +478,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2640,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2640,
         "dpi": 425,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -490,7 +490,7 @@
         "fov_vertical_deg": 65,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.1
+          "y": 66.2
         },
         "source": "derived"
       },
@@ -509,8 +509,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2340,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2340,
         "dpi": 403,
         "size_inches": 6.4,
         "refresh_rate_hz": 120,
@@ -521,7 +521,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 28.6
+          "y": 62.0
         },
         "source": "derived"
       },
@@ -540,8 +540,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2340,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2340,
         "dpi": 390,
         "size_inches": 6.6,
         "refresh_rate_hz": 120,
@@ -552,7 +552,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.5
+          "y": 63.9
         },
         "source": "derived"
       },
@@ -571,8 +571,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2408,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2408,
         "dpi": 400,
         "size_inches": 6.6,
         "refresh_rate_hz": 90,
@@ -583,7 +583,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 28.8
+          "y": 64.2
         },
         "source": "derived"
       },
@@ -602,8 +602,8 @@
       "year": 2025,
       "os": "Android",
       "screen": {
-        "width_px": 1600,
-        "height_px": 720,
+        "width_px": 720,
+        "height_px": 1600,
         "dpi": 270,
         "size_inches": 6.7,
         "refresh_rate_hz": 90,
@@ -614,7 +614,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.3
+          "y": 65.2
         },
         "source": "derived"
       },
@@ -633,8 +633,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2340,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2340,
         "dpi": 392,
         "size_inches": 6.7,
         "refresh_rate_hz": 90,
@@ -645,7 +645,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.0
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -664,8 +664,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2340,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2340,
         "dpi": 390,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -676,7 +676,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.0
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -695,8 +695,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2408,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2408,
         "dpi": 399,
         "size_inches": 6.6,
         "refresh_rate_hz": 90,
@@ -707,7 +707,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 28.8
+          "y": 64.2
         },
         "source": "derived"
       },
@@ -726,8 +726,8 @@
       "year": 2022,
       "os": "Android",
       "screen": {
-        "width_px": 2408,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2408,
         "dpi": 399,
         "size_inches": 6.6,
         "refresh_rate_hz": 120,
@@ -738,7 +738,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 28.8
+          "y": 64.2
         },
         "source": "derived"
       },
@@ -757,8 +757,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2960,
-        "height_px": 1848,
+        "width_px": 1848,
+        "height_px": 2960,
         "dpi": 239,
         "size_inches": 14.6,
         "refresh_rate_hz": 120,
@@ -769,7 +769,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 82.5
+          "y": 132.1
         },
         "source": "derived"
       },
@@ -788,8 +788,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 2992,
-        "height_px": 1344,
+        "width_px": 1344,
+        "height_px": 2992,
         "dpi": 486,
         "size_inches": 6.8,
         "refresh_rate_hz": 120,
@@ -800,7 +800,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.7
+          "y": 66.2
         },
         "source": "derived"
       },
@@ -819,8 +819,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 2856,
-        "height_px": 1280,
+        "width_px": 1280,
+        "height_px": 2856,
         "dpi": 495,
         "size_inches": 6.3,
         "refresh_rate_hz": 120,
@@ -831,7 +831,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.5
+          "y": 61.3
         },
         "source": "derived"
       },
@@ -850,8 +850,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 2424,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2424,
         "dpi": 422,
         "size_inches": 6.3,
         "refresh_rate_hz": 120,
@@ -862,7 +862,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.4
+          "y": 61.4
         },
         "source": "derived"
       },
@@ -881,8 +881,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2992,
-        "height_px": 1344,
+        "width_px": 1344,
+        "height_px": 2992,
         "dpi": 489,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -893,7 +893,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.3
+          "y": 65.2
         },
         "source": "derived"
       },
@@ -912,8 +912,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2400,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2400,
         "dpi": 428,
         "size_inches": 6.2,
         "refresh_rate_hz": 120,
@@ -924,7 +924,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.1
+          "y": 60.3
         },
         "source": "derived"
       },
@@ -943,8 +943,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2400,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2400,
         "dpi": 429,
         "size_inches": 6.1,
         "refresh_rate_hz": 90,
@@ -955,7 +955,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 26.7
+          "y": 59.3
         },
         "source": "derived"
       },
@@ -974,8 +974,8 @@
       "year": 2022,
       "os": "Android",
       "screen": {
-        "width_px": 3120,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3120,
         "dpi": 512,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -986,7 +986,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.0
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -1005,8 +1005,8 @@
       "year": 2022,
       "os": "Android",
       "screen": {
-        "width_px": 2400,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2400,
         "dpi": 416,
         "size_inches": 6.3,
         "refresh_rate_hz": 90,
@@ -1017,7 +1017,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.6
+          "y": 61.3
         },
         "source": "derived"
       },
@@ -1036,8 +1036,8 @@
       "year": 2021,
       "os": "Android",
       "screen": {
-        "width_px": 3120,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3120,
         "dpi": 512,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -1048,7 +1048,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.0
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -1067,8 +1067,8 @@
       "year": 2021,
       "os": "Android",
       "screen": {
-        "width_px": 2400,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2400,
         "dpi": 411,
         "size_inches": 6.4,
         "refresh_rate_hz": 90,
@@ -1079,7 +1079,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 28.0
+          "y": 62.3
         },
         "source": "derived"
       },
@@ -1098,8 +1098,8 @@
       "year": 2020,
       "os": "Android",
       "screen": {
-        "width_px": 2340,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2340,
         "dpi": 432,
         "size_inches": 6.0,
         "refresh_rate_hz": 90,
@@ -1110,7 +1110,7 @@
         "fov_vertical_deg": 65,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 26.8
+          "y": 58.1
         },
         "source": "derived"
       },
@@ -1129,8 +1129,8 @@
       "year": 2020,
       "os": "Android",
       "screen": {
-        "width_px": 2340,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2340,
         "dpi": 443,
         "size_inches": 5.8,
         "refresh_rate_hz": 60,
@@ -1141,7 +1141,7 @@
         "fov_vertical_deg": 65,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 25.9
+          "y": 56.2
         },
         "source": "derived"
       },
@@ -1160,8 +1160,8 @@
       "year": 2019,
       "os": "Android",
       "screen": {
-        "width_px": 3040,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3040,
         "dpi": 537,
         "size_inches": 6.3,
         "refresh_rate_hz": 90,
@@ -1172,7 +1172,7 @@
         "fov_vertical_deg": 60,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 28.8
+          "y": 60.7
         },
         "source": "derived"
       },
@@ -1191,8 +1191,8 @@
       "year": 2019,
       "os": "Android",
       "screen": {
-        "width_px": 2220,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2220,
         "dpi": 441,
         "size_inches": 5.6,
         "refresh_rate_hz": 60,
@@ -1203,7 +1203,7 @@
         "fov_vertical_deg": 59,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 26.1
+          "y": 53.7
         },
         "source": "derived"
       },
@@ -1222,8 +1222,8 @@
       "year": 2024,
       "os": "iOS",
       "screen": {
-        "width_px": 2868,
-        "height_px": 1320,
+        "width_px": 1320,
+        "height_px": 2868,
         "dpi": 460,
         "size_inches": 6.9,
         "refresh_rate_hz": 120,
@@ -1234,7 +1234,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.8
+          "y": 66.9
         },
         "source": "derived"
       },
@@ -1253,8 +1253,8 @@
       "year": 2024,
       "os": "iOS",
       "screen": {
-        "width_px": 2622,
-        "height_px": 1206,
+        "width_px": 1206,
+        "height_px": 2622,
         "dpi": 460,
         "size_inches": 6.3,
         "refresh_rate_hz": 120,
@@ -1265,7 +1265,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 28.1
+          "y": 61.1
         },
         "source": "derived"
       },
@@ -1284,8 +1284,8 @@
       "year": 2024,
       "os": "iOS",
       "screen": {
-        "width_px": 2796,
-        "height_px": 1290,
+        "width_px": 1290,
+        "height_px": 2796,
         "dpi": 460,
         "size_inches": 6.7,
         "refresh_rate_hz": 60,
@@ -1296,7 +1296,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.9
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -1315,8 +1315,8 @@
       "year": 2024,
       "os": "iOS",
       "screen": {
-        "width_px": 2556,
-        "height_px": 1179,
+        "width_px": 1179,
+        "height_px": 2556,
         "dpi": 460,
         "size_inches": 6.1,
         "refresh_rate_hz": 60,
@@ -1327,7 +1327,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.3
+          "y": 59.1
         },
         "source": "derived"
       },
@@ -1346,8 +1346,8 @@
       "year": 2023,
       "os": "iOS",
       "screen": {
-        "width_px": 2796,
-        "height_px": 1290,
+        "width_px": 1290,
+        "height_px": 2796,
         "dpi": 460,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -1358,7 +1358,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.9
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -1377,8 +1377,8 @@
       "year": 2023,
       "os": "iOS",
       "screen": {
-        "width_px": 2556,
-        "height_px": 1179,
+        "width_px": 1179,
+        "height_px": 2556,
         "dpi": 460,
         "size_inches": 6.1,
         "refresh_rate_hz": 120,
@@ -1389,7 +1389,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.3
+          "y": 59.1
         },
         "source": "derived"
       },
@@ -1408,8 +1408,8 @@
       "year": 2023,
       "os": "iOS",
       "screen": {
-        "width_px": 2796,
-        "height_px": 1290,
+        "width_px": 1290,
+        "height_px": 2796,
         "dpi": 460,
         "size_inches": 6.7,
         "refresh_rate_hz": 60,
@@ -1420,7 +1420,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.9
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -1439,8 +1439,8 @@
       "year": 2023,
       "os": "iOS",
       "screen": {
-        "width_px": 2556,
-        "height_px": 1179,
+        "width_px": 1179,
+        "height_px": 2556,
         "dpi": 460,
         "size_inches": 6.1,
         "refresh_rate_hz": 60,
@@ -1451,7 +1451,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.3
+          "y": 59.1
         },
         "source": "derived"
       },
@@ -1470,8 +1470,8 @@
       "year": 2022,
       "os": "iOS",
       "screen": {
-        "width_px": 2796,
-        "height_px": 1290,
+        "width_px": 1290,
+        "height_px": 2796,
         "dpi": 460,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -1482,7 +1482,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.9
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -1501,8 +1501,8 @@
       "year": 2022,
       "os": "iOS",
       "screen": {
-        "width_px": 2556,
-        "height_px": 1179,
+        "width_px": 1179,
+        "height_px": 2556,
         "dpi": 460,
         "size_inches": 6.1,
         "refresh_rate_hz": 120,
@@ -1513,7 +1513,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.3
+          "y": 59.1
         },
         "source": "derived"
       },
@@ -1532,8 +1532,8 @@
       "year": 2022,
       "os": "iOS",
       "screen": {
-        "width_px": 2532,
-        "height_px": 1170,
+        "width_px": 1170,
+        "height_px": 2532,
         "dpi": 460,
         "size_inches": 6.1,
         "refresh_rate_hz": 60,
@@ -1544,7 +1544,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.3
+          "y": 59.1
         },
         "source": "derived"
       },
@@ -1563,8 +1563,8 @@
       "year": 2021,
       "os": "iOS",
       "screen": {
-        "width_px": 2778,
-        "height_px": 1284,
+        "width_px": 1284,
+        "height_px": 2778,
         "dpi": 458,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -1575,7 +1575,7 @@
         "fov_vertical_deg": 60,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.0
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -1594,8 +1594,8 @@
       "year": 2021,
       "os": "iOS",
       "screen": {
-        "width_px": 2532,
-        "height_px": 1170,
+        "width_px": 1170,
+        "height_px": 2532,
         "dpi": 460,
         "size_inches": 6.1,
         "refresh_rate_hz": 60,
@@ -1606,7 +1606,7 @@
         "fov_vertical_deg": 60,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.3
+          "y": 59.1
         },
         "source": "derived"
       },
@@ -1625,8 +1625,8 @@
       "year": 2020,
       "os": "iOS",
       "screen": {
-        "width_px": 2532,
-        "height_px": 1170,
+        "width_px": 1170,
+        "height_px": 2532,
         "dpi": 460,
         "size_inches": 6.1,
         "refresh_rate_hz": 60,
@@ -1637,7 +1637,7 @@
         "fov_vertical_deg": 60,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.3
+          "y": 59.1
         },
         "source": "derived"
       },
@@ -1656,8 +1656,8 @@
       "year": 2020,
       "os": "iOS",
       "screen": {
-        "width_px": 2340,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2340,
         "dpi": 476,
         "size_inches": 5.4,
         "refresh_rate_hz": 60,
@@ -1668,7 +1668,7 @@
         "fov_vertical_deg": 60,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 24.1
+          "y": 52.3
         },
         "source": "derived"
       },
@@ -1687,8 +1687,8 @@
       "year": 2022,
       "os": "iOS",
       "screen": {
-        "width_px": 1334,
-        "height_px": 750,
+        "width_px": 750,
+        "height_px": 1334,
         "dpi": 326,
         "size_inches": 4.7,
         "refresh_rate_hz": 60,
@@ -1699,7 +1699,7 @@
         "fov_vertical_deg": 50,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 24.6
+          "y": 43.7
         },
         "source": "derived"
       },
@@ -1718,8 +1718,8 @@
       "year": 2019,
       "os": "iOS",
       "screen": {
-        "width_px": 1792,
-        "height_px": 828,
+        "width_px": 828,
+        "height_px": 1792,
         "dpi": 326,
         "size_inches": 6.1,
         "refresh_rate_hz": 60,
@@ -1730,7 +1730,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.3
+          "y": 59.1
         },
         "source": "derived"
       },
@@ -1749,8 +1749,8 @@
       "year": 2018,
       "os": "iOS",
       "screen": {
-        "width_px": 2436,
-        "height_px": 1125,
+        "width_px": 1125,
+        "height_px": 2436,
         "dpi": 458,
         "size_inches": 5.8,
         "refresh_rate_hz": 60,
@@ -1761,7 +1761,7 @@
         "fov_vertical_deg": 61,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 25.9
+          "y": 56.2
         },
         "source": "derived"
       },
@@ -1780,8 +1780,8 @@
       "year": 2017,
       "os": "iOS",
       "screen": {
-        "width_px": 1920,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 1920,
         "dpi": 401,
         "size_inches": 5.5,
         "refresh_rate_hz": 60,
@@ -1792,7 +1792,7 @@
         "fov_vertical_deg": 61,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 28.8
+          "y": 51.1
         },
         "source": "derived"
       },
@@ -1811,8 +1811,8 @@
       "year": 2017,
       "os": "iOS",
       "screen": {
-        "width_px": 1334,
-        "height_px": 750,
+        "width_px": 750,
+        "height_px": 1334,
         "dpi": 326,
         "size_inches": 4.7,
         "refresh_rate_hz": 60,
@@ -1823,7 +1823,7 @@
         "fov_vertical_deg": 61,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 24.6
+          "y": 43.7
         },
         "source": "derived"
       },
@@ -1842,8 +1842,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 3168,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3168,
         "dpi": 510,
         "size_inches": 6.82,
         "refresh_rate_hz": 120,
@@ -1854,7 +1854,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.1
+          "y": 66.2
         },
         "source": "derived"
       },
@@ -1873,8 +1873,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 2780,
-        "height_px": 1264,
+        "width_px": 1264,
+        "height_px": 2780,
         "dpi": 450,
         "size_inches": 6.78,
         "refresh_rate_hz": 120,
@@ -1885,7 +1885,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.9
+          "y": 65.8
         },
         "source": "derived"
       },
@@ -1904,8 +1904,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 3216,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3216,
         "dpi": 525,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -1916,7 +1916,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.2
+          "y": 65.2
         },
         "source": "derived"
       },
@@ -1935,8 +1935,8 @@
       "year": 2022,
       "os": "Android",
       "screen": {
-        "width_px": 3216,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3216,
         "dpi": 525,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -1947,7 +1947,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.2
+          "y": 65.2
         },
         "source": "derived"
       },
@@ -1966,8 +1966,8 @@
       "year": 2021,
       "os": "Android",
       "screen": {
-        "width_px": 3216,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3216,
         "dpi": 525,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -1978,7 +1978,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.2
+          "y": 65.2
         },
         "source": "derived"
       },
@@ -1997,8 +1997,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2800,
-        "height_px": 1260,
+        "width_px": 1260,
+        "height_px": 2800,
         "dpi": 451,
         "size_inches": 6.74,
         "refresh_rate_hz": 120,
@@ -2009,7 +2009,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.5
+          "y": 65.6
         },
         "source": "derived"
       },
@@ -2028,8 +2028,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2400,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2400,
         "dpi": 391,
         "size_inches": 6.72,
         "refresh_rate_hz": 120,
@@ -2040,7 +2040,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.4
+          "y": 65.4
         },
         "source": "derived"
       },
@@ -2059,8 +2059,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 3200,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3200,
         "dpi": 522,
         "size_inches": 6.73,
         "refresh_rate_hz": 120,
@@ -2071,7 +2071,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.5
+          "y": 65.5
         },
         "source": "derived"
       },
@@ -2090,8 +2090,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 3200,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3200,
         "dpi": 522,
         "size_inches": 6.73,
         "refresh_rate_hz": 120,
@@ -2102,7 +2102,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.5
+          "y": 65.5
         },
         "source": "derived"
       },
@@ -2121,8 +2121,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2670,
-        "height_px": 1200,
+        "width_px": 1200,
+        "height_px": 2670,
         "dpi": 460,
         "size_inches": 6.36,
         "refresh_rate_hz": 120,
@@ -2133,7 +2133,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.8
+          "y": 61.9
         },
         "source": "derived"
       },
@@ -2152,8 +2152,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 3200,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3200,
         "dpi": 522,
         "size_inches": 6.73,
         "refresh_rate_hz": 120,
@@ -2164,7 +2164,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.5
+          "y": 65.5
         },
         "source": "derived"
       },
@@ -2183,8 +2183,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2712,
-        "height_px": 1220,
+        "width_px": 1220,
+        "height_px": 2712,
         "dpi": 446,
         "size_inches": 6.67,
         "refresh_rate_hz": 144,
@@ -2195,7 +2195,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.2
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -2214,8 +2214,8 @@
       "year": 2022,
       "os": "Android",
       "screen": {
-        "width_px": 3200,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3200,
         "dpi": 521,
         "size_inches": 6.73,
         "refresh_rate_hz": 120,
@@ -2226,7 +2226,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.5
+          "y": 65.5
         },
         "source": "derived"
       },
@@ -2245,8 +2245,8 @@
       "year": 2021,
       "os": "Android",
       "screen": {
-        "width_px": 3200,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3200,
         "dpi": 515,
         "size_inches": 6.81,
         "refresh_rate_hz": 120,
@@ -2257,7 +2257,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.8
+          "y": 66.3
         },
         "source": "derived"
       },
@@ -2276,8 +2276,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2712,
-        "height_px": 1220,
+        "width_px": 1220,
+        "height_px": 2712,
         "dpi": 446,
         "size_inches": 6.67,
         "refresh_rate_hz": 120,
@@ -2288,7 +2288,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.2
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -2307,8 +2307,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2712,
-        "height_px": 1220,
+        "width_px": 1220,
+        "height_px": 2712,
         "dpi": 446,
         "size_inches": 6.67,
         "refresh_rate_hz": 120,
@@ -2319,7 +2319,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.2
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -2338,8 +2338,8 @@
       "year": 2022,
       "os": "Android",
       "screen": {
-        "width_px": 2400,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2400,
         "dpi": 395,
         "size_inches": 6.67,
         "refresh_rate_hz": 120,
@@ -2350,7 +2350,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.2
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -2369,8 +2369,8 @@
       "year": 2022,
       "os": "Android",
       "screen": {
-        "width_px": 2400,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2400,
         "dpi": 409,
         "size_inches": 6.43,
         "refresh_rate_hz": 90,
@@ -2381,7 +2381,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 28.1
+          "y": 62.6
         },
         "source": "derived"
       },
@@ -2400,8 +2400,8 @@
       "year": 2022,
       "os": "Android",
       "screen": {
-        "width_px": 1650,
-        "height_px": 720,
+        "width_px": 720,
+        "height_px": 1650,
         "dpi": 269,
         "size_inches": 6.71,
         "refresh_rate_hz": 60,
@@ -2412,7 +2412,7 @@
         "fov_vertical_deg": 59,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 28.6
+          "y": 65.6
         },
         "source": "derived"
       },
@@ -2431,8 +2431,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 2712,
-        "height_px": 1220,
+        "width_px": 1220,
+        "height_px": 2712,
         "dpi": 446,
         "size_inches": 6.67,
         "refresh_rate_hz": 120,
@@ -2443,7 +2443,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.2
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -2462,8 +2462,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 3200,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3200,
         "dpi": 526,
         "size_inches": 6.67,
         "refresh_rate_hz": 120,
@@ -2474,7 +2474,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.2
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -2493,8 +2493,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2400,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2400,
         "dpi": 395,
         "size_inches": 6.79,
         "refresh_rate_hz": 90,
@@ -2505,7 +2505,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.7
+          "y": 66.1
         },
         "source": "derived"
       },
@@ -2524,8 +2524,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 3168,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3168,
         "dpi": 510,
         "size_inches": 6.82,
         "refresh_rate_hz": 120,
@@ -2536,7 +2536,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.1
+          "y": 66.2
         },
         "source": "derived"
       },
@@ -2555,8 +2555,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 3168,
-        "height_px": 1440,
+        "width_px": 1440,
+        "height_px": 3168,
         "dpi": 510,
         "size_inches": 6.82,
         "refresh_rate_hz": 120,
@@ -2567,7 +2567,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.1
+          "y": 66.2
         },
         "source": "derived"
       },
@@ -2586,8 +2586,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 2412,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2412,
         "dpi": 394,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -2598,7 +2598,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.2
+          "y": 65.2
         },
         "source": "derived"
       },
@@ -2617,8 +2617,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2400,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2400,
         "dpi": 393,
         "size_inches": 6.56,
         "refresh_rate_hz": 90,
@@ -2629,7 +2629,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 28.7
+          "y": 63.8
         },
         "source": "derived"
       },
@@ -2648,8 +2648,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2780,
-        "height_px": 1264,
+        "width_px": 1264,
+        "height_px": 2780,
         "dpi": 451,
         "size_inches": 6.78,
         "refresh_rate_hz": 120,
@@ -2660,7 +2660,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.9
+          "y": 65.8
         },
         "source": "derived"
       },
@@ -2679,8 +2679,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2412,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2412,
         "dpi": 394,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -2691,7 +2691,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.2
+          "y": 65.2
         },
         "source": "derived"
       },
@@ -2710,8 +2710,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2408,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2408,
         "dpi": 401,
         "size_inches": 6.72,
         "refresh_rate_hz": 90,
@@ -2722,7 +2722,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.3
+          "y": 65.4
         },
         "source": "derived"
       },
@@ -2741,8 +2741,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2800,
-        "height_px": 1260,
+        "width_px": 1260,
+        "height_px": 2800,
         "dpi": 452,
         "size_inches": 6.78,
         "refresh_rate_hz": 120,
@@ -2753,7 +2753,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.7
+          "y": 66.0
         },
         "source": "derived"
       },
@@ -2772,8 +2772,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2800,
-        "height_px": 1260,
+        "width_px": 1260,
+        "height_px": 2800,
         "dpi": 452,
         "size_inches": 6.78,
         "refresh_rate_hz": 120,
@@ -2784,7 +2784,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.7
+          "y": 66.0
         },
         "source": "derived"
       },
@@ -2803,8 +2803,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2408,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2408,
         "dpi": 392,
         "size_inches": 6.64,
         "refresh_rate_hz": 90,
@@ -2815,7 +2815,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.0
+          "y": 64.6
         },
         "source": "derived"
       },
@@ -2834,8 +2834,8 @@
       "year": 2023,
       "os": "HarmonyOS",
       "screen": {
-        "width_px": 2720,
-        "height_px": 1260,
+        "width_px": 1260,
+        "height_px": 2720,
         "dpi": 428,
         "size_inches": 6.82,
         "refresh_rate_hz": 120,
@@ -2846,7 +2846,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.6
+          "y": 66.0
         },
         "source": "derived"
       },
@@ -2865,8 +2865,8 @@
       "year": 2023,
       "os": "HarmonyOS",
       "screen": {
-        "width_px": 2700,
-        "height_px": 1220,
+        "width_px": 1220,
+        "height_px": 2700,
         "dpi": 444,
         "size_inches": 6.67,
         "refresh_rate_hz": 120,
@@ -2877,7 +2877,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.3
+          "y": 64.8
         },
         "source": "derived"
       },
@@ -2896,8 +2896,8 @@
       "year": 2023,
       "os": "HarmonyOS",
       "screen": {
-        "width_px": 2652,
-        "height_px": 1200,
+        "width_px": 1200,
+        "height_px": 2652,
         "dpi": 436,
         "size_inches": 6.78,
         "refresh_rate_hz": 120,
@@ -2908,7 +2908,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.8
+          "y": 65.9
         },
         "source": "derived"
       },
@@ -2927,8 +2927,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 2800,
-        "height_px": 1280,
+        "width_px": 1280,
+        "height_px": 2800,
         "dpi": 453,
         "size_inches": 6.8,
         "refresh_rate_hz": 120,
@@ -2939,7 +2939,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.2
+          "y": 66.0
         },
         "source": "derived"
       },
@@ -2958,8 +2958,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2848,
-        "height_px": 1312,
+        "width_px": 1312,
+        "height_px": 2848,
         "dpi": 460,
         "size_inches": 6.81,
         "refresh_rate_hz": 120,
@@ -2970,7 +2970,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 30.4
+          "y": 66.0
         },
         "source": "derived"
       },
@@ -2989,8 +2989,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2664,
-        "height_px": 1200,
+        "width_px": 1200,
+        "height_px": 2664,
         "dpi": 435,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -3001,7 +3001,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.4
+          "y": 65.2
         },
         "source": "derived"
       },
@@ -3020,8 +3020,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2652,
-        "height_px": 1200,
+        "width_px": 1200,
+        "height_px": 2652,
         "dpi": 429,
         "size_inches": 6.78,
         "refresh_rate_hz": 120,
@@ -3032,7 +3032,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.8
+          "y": 65.9
         },
         "source": "derived"
       },
@@ -3051,8 +3051,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 2712,
-        "height_px": 1220,
+        "width_px": 1220,
+        "height_px": 2712,
         "dpi": 446,
         "size_inches": 6.7,
         "refresh_rate_hz": 144,
@@ -3063,7 +3063,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.3
+          "y": 65.2
         },
         "source": "derived"
       },
@@ -3082,8 +3082,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2400,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2400,
         "dpi": 394,
         "size_inches": 6.67,
         "refresh_rate_hz": 165,
@@ -3094,7 +3094,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.2
+          "y": 64.9
         },
         "source": "derived"
       },
@@ -3113,8 +3113,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2400,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2400,
         "dpi": 396,
         "size_inches": 6.6,
         "refresh_rate_hz": 120,
@@ -3125,7 +3125,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 28.9
+          "y": 64.2
         },
         "source": "derived"
       },
@@ -3144,8 +3144,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 1640,
-        "height_px": 720,
+        "width_px": 720,
+        "height_px": 1640,
         "dpi": 270,
         "size_inches": 6.5,
         "refresh_rate_hz": 90,
@@ -3156,7 +3156,7 @@
         "fov_vertical_deg": 59,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.9
+          "y": 63.5
         },
         "source": "derived"
       },
@@ -3175,8 +3175,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2640,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2640,
         "dpi": 413,
         "size_inches": 6.9,
         "refresh_rate_hz": 165,
@@ -3187,7 +3187,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.9
+          "y": 68.1
         },
         "source": "derived"
       },
@@ -3206,8 +3206,8 @@
       "year": 2022,
       "os": "Android",
       "screen": {
-        "width_px": 2400,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2400,
         "dpi": 409,
         "size_inches": 6.43,
         "refresh_rate_hz": 90,
@@ -3218,7 +3218,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 28.1
+          "y": 62.6
         },
         "source": "derived"
       },
@@ -3237,8 +3237,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2408,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2408,
         "dpi": 400,
         "size_inches": 6.56,
         "refresh_rate_hz": 90,
@@ -3249,7 +3249,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 28.6
+          "y": 63.9
         },
         "source": "derived"
       },
@@ -3268,8 +3268,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 2400,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2400,
         "dpi": 395,
         "size_inches": 6.78,
         "refresh_rate_hz": 165,
@@ -3280,7 +3280,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.7
+          "y": 66.0
         },
         "source": "derived"
       },
@@ -3299,8 +3299,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2400,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2400,
         "dpi": 445,
         "size_inches": 5.9,
         "refresh_rate_hz": 144,
@@ -3311,7 +3311,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 25.8
+          "y": 57.4
         },
         "source": "derived"
       },
@@ -3330,8 +3330,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 3840,
-        "height_px": 1644,
+        "width_px": 1644,
+        "height_px": 3840,
         "dpi": 643,
         "size_inches": 6.5,
         "refresh_rate_hz": 120,
@@ -3342,7 +3342,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.3
+          "y": 63.7
         },
         "source": "derived"
       },
@@ -3361,8 +3361,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2520,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2520,
         "dpi": 449,
         "size_inches": 6.1,
         "refresh_rate_hz": 120,
@@ -3373,7 +3373,7 @@
         "fov_vertical_deg": 64,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 25.6
+          "y": 59.8
         },
         "source": "derived"
       },
@@ -3392,8 +3392,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2520,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2520,
         "dpi": 449,
         "size_inches": 6.1,
         "refresh_rate_hz": 60,
@@ -3404,7 +3404,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 25.6
+          "y": 59.8
         },
         "source": "derived"
       },
@@ -3423,8 +3423,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2770,
-        "height_px": 1224,
+        "width_px": 1224,
+        "height_px": 2770,
         "dpi": 453,
         "size_inches": 6.46,
         "refresh_rate_hz": 90,
@@ -3435,7 +3435,7 @@
         "fov_vertical_deg": 62,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 27.9
+          "y": 63.0
         },
         "source": "derived"
       },
@@ -3454,8 +3454,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2412,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2412,
         "dpi": 394,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -3466,7 +3466,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.2
+          "y": 65.2
         },
         "source": "derived"
       },
@@ -3485,8 +3485,8 @@
       "year": 2024,
       "os": "Android",
       "screen": {
-        "width_px": 2412,
-        "height_px": 1080,
+        "width_px": 1080,
+        "height_px": 2412,
         "dpi": 394,
         "size_inches": 6.7,
         "refresh_rate_hz": 120,
@@ -3497,7 +3497,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.2
+          "y": 65.2
         },
         "source": "derived"
       },
@@ -3516,8 +3516,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 1612,
-        "height_px": 720,
+        "width_px": 720,
+        "height_px": 1612,
         "dpi": 269,
         "size_inches": 6.75,
         "refresh_rate_hz": 60,
@@ -3528,7 +3528,7 @@
         "fov_vertical_deg": 59,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.4
+          "y": 65.7
         },
         "source": "derived"
       },
@@ -3547,8 +3547,8 @@
       "year": 2023,
       "os": "Android",
       "screen": {
-        "width_px": 2480,
-        "height_px": 1116,
+        "width_px": 1116,
+        "height_px": 2480,
         "dpi": 400,
         "size_inches": 6.8,
         "refresh_rate_hz": 120,
@@ -3559,7 +3559,7 @@
         "fov_vertical_deg": 63,
         "offset_from_screen_center_mm": {
           "x": 0,
-          "y": 29.8
+          "y": 66.2
         },
         "source": "derived"
       },

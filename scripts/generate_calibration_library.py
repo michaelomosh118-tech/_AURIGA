@@ -31,8 +31,8 @@ def profile(
     mfr,
     model,
     codename,
-    w,
-    h,
+    portrait_h_px,
+    portrait_w_px,
     dpi,
     inches,
     fov_h,
@@ -43,13 +43,28 @@ def profile(
     os_name="Android",
     notes="",
 ):
-    """Build one profile dict. cam_y_mm defaults to a realistic punch-hole position."""
+    """Build one profile dict.
+
+    `portrait_h_px` is the LONGER pixel dimension (the vertical axis when the
+    phone is held in portrait); `portrait_w_px` is the shorter pixel dimension
+    (horizontal in portrait). Call sites historically pass the longer value
+    first because that matches how GSMArena writes e.g. "3120 x 1440" for a
+    phone that is taller than it is wide.
+
+    `cam_y_mm` is the physical distance from the screen's vertical center to
+    the front-facing camera lens. When omitted we derive it from the diagonal
+    size + aspect ratio and flag the result as `source: derived` so consumers
+    do not confuse it with a spec-sheet value.
+    """
     cam_y_provided = cam_y_mm is not None
     if cam_y_mm is None:
-        # Screen height in mm = inches * 25.4 * (h / sqrt(w^2 + h^2)). Use 90%
-        # (camera sits 10% from top on most modern punch-hole designs).
+        # Convert the portrait-height pixel count into its physical size in
+        # mm, then place the camera 42% of that height above screen centre
+        # (empirical midpoint for modern punch-hole / notch designs).
         diag_mm = inches * 25.4
-        screen_h_mm = diag_mm * (h / (w * w + h * h) ** 0.5)
+        pix_diag = (portrait_h_px * portrait_h_px
+                    + portrait_w_px * portrait_w_px) ** 0.5
+        screen_h_mm = diag_mm * (portrait_h_px / pix_diag)
         cam_y_mm = round(screen_h_mm * 0.42, 1)
     return {
         "id": hashlib.sha1(f"{mfr}-{model}".encode()).hexdigest()[:10],
@@ -59,8 +74,12 @@ def profile(
         "year": year,
         "os": os_name,
         "screen": {
-            "width_px": w,
-            "height_px": h,
+            # Report pixel dimensions in portrait convention: width is the
+            # shorter axis, height the longer. Previously these were swapped,
+            # which mislabeled every profile's screen resolution and fed a
+            # halved value into the cam_y_mm derivation.
+            "width_px": portrait_w_px,
+            "height_px": portrait_h_px,
             "dpi": dpi,
             "size_inches": inches,
             "refresh_rate_hz": refresh,
