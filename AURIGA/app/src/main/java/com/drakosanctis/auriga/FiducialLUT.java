@@ -87,13 +87,46 @@ public class FiducialLUT {
      * "using device-specific calibration" state.
      */
     public void loadProfile(List<TrainingPoint> profile) {
-        if (profile == null || profile.size() < 2) return;
-        // Defensive copy + atomic publish: callers on the background
-        // fetch thread hand us a list we don't control, and the main
-        // loop is reading `points` concurrently. One volatile write
-        // gives readers either the old list in full or the new list in
-        // full, never a half-cleared view.
-        points = new ArrayList<>(profile);
+        if (profile == null) return;
+        // Sanitize first: filter non-finite values, sort by distanceM,
+        // and drop entries whose distance / pixelWidth / pixelRow would
+        // duplicate the previous anchor on any query axis. Duplicate
+        // axis values cause hermite() to divide by zero and poison the
+        // smoother with NaN -- a permanently broken readout for a
+        // navigation aid used by blind users.
+        List<TrainingPoint> cleaned = new ArrayList<>(profile.size());
+        List<TrainingPoint> sorted = new ArrayList<>(profile);
+        Collections.sort(sorted, new Comparator<TrainingPoint>() {
+            @Override public int compare(TrainingPoint a, TrainingPoint b) {
+                return Float.compare(a.distanceM, b.distanceM);
+            }
+        });
+        TrainingPoint prev = null;
+        for (TrainingPoint p : sorted) {
+            if (p == null) continue;
+            if (Float.isNaN(p.distanceM) || Float.isInfinite(p.distanceM)
+                    || Float.isNaN(p.pixelWidth) || Float.isInfinite(p.pixelWidth)
+                    || Float.isNaN(p.pixelRow) || Float.isInfinite(p.pixelRow)) {
+                continue;
+            }
+            if (prev != null) {
+                // Query axes need strictly monotonic x. distance is
+                // already strictly increasing after the sort+dedupe,
+                // and width/row must be strictly decreasing for the
+                // row-decreasing and width-decreasing axes.
+                if (p.distanceM <= prev.distanceM) continue;
+                if (p.pixelWidth >= prev.pixelWidth) continue;
+                if (p.pixelRow >= prev.pixelRow) continue;
+            }
+            cleaned.add(p);
+            prev = p;
+        }
+        if (cleaned.size() < 2) return;
+        // Defensive copy + atomic publish: the main loop is reading
+        // `points` concurrently. One volatile write gives readers
+        // either the old list in full or the new list in full, never
+        // a half-cleared view.
+        points = cleaned;
         usingTrainedProfile = true;
     }
 
@@ -233,20 +266,27 @@ public class FiducialLUT {
      */
     private static float hermite(float[] xs, float[] ys, float qx) {
         int n = xs.length;
+        // Belt-and-suspenders: loadProfile() already dedupes so adjacent
+        // xs are strictly increasing, but if a caller bypasses that path
+        // (e.g. addPoint() with a duplicate) we still guard every
+        // division so NaN can never enter the smoother.
         if (qx <= xs[0]) {
-            // Linear extrapolation from first segment
-            float slope = (ys[1] - ys[0]) / (xs[1] - xs[0]);
-            return ys[0] + slope * (qx - xs[0]);
+            float dx = xs[1] - xs[0];
+            if (dx == 0f) return ys[0];
+            return ys[0] + ((ys[1] - ys[0]) / dx) * (qx - xs[0]);
         }
         if (qx >= xs[n - 1]) {
-            float slope = (ys[n - 1] - ys[n - 2]) / (xs[n - 1] - xs[n - 2]);
-            return ys[n - 1] + slope * (qx - xs[n - 1]);
+            float dx = xs[n - 1] - xs[n - 2];
+            if (dx == 0f) return ys[n - 1];
+            return ys[n - 1] + ((ys[n - 1] - ys[n - 2]) / dx) * (qx - xs[n - 1]);
         }
 
-        // Secant slopes
+        // Secant slopes; flat segments for duplicate xs so tangent
+        // averaging below does not produce NaN.
         float[] d = new float[n - 1];
         for (int i = 0; i < n - 1; i++) {
-            d[i] = (ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]);
+            float dx = xs[i + 1] - xs[i];
+            d[i] = (dx == 0f) ? 0f : (ys[i + 1] - ys[i]) / dx;
         }
 
         // Initial tangents: averaged secants, with endpoints = single secant
@@ -284,6 +324,7 @@ public class FiducialLUT {
         }
 
         float h = xs[k + 1] - xs[k];
+        if (h == 0f) return ys[k];
         float t = (qx - xs[k]) / h;
         float t2 = t * t;
         float t3 = t2 * t;

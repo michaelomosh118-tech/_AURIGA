@@ -59,7 +59,7 @@ public class ImageProcessor {
         int[] cols = { (int)(width * 0.25), (int)(width * 0.50), (int)(width * 0.75) };
 
         for (int i = 0; i < 3; i++) {
-            results[i] = scanColumn(frame, cols[i]);
+            results[i] = scanColumn(frame, cols[i], isLowLight);
             results[i].centerX = cols[i];
             results[i].isLowLight = isLowLight;
         }
@@ -67,7 +67,7 @@ public class ImageProcessor {
         return results;
     }
 
-    private ObstacleData scanColumn(Bitmap frame, int x) {
+    private ObstacleData scanColumn(Bitmap frame, int x, boolean isLowLight) {
         ObstacleData data = new ObstacleData();
         int horizonY = (int)(height * 0.5); // Simplified horizon
         
@@ -100,7 +100,9 @@ public class ImageProcessor {
         }
         // Low-light frames get a confidence penalty because edge detection
         // on dim frames is dominated by sensor noise, not real contrast.
-        float lightPenalty = isLowLight(frame) ? 0.5f : 1.0f;
+        // isLowLight comes pre-computed from scanFrame() so we don't pay
+        // the 25-getPixel JNI cost three times per frame.
+        float lightPenalty = isLowLight ? 0.5f : 1.0f;
         // Unrealistic widths (detector latched onto a tiny speckle or
         // half the frame) drop confidence further so the smoother can
         // discard the reading.
