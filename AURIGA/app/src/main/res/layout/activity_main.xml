@@ -18,21 +18,35 @@
         android:background="@drawable/hud_grid_overlay" />
 
     <!-- 3. TOP HUD: STATUS & MODE -->
+    <!--
+        system_status is declared FIRST so that mode_label can reference
+        its id in layout_toStartOf without forward-declaration fragility
+        on older Android versions. Both TextViews inherit width/height
+        wrap_content from HUDLabelSmall; mode_label overrides width to
+        0dp + ellipsize so long product names ("AURIGANAVI // SPATIAL
+        ENGINE") cannot visually overlap the right-anchored status text
+        on narrow screens (observed on Galaxy A07 @ 720px preview).
+    -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp">
 
         <TextView
-            android:id="@+id/mode_label"
-            style="@style/HUDLabelSmall"
-            android:text="AURIGANAVI // NAVIGATION MODE" />
-
-        <TextView
             android:id="@+id/system_status"
             style="@style/HUDLabelSmall"
-            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true"
             android:text="ONLINE // 60FPS" />
+
+        <TextView
+            android:id="@+id/mode_label"
+            style="@style/HUDLabelSmall"
+            android:layout_width="0dp"
+            android:layout_toStartOf="@id/system_status"
+            android:layout_marginEnd="8dp"
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:text="AURIGANAVI // NAVIGATION MODE" />
     </RelativeLayout>
 
     <!-- 4. CENTER HUD: RADAR SWEEP -->
