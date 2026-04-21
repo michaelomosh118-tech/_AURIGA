@@ -1,11 +1,17 @@
 package com.drakosanctis.auriga;
 
 import android.app.Application;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.util.Log;
 import android.widget.Toast;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -155,17 +161,57 @@ public class AurigaApplication extends Application {
             return;
         }
 
-        // Show a persistent Toast on next launch so the user can locate the
-        // crash file and send it to support without plugging in a computer.
-        Toast.makeText(
-                this,
-                "Auriga recovered from a crash. Report saved to:\n" + path,
-                Toast.LENGTH_LONG
-        ).show();
+        // Android 11+ scoped storage hides /Android/data from Samsung's
+        // My Files, so a Toast pointing at the file path is useless for
+        // visually-impaired / non-technical users. Instead:
+        //   1) auto-copy the full crash text to the clipboard, so the
+        //      user can paste it anywhere (chat, email, WhatsApp),
+        //   2) launch CrashReportActivity which renders the trace on
+        //      screen with COPY / SHARE / DISMISS buttons.
+        // Both run best-effort -- neither must throw on teardown paths.
+        copyCrashToClipboard(f);
+        launchCrashReport(path);
 
-        // Clear the marker so the Toast only fires once. The file itself
-        // stays on disk until the user deletes it (or reinstalls the app).
+        // Clear the marker so the viewer only fires once per crash. The
+        // file itself stays on disk until the user deletes it.
         sp.edit().remove(KEY_LAST_CRASH_PATH).remove(KEY_LAST_CRASH_TIME).apply();
+    }
+
+    private void copyCrashToClipboard(java.io.File f) {
+        try {
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader br = new BufferedReader(new FileReader(f))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    sb.append(line).append('\n');
+                }
+            }
+            ClipboardManager cm = (ClipboardManager)
+                    getSystemService(Context.CLIPBOARD_SERVICE);
+            if (cm != null) {
+                cm.setPrimaryClip(ClipData.newPlainText("Auriga crash", sb.toString()));
+                Log.i(TAG, "Crash report copied to clipboard (" + sb.length() + " chars)");
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "Clipboard copy of crash report failed", t);
+        }
+    }
+
+    private void launchCrashReport(String path) {
+        try {
+            Intent i = new Intent(this, CrashReportActivity.class);
+            i.putExtra(CrashReportActivity.EXTRA_CRASH_PATH, path);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Throwable t) {
+            Log.w(TAG, "Could not launch CrashReportActivity", t);
+            // Fall back to a Toast so something at least visibly surfaces.
+            Toast.makeText(
+                    this,
+                    "Auriga recovered from a crash. Report saved to:\n" + path,
+                    Toast.LENGTH_LONG
+            ).show();
+        }
     }
 
     private String appVersionString() {

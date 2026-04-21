@@ -38,6 +38,30 @@
             </intent-filter>
         </activity>
 
+        <!-- Crash viewer: surfaces the last crash report on launch with
+             COPY / SHARE / DISMISS buttons so users can exfiltrate stack
+             traces without adb (Android 11+ scoped storage blocks
+             /Android/data in Samsung My Files). Built entirely from
+             code-constructed Views so it cannot itself fail to inflate
+             if a drawable/theme is the very thing that crashed. -->
+        <activity
+            android:name=".CrashReportActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
+        <!-- FileProvider so Share intents can attach the raw crash file
+             (required for emailing / Drive / cloud attachments). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.crashprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/crash_provider_paths" />
+        </provider>
+
     </application>
 
 </manifest>
