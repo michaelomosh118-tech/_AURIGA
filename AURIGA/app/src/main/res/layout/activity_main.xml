@@ -113,6 +113,32 @@
             android:textSize="32sp" />
     </RelativeLayout>
 
+    <!--
+        9. DIAGNOSTIC OVERLAY (long-press AURIGA NAVI title to toggle).
+        Kept gone by default so the HUD stays clean for end users;
+        devs running the jitter-diagnosis pass see raw LUT rows, pitch
+        radians, GhostAnchor shift magnitude, detection confidence,
+        sanity score, active bitmap size, and whether a trained
+        profile is loaded. Monospace so values line up frame to frame
+        and the eye picks out which column is flickering.
+    -->
+    <TextView
+        android:id="@+id/diagnostic_overlay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="72dp"
+        android:layout_marginEnd="12dp"
+        android:background="#CC000000"
+        android:padding="8dp"
+        android:fontFamily="monospace"
+        android:textColor="#B2FFE6"
+        android:textSize="10sp"
+        android:text=""
+        android:visibility="gone"
+        android:contentDescription="Auriga diagnostic overlay" />
+
     <!-- 8. ALERT HUD: SKYSHIELD™ OVERHANG BANNER -->
     <TextView
         android:id="@+id/alert_banner"

@@ -10,10 +10,29 @@ import android.graphics.Color;
  */
 public class ImageProcessor {
 
-    private final int width = 640;
-    private final int height = 480;
+    // Mutable so the main loop can switch bitmap dimensions once the
+    // TextureView's real aspect ratio is known (A07 previews at 1600x720;
+    // capturing at a forced 640x480 stretches horizontally and warps the
+    // row-to-distance mapping). Defaults to the legacy 640x480 reference
+    // so callers that never invoke setFrameSize keep their old behavior.
+    private volatile int width = 640;
+    private volatile int height = 480;
 
     public ImageProcessor() { }
+
+    /**
+     * setFrameSize: Adopt the bitmap dimensions currently being produced
+     * by the texture->bitmap downsample. Must be called before scanFrame
+     * when the bitmap is not the 640x480 default; otherwise the 3-column
+     * scan reads the wrong x coordinates and the horizon is wrong.
+     */
+    public void setFrameSize(int width, int height) {
+        if (width > 0) this.width = width;
+        if (height > 0) this.height = height;
+    }
+
+    public int getFrameWidth()  { return width; }
+    public int getFrameHeight() { return height; }
 
     /**
      * ObstacleData: Holds findings for a single column scan.
