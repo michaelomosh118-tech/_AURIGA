@@ -44,6 +44,7 @@ def profile(
     notes="",
 ):
     """Build one profile dict. cam_y_mm defaults to a realistic punch-hole position."""
+    cam_y_provided = cam_y_mm is not None
     if cam_y_mm is None:
         # Screen height in mm = inches * 25.4 * (h / sqrt(w^2 + h^2)). Use 90%
         # (camera sits 10% from top on most modern punch-hole designs).
@@ -69,7 +70,12 @@ def profile(
             "fov_horizontal_deg": fov_h,
             "fov_vertical_deg": fov_v,
             "offset_from_screen_center_mm": {"x": 0, "y": cam_y_mm},
-            "source": "oem_spec" if cam_y_mm else "derived",
+            # fov_* come straight from OEM spec sheets, but the physical
+            # screen-center-to-lens offset is almost never published. When the
+            # caller didn't supply one explicitly we synthesize it from the
+            # diagonal-inch + aspect ratio and flag it as derived so users
+            # aren't misled about authoritativeness.
+            "source": "oem_spec" if cam_y_provided else "derived",
         },
         "ipd_default_mm": IPD_POP_AVG_MM,
         "ipd_source": "derived",

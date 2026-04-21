@@ -27,7 +27,7 @@
           "x": 0,
           "y": 30.4
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -58,7 +58,7 @@
           "x": 0,
           "y": 30.0
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -89,7 +89,7 @@
           "x": 0,
           "y": 27.7
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -120,7 +120,7 @@
           "x": 0,
           "y": 30.7
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -151,7 +151,7 @@
           "x": 0,
           "y": 29.5
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -182,7 +182,7 @@
           "x": 0,
           "y": 27.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -213,7 +213,7 @@
           "x": 0,
           "y": 30.7
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -244,7 +244,7 @@
           "x": 0,
           "y": 27.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -275,7 +275,7 @@
           "x": 0,
           "y": 29.8
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -306,7 +306,7 @@
           "x": 0,
           "y": 27.1
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -337,7 +337,7 @@
           "x": 0,
           "y": 30.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -368,7 +368,7 @@
           "x": 0,
           "y": 27.1
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -399,7 +399,7 @@
           "x": 0,
           "y": 31.1
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -430,7 +430,7 @@
           "x": 0,
           "y": 31.1
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -461,7 +461,7 @@
           "x": 0,
           "y": 51.9
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -492,7 +492,7 @@
           "x": 0,
           "y": 27.1
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -523,7 +523,7 @@
           "x": 0,
           "y": 28.6
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -554,7 +554,7 @@
           "x": 0,
           "y": 29.5
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -585,7 +585,7 @@
           "x": 0,
           "y": 28.8
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -616,7 +616,7 @@
           "x": 0,
           "y": 29.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -647,7 +647,7 @@
           "x": 0,
           "y": 30.0
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -678,7 +678,7 @@
           "x": 0,
           "y": 30.0
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -709,7 +709,7 @@
           "x": 0,
           "y": 28.8
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -740,7 +740,7 @@
           "x": 0,
           "y": 28.8
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -771,7 +771,7 @@
           "x": 0,
           "y": 82.5
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -802,7 +802,7 @@
           "x": 0,
           "y": 29.7
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -833,7 +833,7 @@
           "x": 0,
           "y": 27.5
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -864,7 +864,7 @@
           "x": 0,
           "y": 27.4
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -895,7 +895,7 @@
           "x": 0,
           "y": 29.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -926,7 +926,7 @@
           "x": 0,
           "y": 27.1
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -957,7 +957,7 @@
           "x": 0,
           "y": 26.7
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -988,7 +988,7 @@
           "x": 0,
           "y": 30.0
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1019,7 +1019,7 @@
           "x": 0,
           "y": 27.6
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1050,7 +1050,7 @@
           "x": 0,
           "y": 30.0
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1081,7 +1081,7 @@
           "x": 0,
           "y": 28.0
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1112,7 +1112,7 @@
           "x": 0,
           "y": 26.8
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1143,7 +1143,7 @@
           "x": 0,
           "y": 25.9
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1174,7 +1174,7 @@
           "x": 0,
           "y": 28.8
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1205,7 +1205,7 @@
           "x": 0,
           "y": 26.1
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1236,7 +1236,7 @@
           "x": 0,
           "y": 30.8
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1267,7 +1267,7 @@
           "x": 0,
           "y": 28.1
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1298,7 +1298,7 @@
           "x": 0,
           "y": 29.9
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1329,7 +1329,7 @@
           "x": 0,
           "y": 27.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1360,7 +1360,7 @@
           "x": 0,
           "y": 29.9
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1391,7 +1391,7 @@
           "x": 0,
           "y": 27.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1422,7 +1422,7 @@
           "x": 0,
           "y": 29.9
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1453,7 +1453,7 @@
           "x": 0,
           "y": 27.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1484,7 +1484,7 @@
           "x": 0,
           "y": 29.9
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1515,7 +1515,7 @@
           "x": 0,
           "y": 27.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1546,7 +1546,7 @@
           "x": 0,
           "y": 27.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1577,7 +1577,7 @@
           "x": 0,
           "y": 30.0
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1608,7 +1608,7 @@
           "x": 0,
           "y": 27.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1639,7 +1639,7 @@
           "x": 0,
           "y": 27.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1670,7 +1670,7 @@
           "x": 0,
           "y": 24.1
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1701,7 +1701,7 @@
           "x": 0,
           "y": 24.6
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1732,7 +1732,7 @@
           "x": 0,
           "y": 27.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1763,7 +1763,7 @@
           "x": 0,
           "y": 25.9
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1794,7 +1794,7 @@
           "x": 0,
           "y": 28.8
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1825,7 +1825,7 @@
           "x": 0,
           "y": 24.6
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1856,7 +1856,7 @@
           "x": 0,
           "y": 30.1
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1887,7 +1887,7 @@
           "x": 0,
           "y": 29.9
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1918,7 +1918,7 @@
           "x": 0,
           "y": 29.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1949,7 +1949,7 @@
           "x": 0,
           "y": 29.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -1980,7 +1980,7 @@
           "x": 0,
           "y": 29.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2011,7 +2011,7 @@
           "x": 0,
           "y": 29.5
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2042,7 +2042,7 @@
           "x": 0,
           "y": 29.4
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2073,7 +2073,7 @@
           "x": 0,
           "y": 29.5
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2104,7 +2104,7 @@
           "x": 0,
           "y": 29.5
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2135,7 +2135,7 @@
           "x": 0,
           "y": 27.8
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2166,7 +2166,7 @@
           "x": 0,
           "y": 29.5
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2197,7 +2197,7 @@
           "x": 0,
           "y": 29.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2228,7 +2228,7 @@
           "x": 0,
           "y": 29.5
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2259,7 +2259,7 @@
           "x": 0,
           "y": 29.8
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2290,7 +2290,7 @@
           "x": 0,
           "y": 29.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2321,7 +2321,7 @@
           "x": 0,
           "y": 29.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2352,7 +2352,7 @@
           "x": 0,
           "y": 29.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2383,7 +2383,7 @@
           "x": 0,
           "y": 28.1
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2414,7 +2414,7 @@
           "x": 0,
           "y": 28.6
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2445,7 +2445,7 @@
           "x": 0,
           "y": 29.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2476,7 +2476,7 @@
           "x": 0,
           "y": 29.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2507,7 +2507,7 @@
           "x": 0,
           "y": 29.7
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2538,7 +2538,7 @@
           "x": 0,
           "y": 30.1
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2569,7 +2569,7 @@
           "x": 0,
           "y": 30.1
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2600,7 +2600,7 @@
           "x": 0,
           "y": 29.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2631,7 +2631,7 @@
           "x": 0,
           "y": 28.7
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2662,7 +2662,7 @@
           "x": 0,
           "y": 29.9
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2693,7 +2693,7 @@
           "x": 0,
           "y": 29.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2724,7 +2724,7 @@
           "x": 0,
           "y": 29.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2755,7 +2755,7 @@
           "x": 0,
           "y": 29.7
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2786,7 +2786,7 @@
           "x": 0,
           "y": 29.7
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2817,7 +2817,7 @@
           "x": 0,
           "y": 29.0
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2848,7 +2848,7 @@
           "x": 0,
           "y": 30.6
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2879,7 +2879,7 @@
           "x": 0,
           "y": 29.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2910,7 +2910,7 @@
           "x": 0,
           "y": 29.8
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2941,7 +2941,7 @@
           "x": 0,
           "y": 30.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -2972,7 +2972,7 @@
           "x": 0,
           "y": 30.4
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3003,7 +3003,7 @@
           "x": 0,
           "y": 29.4
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3034,7 +3034,7 @@
           "x": 0,
           "y": 29.8
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3065,7 +3065,7 @@
           "x": 0,
           "y": 29.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3096,7 +3096,7 @@
           "x": 0,
           "y": 29.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3127,7 +3127,7 @@
           "x": 0,
           "y": 28.9
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3158,7 +3158,7 @@
           "x": 0,
           "y": 27.9
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3189,7 +3189,7 @@
           "x": 0,
           "y": 27.9
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3220,7 +3220,7 @@
           "x": 0,
           "y": 28.1
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3251,7 +3251,7 @@
           "x": 0,
           "y": 28.6
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3282,7 +3282,7 @@
           "x": 0,
           "y": 29.7
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3313,7 +3313,7 @@
           "x": 0,
           "y": 25.8
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3344,7 +3344,7 @@
           "x": 0,
           "y": 27.3
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3375,7 +3375,7 @@
           "x": 0,
           "y": 25.6
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3406,7 +3406,7 @@
           "x": 0,
           "y": 25.6
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3437,7 +3437,7 @@
           "x": 0,
           "y": 27.9
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3468,7 +3468,7 @@
           "x": 0,
           "y": 29.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3499,7 +3499,7 @@
           "x": 0,
           "y": 29.2
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3530,7 +3530,7 @@
           "x": 0,
           "y": 29.4
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
@@ -3561,7 +3561,7 @@
           "x": 0,
           "y": 29.8
         },
-        "source": "oem_spec"
+        "source": "derived"
       },
       "ipd_default_mm": 63,
       "ipd_source": "derived",
