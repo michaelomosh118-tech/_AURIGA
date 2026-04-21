@@ -6,10 +6,10 @@ on one device.
 
 | Variant | applicationId | Download |
 |---|---|---|
-| AurigaNavi       | `com.drakosanctis.auriga`            | [AurigaNavi-release.apk](https://github.com/michaelomosh118-tech/_AURIGA/releases/latest/download/AurigaNavi-release.apk) |
-| AurigaSentinel   | `com.drakosanctis.auriga.sentinel`   | [AurigaSentinel-release.apk](https://github.com/michaelomosh118-tech/_AURIGA/releases/latest/download/AurigaSentinel-release.apk) |
-| AurigaAero       | `com.drakosanctis.auriga.aero`       | [AurigaAero-release.apk](https://github.com/michaelomosh118-tech/_AURIGA/releases/latest/download/AurigaAero-release.apk) |
-| AurigaIndustrial | `com.drakosanctis.auriga.industrial` | [AurigaIndustrial-release.apk](https://github.com/michaelomosh118-tech/_AURIGA/releases/latest/download/AurigaIndustrial-release.apk) |
+| AurigaNavi       | `com.drakosanctis.auriga`            | [AurigaNavi-release.apk](https://github.com/michaelomosh118-tech/auriga-releases/releases/latest/download/AurigaNavi-release.apk) |
+| AurigaSentinel   | `com.drakosanctis.auriga.sentinel`   | [AurigaSentinel-release.apk](https://github.com/michaelomosh118-tech/auriga-releases/releases/latest/download/AurigaSentinel-release.apk) |
+| AurigaAero       | `com.drakosanctis.auriga.aero`       | [AurigaAero-release.apk](https://github.com/michaelomosh118-tech/auriga-releases/releases/latest/download/AurigaAero-release.apk) |
+| AurigaIndustrial | `com.drakosanctis.auriga.industrial` | [AurigaIndustrial-release.apk](https://github.com/michaelomosh118-tech/auriga-releases/releases/latest/download/AurigaIndustrial-release.apk) |
 
 Those URLs always redirect to the latest tagged GitHub Release, so the
 website never needs updating when a new build ships.
