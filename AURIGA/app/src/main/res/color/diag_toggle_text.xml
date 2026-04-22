@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Text colour for the DIAG toggle button. Pairs with
+    res/drawable/diag_toggle_bg.xml so that when the button enters the
+    activated state (background flips to filled cyan), the label text
+    flips to black for contrast. Without this list the cyan label would
+    sit on a cyan fill and become invisible.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_activated="true" android:color="@color/space_black" />
+    <item android:color="@color/auriga_cyan" />
+</selector>

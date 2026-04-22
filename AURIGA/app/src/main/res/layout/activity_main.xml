@@ -64,7 +64,7 @@
             android:paddingBottom="6dp"
             android:text="DIAG"
             android:textSize="11sp"
-            android:textColor="@color/auriga_cyan"
+            android:textColor="@color/diag_toggle_text"
             android:letterSpacing="0.08"
             android:fontFamily="sans-serif-medium"
             android:textAllCaps="true"
