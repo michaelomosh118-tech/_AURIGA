@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.TextureView;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.Manifest;
@@ -69,14 +70,17 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     private TextureView textureView;
     private TextView distanceText, bearingText, signatureText, alertBanner, modeLabel;
     private TextView diagnosticOverlay;
+    private Button diagToggle;
     private View radarView;
 
-    // Diagnostic overlay state. Toggled by long-pressing the mode_label
-    // HUD title. When on, processNavigationFrame publishes per-frame
-    // metrics (pitch, GhostAnchor shift, raw LUT row, confidence,
-    // sanity, active bitmap size, whether a trained profile is loaded)
-    // to the overlay TextView so a field operator can see which layer
-    // is flickering without attaching adb.
+    // Diagnostic overlay state. Toggled by tapping the DIAG button in
+    // the HUD top bar (explicit affordance; replaces the earlier
+    // invisible long-press-on-title gesture). When on,
+    // processNavigationFrame publishes per-frame metrics (pitch,
+    // GhostAnchor shift, raw LUT row, confidence, sanity, active
+    // bitmap size, whether a trained profile is loaded) to the
+    // overlay TextView so a field operator can see which layer is
+    // flickering without attaching adb.
     private volatile boolean diagnosticVisible = false;
 
     private static final String TAG = "AurigaMain";
@@ -235,24 +239,25 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         alertBanner = findViewById(R.id.alert_banner);
         radarView = findViewById(R.id.radar_sweep);
         diagnosticOverlay = findViewById(R.id.diagnostic_overlay);
+        diagToggle = findViewById(R.id.diag_toggle);
 
-        // Long-press on the mode label toggles the diagnostic overlay.
-        // Click target is small but consistent with the "hidden dev
-        // gesture" pattern; does not collide with any existing gesture
-        // because the mode label is otherwise non-interactive.
-        if (modeLabel != null) {
-            modeLabel.setLongClickable(true);
-            modeLabel.setOnLongClickListener(v -> {
-                toggleDiagnosticOverlay();
-                return true;
-            });
+        // Explicit DIAG button replaces the earlier long-press-on-title
+        // gesture, which had no visual affordance and no TalkBack hit
+        // target. Standard click toggles the overlay; activated state
+        // drives the bordered-vs-filled background defined in
+        // res/drawable/diag_toggle_bg.xml.
+        if (diagToggle != null) {
+            diagToggle.setOnClickListener(v -> toggleDiagnosticOverlay());
         }
     }
 
     /**
      * Flip the diagnostic-overlay visibility and announce the new
-     * state via DrakoVoice so visually-impaired devs can tell the
-     * gesture landed. Called from the UI thread (long-press callback).
+     * state so visually-impaired devs can tell the tap landed.
+     * Drives three things at once so visual + audio + button state
+     * stay in lockstep: overlay visibility, DIAG button activated
+     * state (background swap to filled cyan), and TalkBack content
+     * description so the next read-out matches the new state.
      */
     private void toggleDiagnosticOverlay() {
         diagnosticVisible = !diagnosticVisible;
@@ -260,6 +265,12 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             diagnosticOverlay.setVisibility(
                     diagnosticVisible ? View.VISIBLE : View.GONE);
             if (!diagnosticVisible) diagnosticOverlay.setText("");
+        }
+        if (diagToggle != null) {
+            diagToggle.setActivated(diagnosticVisible);
+            diagToggle.setContentDescription(diagnosticVisible
+                    ? "Diagnostics on. Double tap to hide overlay."
+                    : "Diagnostics off. Double tap to show overlay.");
         }
         Toast.makeText(this,
                 diagnosticVisible ? "Diagnostics ON" : "Diagnostics OFF",
