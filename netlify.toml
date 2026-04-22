@@ -1,0 +1,17 @@
+[build]
+  # Netlify auto-deploys this repo but without an explicit publish
+  # directory it was serving the repo root, so the public landing
+  # fell back to an outdated index.html (no mobile MENU drawer, no
+  # calibration form wiring). Pinning to AURIGA/web_deploy so every
+  # push to main builds the real public site.
+  publish = "AURIGA/web_deploy"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=300"
