@@ -53,11 +53,66 @@
         }
         .topbar .brand { display: flex; align-items: center; gap: 10px; font-weight: bold; color: var(--alert-red); }
         .topbar .brand img { height: 32px; }
+        .topbar nav { display: flex; align-items: center; }
         .topbar nav a { margin-left: 22px; font-size: 14px; letter-spacing: 0.08em; }
         .topbar nav a.cta { color: var(--alert-red); }
+
+        /* Hamburger toggle. Desktop: hidden. Mobile: replaces the
+           horizontal nav with an explicit MENU button that opens a
+           slide-down drawer. Mirrors the pattern already shipping on
+           index.html so the two pages feel like one site. */
+        .nav-toggle {
+            display: none;
+            background: transparent;
+            color: var(--auriga-cyan);
+            border: 1px solid var(--hud-border-hi);
+            padding: 8px 14px;
+            font-family: inherit;
+            font-size: 13px;
+            letter-spacing: 0.15em;
+            cursor: pointer;
+            min-height: 44px;
+        }
+        .nav-toggle:focus-visible { outline: 2px solid var(--auriga-cyan); outline-offset: 2px; }
+
         @media (max-width: 700px) {
-            .topbar { flex-direction: column; gap: 10px; padding: 12px; }
-            .topbar nav a { margin: 0 10px; }
+            /* Keep the top bar as a single compact row: brand on the
+               left, MENU button on the right. The previous rule that
+               stacked everything vertically hid the nav behind the
+               brand on narrow screens, which is what the A07 user
+               reported. */
+            .topbar { flex-direction: row; gap: 10px; padding: 12px 14px; align-items: center; }
+            .nav-toggle { display: inline-block; }
+
+            /* Drawer: absolutely positioned under the sticky top bar,
+               full-width, stacked link list with large tap targets
+               (min 44 dp per WCAG 2.5.5). Hidden by default; .open
+               flips display:flex. */
+            .topbar nav {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                flex-direction: column;
+                align-items: stretch;
+                background: rgba(0,10,14,0.98);
+                border-top: 1px solid var(--hud-border);
+                border-bottom: 1px solid var(--hud-border);
+                padding: 8px 0;
+                display: none;
+                backdrop-filter: blur(8px);
+            }
+            .topbar nav.open { display: flex; }
+            .topbar nav a {
+                margin: 0;
+                padding: 14px 20px;
+                border-bottom: 1px solid var(--hud-border);
+                font-size: 14px;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+            }
+            .topbar nav a:last-child { border-bottom: none; }
         }
 
         /* Hero */
@@ -274,14 +329,42 @@
         <img src="logo.png" alt="" onerror="this.style.display='none'">
         DRAKOSANCTIS // AURIGA
     </div>
-    <nav aria-label="Primary">
+    <button class="nav-toggle" id="navToggle" type="button"
+            aria-expanded="false" aria-controls="libraryNav"
+            aria-label="Toggle navigation menu"
+            onclick="toggleLibraryNav()">
+        MENU
+    </button>
+    <nav id="libraryNav" aria-label="Primary">
         <a href="index.html">HOME</a>
         <a href="index.html#ecosystem">ECOSYSTEM</a>
-        <a href="#library" class="cta">CALIBRATION LIBRARY</a>
-        <a href="#contribute">CONTRIBUTE SPECS</a>
-        <a href="#contribute-lut">CONTRIBUTE LUT</a>
+        <a href="#library" class="cta" onclick="closeLibraryNav()">CALIBRATION LIBRARY</a>
+        <a href="#contribute" onclick="closeLibraryNav()">CONTRIBUTE SPECS</a>
+        <a href="#contribute-lut" onclick="closeLibraryNav()">CONTRIBUTE LUT</a>
     </nav>
 </header>
+
+<script>
+    // Mobile navigation drawer. Mirrors the toggle pattern on
+    // index.html so users cross-navigating between pages encounter
+    // the same affordance. Intentionally implemented inline (no
+    // external JS) because the rest of this page is self-contained
+    // and Netlify serves it statically.
+    function toggleLibraryNav() {
+        var nav  = document.getElementById('libraryNav');
+        var btn  = document.getElementById('navToggle');
+        if (!nav || !btn) return;
+        var open = nav.classList.toggle('open');
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    function closeLibraryNav() {
+        var nav  = document.getElementById('libraryNav');
+        var btn  = document.getElementById('navToggle');
+        if (!nav || !btn) return;
+        nav.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+    }
+</script>
 
 <section class="hero" id="library">
     <div class="kicker">AURIGA // ACCESSIBILITY CALIBRATION</div>
