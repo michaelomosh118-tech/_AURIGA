@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Background for the DIAG toggle button in the HUD top bar.
+    - Default: transparent fill + 1 dp cyan outline (looks like part of the
+      HUD chrome, doesn't dominate the frame when the overlay is off).
+    - activated: filled cyan + black label (MainActivity.setActivated is
+      flipped in toggleDiagnosticOverlay, not pressed/selected, so the
+      state is sticky across taps).
+    - pressed: subtle fill flash for tactile feedback without relying on
+      ripple (keeps the look consistent with the rest of the tron HUD).
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        Combined activated+pressed must come BEFORE the standalone
+        activated item: StateListDrawable picks the first item whose
+        specified states all match, so a bare state_activated entry
+        would otherwise swallow press feedback while diagnostics are
+        on. Slightly darker cyan gives a visible flash without losing
+        the "filled" feel of the activated background.
+    -->
+    <item android:state_activated="true" android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#DD00F0FF" />
+            <corners android:radius="4dp" />
+            <stroke
+                android:width="1dp"
+                android:color="@color/auriga_cyan" />
+        </shape>
+    </item>
+
+    <item android:state_activated="true">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/auriga_cyan" />
+            <corners android:radius="4dp" />
+            <stroke
+                android:width="1dp"
+                android:color="@color/auriga_cyan" />
+        </shape>
+    </item>
+
+    <item android:state_pressed="true">
+        <shape android:shape="rectangle">
+            <solid android:color="#2200F0FF" />
+            <corners android:radius="4dp" />
+            <stroke
+                android:width="1dp"
+                android:color="@color/auriga_cyan" />
+        </shape>
+    </item>
+
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#00000000" />
+            <corners android:radius="4dp" />
+            <stroke
+                android:width="1dp"
+                android:color="@color/auriga_cyan" />
+        </shape>
+    </item>
+
+</selector>
