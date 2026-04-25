@@ -200,6 +200,9 @@
       main { padding: 22px 16px 80px; }
     }
   </style>
+  <!-- Shared hamburger nav drawer (used across every page on the site). -->
+  <link rel="stylesheet" href="nav-drawer.css">
+  <script defer src="nav-drawer.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -207,7 +210,14 @@
       <span class="brand-eyebrow">DrakoSanctis // Auriga</span>
       <span class="brand-name">Send Feedback</span>
     </div>
-    <a href="index.html" aria-label="Back to home">← Home</a>
+    <button type="button" class="nav-toggle" id="navToggle"
+            aria-expanded="false" aria-controls="navLinks"
+            aria-label="Open navigation menu">
+      <span class="hamburger-icon" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </span>
+      MENU
+    </button>
   </header>
 
   <main>

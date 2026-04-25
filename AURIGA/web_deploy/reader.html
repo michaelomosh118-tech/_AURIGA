@@ -295,6 +295,9 @@
       .text-card { font-size: 15px; }
     }
   </style>
+  <!-- Shared hamburger nav drawer (used across every page on the site). -->
+  <link rel="stylesheet" href="nav-drawer.css">
+  <script defer src="nav-drawer.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#controls">Skip to reader controls</a>
@@ -313,8 +316,14 @@
         <span class="state-dot" aria-hidden="true"></span>
         <span id="state">POINT &amp; READ</span>
       </div>
-      <a href="feedback.html" class="feedback-link"
-         aria-label="Send feedback to the DrakoSanctis team">Feedback</a>
+      <button type="button" class="nav-toggle" id="navToggle"
+              aria-expanded="false" aria-controls="navLinks"
+              aria-label="Open navigation menu">
+        <span class="hamburger-icon" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </span>
+        MENU
+      </button>
     </header>
 
     <div class="reticle" aria-hidden="true"><span></span><span></span></div>

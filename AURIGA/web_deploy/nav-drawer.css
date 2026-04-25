@@ -1,0 +1,171 @@
+/* ─────────────────────────────────────────────────────────────
+   Auriga shared hamburger nav drawer
+   ─────────────────────────────────────────────────────────────
+   Single source of truth for the hamburger menu used across
+   index.html, calibration-library.html, reader.html, and
+   feedback.html. Pages either place their own #navToggle
+   button (e.g. inside an existing topbar) or let nav-drawer.js
+   inject a floating one in the top-right corner.
+   ───────────────────────────────────────────────────────────── */
+
+/* Hamburger button — primary nav affordance at every viewport
+   size. Three-bar icon + MENU label, sized as a 48x44 tap target. */
+.nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    border: 1px solid #00f0ff;
+    color: #00f0ff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.78rem;
+    padding: 8px 14px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 4px;
+    min-width: 48px;
+    min-height: 44px;
+}
+.nav-toggle:hover {
+    background: rgba(0, 240, 255, 0.08);
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+}
+.nav-toggle:focus-visible {
+    outline: 2px solid #00f0ff;
+    outline-offset: 2px;
+}
+.nav-toggle .hamburger-icon {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 18px; height: 12px;
+}
+.nav-toggle .hamburger-icon span {
+    display: block;
+    height: 2px;
+    background: #00f0ff;
+    border-radius: 1px;
+}
+
+/* Floating variant: when the page has no topbar to host the
+   hamburger, nav-drawer.js injects one with .floating, which
+   pins it to the top-right corner above all content. */
+.nav-toggle.floating {
+    position: fixed;
+    top: 14px;
+    right: 16px;
+    z-index: 1300;
+    background: rgba(8, 10, 18, 0.85);
+    backdrop-filter: blur(8px);
+}
+
+/* Slide-in drawer: hidden off the right edge by default,
+   transitions in when .open is set. Fixed-width on desktop
+   so it doesn't take the whole screen; full-width on phones. */
+.nav-drawer {
+    position: fixed;
+    top: 0; right: 0;
+    height: 100vh;
+    width: 320px;
+    max-width: 88vw;
+    background: rgba(8, 10, 18, 0.97);
+    backdrop-filter: blur(16px);
+    border-left: 1px solid rgba(0, 87, 255, 0.35);
+    box-shadow: -8px 0 40px rgba(0, 87, 255, 0.2);
+    transform: translateX(100%);
+    transition: transform 0.32s cubic-bezier(.2,.8,.2,1);
+    z-index: 1200;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: 24px 22px 40px;
+    color: #e0e0e0;
+}
+.nav-drawer.open { transform: translateX(0); }
+.nav-drawer-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 14px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(0, 87, 255, 0.28);
+}
+.nav-drawer-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.32em;
+    color: #0057ff;
+    text-transform: uppercase;
+}
+.nav-drawer-close {
+    background: transparent;
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    color: #00f0ff;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    line-height: 1;
+    width: 36px; height: 36px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.nav-drawer-close:hover { background: rgba(0, 240, 255, 0.1); }
+.nav-drawer-close:focus-visible {
+    outline: 2px solid #00f0ff;
+    outline-offset: 2px;
+}
+.nav-section-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.28em;
+    color: #0057ff;
+    text-transform: uppercase;
+    margin: 18px 4px 6px;
+    opacity: 0.85;
+}
+.nav-section {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.nav-section a {
+    color: #e0e0e0;
+    text-decoration: none;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.88rem;
+    letter-spacing: 0.05em;
+    padding: 12px 12px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.nav-section a:hover,
+.nav-section a:focus-visible {
+    color: #00f0ff;
+    background: rgba(0, 240, 255, 0.06);
+    border-color: rgba(0, 240, 255, 0.25);
+    outline: none;
+}
+
+/* Scrim that dims the page behind the open drawer and acts as
+   a click-outside-to-close affordance. */
+.nav-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 1100;
+}
+.nav-scrim.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+body.nav-open { overflow: hidden; }
