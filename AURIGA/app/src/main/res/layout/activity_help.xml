@@ -96,8 +96,63 @@
 
             <TextView
                 style="@style/DocBody"
-                android:layout_marginBottom="32dp"
                 android:text="All HUD buttons meet the 44 dp tap-target minimum and announce their state through TalkBack. DrakoVoice can speak distance, bearing and any captured text using the device's preferred system voice." />
+
+            <!-- "Was this helpful?" feedback row. Lightweight signal so we
+                 know which sections of Help land vs which need rewriting,
+                 without sending the user all the way through Send Feedback.
+                 Wired in HelpActivity; persisted via SharedPreferences so
+                 the same user is not re-prompted on every visit. -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="28dp"
+                android:layout_marginBottom="14dp"
+                android:background="@color/glass_stroke" />
+
+            <TextView
+                android:id="@+id/help_feedback_prompt"
+                style="@style/HUDLabelSmall"
+                android:layout_marginBottom="10dp"
+                android:text="Was this page helpful?" />
+
+            <LinearLayout
+                android:id="@+id/help_feedback_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="32dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/help_thumbs_up"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:minHeight="48dp"
+                    android:background="@drawable/diag_toggle_bg"
+                    android:text="👍 Yes"
+                    android:textAllCaps="false"
+                    android:textColor="@color/diag_toggle_text"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:contentDescription="Mark this Help page as helpful" />
+
+                <Button
+                    android:id="@+id/help_thumbs_down"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:minHeight="48dp"
+                    android:background="@drawable/diag_toggle_bg"
+                    android:text="👎 No"
+                    android:textAllCaps="false"
+                    android:textColor="@color/diag_toggle_text"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:contentDescription="Mark this Help page as not helpful" />
+            </LinearLayout>
 
         </LinearLayout>
     </ScrollView>

@@ -161,6 +161,14 @@ dependencies {
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 
+    // Hamburger drawer (0.4e). Pin an explicit version instead of relying
+    // on appcompat's transitive resolution -- AGP 8.x classpath constraint
+    // resolution sometimes drops the transitive androidx.drawerlayout
+    // artifact, which causes a hard "AAPT: error: resource ... not found"
+    // /  "package androidx.drawerlayout.widget does not exist" build break
+    // on the matrix runner even though `gradle dependencies` still lists it.
+    implementation 'androidx.drawerlayout:drawerlayout:1.2.0'
+
     // CameraX powers the OrCam-style ReaderActivity (preview + image
     // capture). All three artifacts share a version so the analyzer,
     // preview and capture surfaces stay ABI-compatible.
