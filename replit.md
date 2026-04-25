@@ -44,3 +44,15 @@ The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and 
   Enter), live word highlighting, and a graceful upload-mode fallback
   when the camera is unavailable. Linked from the main nav in
   `index.html`.
+- **In-app hamburger menu (0.4e)**: Wrapped `activity_main.xml` in an
+  `androidx.drawerlayout.widget.DrawerLayout` and added a side panel with
+  HUD / Reader / About / Help destinations plus a Diagnostics section.
+  The DIAG toggle now lives inside the drawer; a "Pin DIAG to HUD" switch
+  (persisted to SharedPreferences `auriga_prefs / pin_diag_to_hud`)
+  controls whether the inline pill in the top bar is visible. New
+  `AboutActivity` + `HelpActivity` (plus `activity_about.xml`,
+  `activity_help.xml`, `AurigaDocTheme`/`DocH1`/`DocH2`/`DocBody` styles,
+  `drawer_bg.xml`, `drawer_item_bg.xml`, `drawer_item_text.xml`) provide
+  the destination screens. Back-press closes the drawer instead of
+  exiting the HUD when it's open. Activities registered in
+  `AndroidManifest.xml`.

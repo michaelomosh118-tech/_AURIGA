@@ -1,279 +1,442 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+    Root is now a DrawerLayout so the new hamburger menu (0.4e) can slide in
+    from the start edge over the live HUD. The original RelativeLayout HUD is
+    preserved verbatim as the first child (the "main content"); the drawer
+    panel is the second child with layout_gravity="start".
+-->
+<androidx.drawerlayout.widget.DrawerLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/deep_space">
+    android:fitsSystemWindows="false">
 
-    <!-- 1. FULL SCREEN CAMERA PREVIEW -->
-    <TextureView
-        android:id="@+id/camera_preview"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-    <!-- 2. AMBIENT GLOW + FRAME OVERLAY (replaces flat grid) -->
-    <View
+    <!-- ────────────────────────────────────────────────────────────────
+         MAIN CONTENT: the AurigaNavi HUD
+    ──────────────────────────────────────────────────────────────── -->
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/hud_grid_overlay" />
+        android:background="@color/deep_space">
 
-    <!-- 3. TOP HUD: STATUS & MODE -->
-    <!--
-        Row order right-to-left: [system_status]  [diag_toggle]  [mode_label].
-        system_status sits hard-right, the DIAG button sits to the left of
-        it, and mode_label consumes the remaining horizontal space with
-        ellipsize=end so long product names ("AURIGANAVI // SPATIAL ENGINE")
-        never visually overlap the right-anchored status text on narrow
-        screens. Declaration order (system_status, diag_toggle, mode_label)
-        keeps layout_toStartOf references backward-only so the constraint
-        solver converges on older Android versions.
-    -->
-    <RelativeLayout
-        android:id="@+id/top_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@drawable/hud_top_bar_bg"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:paddingTop="20dp"
-        android:paddingBottom="20dp">
+        <!-- 1. FULL SCREEN CAMERA PREVIEW -->
+        <TextureView
+            android:id="@+id/camera_preview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
 
-        <!-- Live status pill: pulsing dot + ONLINE label -->
+        <!-- 2. AMBIENT GLOW + FRAME OVERLAY -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/hud_grid_overlay" />
+
+        <!-- 3. TOP HUD: STATUS & MODE -->
+        <RelativeLayout
+            android:id="@+id/top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/hud_top_bar_bg"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="20dp"
+            android:paddingBottom="20dp">
+
+            <!-- Hamburger menu button (0.4e). Uses the same pill chrome as
+                 the DIAG/READ buttons so the HUD reads as one piece of kit. -->
+            <Button
+                android:id="@+id/menu_toggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:minWidth="56dp"
+                android:minHeight="44dp"
+                android:background="@drawable/diag_toggle_bg"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:text="≡"
+                android:textColor="@color/diag_toggle_text"
+                android:textSize="22sp"
+                android:contentDescription="Open navigation menu" />
+
+            <!-- Live status pill: pulsing dot + ONLINE label -->
+            <LinearLayout
+                android:id="@+id/system_status_group"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <View
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/status_dot" />
+
+                <TextView
+                    android:id="@+id/system_status"
+                    style="@style/HUDLabelAccent"
+                    android:text="ONLINE // 60FPS" />
+            </LinearLayout>
+
+            <!-- DIAG button. Hidden by default in 0.4e; only shown when the
+                 user has flipped "Pin DIAG to HUD" in the drawer.
+                 visibility is initialised from SharedPreferences in MainActivity. -->
+            <Button
+                android:id="@+id/diag_toggle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="64dp"
+                android:minHeight="44dp"
+                android:layout_toStartOf="@id/system_status_group"
+                android:layout_marginEnd="10dp"
+                android:layout_centerVertical="true"
+                android:background="@drawable/diag_toggle_bg"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="6dp"
+                android:text="DIAG"
+                android:textSize="11sp"
+                android:textColor="@color/diag_toggle_text"
+                android:letterSpacing="0.12"
+                android:fontFamily="sans-serif-medium"
+                android:textAllCaps="true"
+                android:visibility="gone"
+                android:contentDescription="Diagnostics off. Double tap to show overlay." />
+
+            <!-- Mode label with sub-eyebrow -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/HUDLabelSmall"
+                    android:layout_gravity="center_horizontal"
+                    android:text="MODE" />
+
+                <TextView
+                    android:id="@+id/mode_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:gravity="center_vertical"
+                    android:textSize="14sp"
+                    android:textColor="@color/auriga_cyan"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.08"
+                    android:textAllCaps="true"
+                    android:text="AurigaNavi // Navigation" />
+            </LinearLayout>
+        </RelativeLayout>
+
+        <!-- 4. CENTER HUD: RADAR SWEEP -->
+        <View
+            android:id="@+id/radar_sweep"
+            android:layout_width="220dp"
+            android:layout_height="220dp"
+            android:layout_centerInParent="true"
+            android:background="@drawable/radar_circle_anim" />
+
+        <!-- 5. LEFT HUD: DISTANCE READOUT -->
         <LinearLayout
-            android:id="@+id/system_status_group"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
+            style="@style/HUDGlassCard"
+            android:layout_alignParentLeft="true"
             android:layout_centerVertical="true"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <View
-                android:layout_width="10dp"
-                android:layout_height="10dp"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/status_dot" />
-
-            <TextView
-                android:id="@+id/system_status"
-                style="@style/HUDLabelAccent"
-                android:text="ONLINE // 60FPS" />
-        </LinearLayout>
-
-        <!--
-            Explicit diagnostic toggle. Replaces the earlier "long-press
-            the title" gesture which had no visual affordance and no
-            TalkBack discoverability. Rendered as a bordered pill with
-            min tap target 44x44 dp per WCAG 2.5.5; contentDescription
-            is updated in MainActivity.toggleDiagnosticOverlay so
-            screen readers announce the new state after each tap.
-        -->
-        <Button
-            android:id="@+id/diag_toggle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="64dp"
-            android:minHeight="44dp"
-            android:layout_toStartOf="@id/system_status_group"
-            android:layout_marginEnd="10dp"
-            android:layout_centerVertical="true"
-            android:background="@drawable/diag_toggle_bg"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:paddingTop="6dp"
-            android:paddingBottom="6dp"
-            android:text="DIAG"
-            android:textSize="11sp"
-            android:textColor="@color/diag_toggle_text"
-            android:letterSpacing="0.12"
-            android:fontFamily="sans-serif-medium"
-            android:textAllCaps="true"
-            android:contentDescription="Diagnostics off. Double tap to show overlay." />
-
-        <!-- Mode label with optional subtitle -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:layout_toStartOf="@id/diag_toggle"
-            android:layout_marginEnd="10dp"
-            android:layout_centerVertical="true"
-            android:orientation="vertical">
+            android:layout_marginStart="16dp">
 
             <TextView
                 style="@style/HUDLabelSmall"
-                android:text="MODE" />
+                android:text="Distance" />
 
             <TextView
-                android:id="@+id/mode_label"
+                android:id="@+id/distance_readout"
+                style="@style/HUDReadoutLarge"
+                android:layout_marginTop="2dp"
+                android:text="0.0m" />
+
+            <TextView
+                android:id="@+id/distance_unit"
+                style="@style/HUDLabelSmall"
+                android:layout_marginTop="-4dp"
+                android:text="meters · TruePath™" />
+        </LinearLayout>
+
+        <!-- 6. RIGHT HUD: BEARING READOUT -->
+        <LinearLayout
+            style="@style/HUDGlassCard"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="16dp"
+            android:gravity="end">
+
+            <TextView
+                style="@style/HUDLabelSmall"
+                android:layout_gravity="end"
+                android:text="Bearing" />
+
+            <TextView
+                android:id="@+id/bearing_readout"
+                style="@style/HUDReadoutLarge"
+                android:layout_gravity="end"
+                android:layout_marginTop="2dp"
+                android:text="0°" />
+
+            <TextView
+                android:id="@+id/bearing_unit"
+                style="@style/HUDLabelSmall"
+                android:layout_gravity="end"
+                android:layout_marginTop="-4dp"
+                android:text="azimuth · GhostAnchor™" />
+        </LinearLayout>
+
+        <!-- 7. BOTTOM HUD: SIGNATURE TAG + READ button -->
+        <RelativeLayout
+            android:id="@+id/bottom_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:background="@drawable/hud_bottom_bar_bg"
+            android:padding="20dp">
+
+            <Button
+                android:id="@+id/reader_launch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:minWidth="64dp"
+                android:minHeight="44dp"
+                android:background="@drawable/diag_toggle_bg"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:text="READ"
+                android:textSize="11sp"
+                android:textColor="@color/diag_toggle_text"
+                android:letterSpacing="0.12"
+                android:fontFamily="sans-serif-medium"
+                android:textAllCaps="true"
+                android:contentDescription="Launch DrakoVoice Reader. Reads printed text aloud using the camera." />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/HUDLabelSmall"
+                    android:layout_gravity="center_horizontal"
+                    android:text="Object Signature" />
+
+                <TextView
+                    android:id="@+id/object_signature"
+                    style="@style/HUDReadoutMedium"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="4dp"
+                    android:text="SCANNING..." />
+            </LinearLayout>
+
+        </RelativeLayout>
+
+        <!-- 9. DIAGNOSTIC OVERLAY (toggled from the hamburger drawer) -->
+        <TextView
+            android:id="@+id/diagnostic_overlay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/top_bar"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/hud_glass_card"
+            android:padding="10dp"
+            android:fontFamily="monospace"
+            android:textColor="#B2FFE6"
+            android:textSize="10sp"
+            android:text=""
+            android:visibility="gone"
+            android:contentDescription="Auriga diagnostic overlay" />
+
+        <!-- 8. ALERT HUD: SKYSHIELD™ OVERHANG BANNER -->
+        <TextView
+            android:id="@+id/alert_banner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/top_bar"
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/alert_banner_bg"
+            android:gravity="center"
+            android:padding="14dp"
+            android:text="⚠ OVERHANG DETECTED"
+            android:textColor="@color/hud_text"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08"
+            android:visibility="gone" />
+
+    </RelativeLayout>
+
+    <!-- ────────────────────────────────────────────────────────────────
+         DRAWER PANEL: hamburger navigation (0.4e)
+
+         Hand-rolled rather than using NavigationView so it inherits the
+         same Tron/Auriga aesthetic as the rest of the HUD without having
+         to override every Material default.
+    ──────────────────────────────────────────────────────────────── -->
+    <ScrollView
+        android:layout_width="280dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:background="@drawable/drawer_bg"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- Brand header -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:ellipsize="end"
-                android:singleLine="true"
-                android:gravity="center_vertical"
-                android:textSize="14sp"
-                android:textColor="@color/auriga_cyan"
-                android:fontFamily="sans-serif-medium"
-                android:letterSpacing="0.08"
-                android:textAllCaps="true"
-                android:text="AurigaNavi // Navigation" />
-        </LinearLayout>
-    </RelativeLayout>
+                android:orientation="vertical"
+                android:paddingTop="32dp"
+                android:paddingBottom="20dp">
 
-    <!-- 4. CENTER HUD: RADAR SWEEP -->
-    <View
-        android:id="@+id/radar_sweep"
-        android:layout_width="220dp"
-        android:layout_height="220dp"
-        android:layout_centerInParent="true"
-        android:background="@drawable/radar_circle_anim" />
+                <TextView
+                    style="@style/HUDLabelSmall"
+                    android:text="DrakoSanctis // Auriga" />
 
-    <!-- 5. LEFT HUD: DISTANCE READOUT (glass card) -->
-    <LinearLayout
-        style="@style/HUDGlassCard"
-        android:layout_alignParentLeft="true"
-        android:layout_centerVertical="true"
-        android:layout_marginStart="16dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="AurigaNavi"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/auriga_cyan"
+                    android:fontFamily="sans-serif-condensed"
+                    android:letterSpacing="0.08"
+                    android:shadowColor="@color/auriga_cyan"
+                    android:shadowDx="0"
+                    android:shadowDy="0"
+                    android:shadowRadius="14" />
 
-        <TextView
-            style="@style/HUDLabelSmall"
-            android:text="Distance" />
+                <TextView
+                    style="@style/HUDLabelSmall"
+                    android:layout_marginTop="2dp"
+                    android:text="See Beyond Sight" />
+            </LinearLayout>
 
-        <TextView
-            android:id="@+id/distance_readout"
-            style="@style/HUDReadoutLarge"
-            android:layout_marginTop="2dp"
-            android:text="0.0m" />
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginBottom="12dp"
+                android:background="@color/glass_stroke" />
 
-        <TextView
-            android:id="@+id/distance_unit"
-            style="@style/HUDLabelSmall"
-            android:layout_marginTop="-4dp"
-            android:text="meters · TruePath™" />
-    </LinearLayout>
-
-    <!-- 6. RIGHT HUD: BEARING READOUT (glass card) -->
-    <LinearLayout
-        style="@style/HUDGlassCard"
-        android:layout_alignParentRight="true"
-        android:layout_centerVertical="true"
-        android:layout_marginEnd="16dp"
-        android:gravity="end">
-
-        <TextView
-            style="@style/HUDLabelSmall"
-            android:layout_gravity="end"
-            android:text="Bearing" />
-
-        <TextView
-            android:id="@+id/bearing_readout"
-            style="@style/HUDReadoutLarge"
-            android:layout_gravity="end"
-            android:layout_marginTop="2dp"
-            android:text="0°" />
-
-        <TextView
-            android:id="@+id/bearing_unit"
-            style="@style/HUDLabelSmall"
-            android:layout_gravity="end"
-            android:layout_marginTop="-4dp"
-            android:text="azimuth · GhostAnchor™" />
-    </LinearLayout>
-
-    <!-- 7. BOTTOM HUD: SIGNATURE TAG -->
-    <RelativeLayout
-        android:id="@+id/bottom_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:background="@drawable/hud_bottom_bar_bg"
-        android:padding="20dp">
-
-        <!-- Reader launcher (OrCam-style text reading) -->
-        <Button
-            android:id="@+id/reader_launch"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
-            android:minWidth="64dp"
-            android:minHeight="44dp"
-            android:background="@drawable/diag_toggle_bg"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
-            android:text="READ"
-            android:textSize="11sp"
-            android:textColor="@color/diag_toggle_text"
-            android:letterSpacing="0.12"
-            android:fontFamily="sans-serif-medium"
-            android:textAllCaps="true"
-            android:contentDescription="Launch DrakoVoice Reader. Reads printed text aloud using the camera." />
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:gravity="center"
-            android:orientation="vertical">
-
+            <!-- Section: Navigate -->
             <TextView
                 style="@style/HUDLabelSmall"
-                android:layout_gravity="center_horizontal"
-                android:text="Object Signature" />
+                android:layout_marginBottom="6dp"
+                android:text="Navigate" />
 
+            <Button
+                android:id="@+id/nav_home"
+                style="@style/DrawerItem"
+                android:text="HUD"
+                android:contentDescription="Close drawer and return to the live HUD" />
+
+            <Button
+                android:id="@+id/nav_reader"
+                style="@style/DrawerItem"
+                android:text="DrakoVoice Reader"
+                android:contentDescription="Open the OrCam-style page reader" />
+
+            <Button
+                android:id="@+id/nav_about"
+                style="@style/DrawerItem"
+                android:text="About"
+                android:contentDescription="About AurigaNavi" />
+
+            <Button
+                android:id="@+id/nav_help"
+                style="@style/DrawerItem"
+                android:text="Help &amp; Tips"
+                android:contentDescription="How to use AurigaNavi" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="14dp"
+                android:layout_marginBottom="12dp"
+                android:background="@color/glass_stroke" />
+
+            <!-- Section: Diagnostics -->
             <TextView
-                android:id="@+id/object_signature"
-                style="@style/HUDReadoutMedium"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginTop="4dp"
-                android:text="SCANNING..." />
+                style="@style/HUDLabelSmall"
+                android:layout_marginBottom="6dp"
+                android:text="Diagnostics" />
+
+            <Button
+                android:id="@+id/nav_diag_toggle"
+                style="@style/DrawerItem"
+                android:text="Show Diagnostic Overlay"
+                android:contentDescription="Toggle the per-frame diagnostic overlay" />
+
+            <!-- Pin to HUD: when on, the inline DIAG button reappears in
+                 the top bar so power users can toggle without opening
+                 the drawer every frame. Persisted in SharedPreferences. -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Pin DIAG button to HUD"
+                    android:textColor="@color/hud_text"
+                    android:textSize="13sp" />
+
+                <Switch
+                    android:id="@+id/nav_pin_diag"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="Pin the DIAG toggle to the HUD top bar" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="14dp"
+                android:layout_marginBottom="12dp"
+                android:background="@color/glass_stroke" />
+
+            <!-- Footer: build / version stamp -->
+            <TextView
+                android:id="@+id/nav_version_stamp"
+                style="@style/HUDLabelSmall"
+                android:layout_marginBottom="20dp"
+                android:text="© DrakoSanctis · v1.0.0" />
+
         </LinearLayout>
+    </ScrollView>
 
-    </RelativeLayout>
-
-    <!--
-        9. DIAGNOSTIC OVERLAY (tap the DIAG button in the top bar to toggle).
-        Kept gone by default so the HUD stays clean for end users;
-        devs running the jitter-diagnosis pass see raw LUT rows, pitch
-        radians, GhostAnchor shift magnitude, detection confidence,
-        sanity score, active bitmap size, and whether a trained
-        profile is loaded. Monospace so values line up frame to frame
-        and the eye picks out which column is flickering.
-    -->
-    <TextView
-        android:id="@+id/diagnostic_overlay"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/top_bar"
-        android:layout_alignParentEnd="true"
-        android:layout_marginTop="12dp"
-        android:layout_marginEnd="16dp"
-        android:background="@drawable/hud_glass_card"
-        android:padding="10dp"
-        android:fontFamily="monospace"
-        android:textColor="#B2FFE6"
-        android:textSize="10sp"
-        android:text=""
-        android:visibility="gone"
-        android:contentDescription="Auriga diagnostic overlay" />
-
-    <!-- 8. ALERT HUD: SKYSHIELD™ OVERHANG BANNER -->
-    <TextView
-        android:id="@+id/alert_banner"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/top_bar"
-        android:layout_marginTop="12dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:background="@drawable/alert_banner_bg"
-        android:gravity="center"
-        android:padding="14dp"
-        android:text="⚠ OVERHANG DETECTED"
-        android:textColor="@color/hud_text"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.08"
-        android:visibility="gone" />
-
-</RelativeLayout>
+</androidx.drawerlayout.widget.DrawerLayout>

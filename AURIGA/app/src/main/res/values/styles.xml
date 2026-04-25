@@ -62,4 +62,63 @@
         <item name="android:padding">16dp</item>
         <item name="android:orientation">vertical</item>
     </style>
+
+    <!-- Hamburger drawer row: full-width pill button with glass background. -->
+    <style name="DrawerItem">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">6dp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:gravity">start|center_vertical</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:background">@drawable/drawer_item_bg</item>
+        <item name="android:textColor">@color/drawer_item_text</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:letterSpacing">0.04</item>
+    </style>
+
+    <!-- Document/page surface for About + Help. Same indigo background as
+         the HUD so the activities feel like extensions of the app, not
+         system-default white sheets. -->
+    <style name="AurigaDocTheme" parent="android:Theme.NoTitleBar.Fullscreen">
+        <item name="android:windowBackground">@color/deep_space</item>
+        <item name="android:textColor">@color/hud_text</item>
+    </style>
+
+    <style name="DocH1">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">28sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/auriga_cyan</item>
+        <item name="android:fontFamily">sans-serif-condensed</item>
+        <item name="android:letterSpacing">0.06</item>
+        <item name="android:shadowColor">@color/auriga_cyan</item>
+        <item name="android:shadowDx">0</item>
+        <item name="android:shadowDy">0</item>
+        <item name="android:shadowRadius">14</item>
+    </style>
+
+    <style name="DocH2">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">20dp</item>
+        <item name="android:layout_marginBottom">6dp</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/auriga_cyan</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:letterSpacing">0.18</item>
+    </style>
+
+    <style name="DocBody">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/hud_text</item>
+        <item name="android:lineSpacingMultiplier">1.35</item>
+    </style>
 </resources>

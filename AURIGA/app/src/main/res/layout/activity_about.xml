@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/deep_space">
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/hud_grid_overlay" />
+
+    <RelativeLayout
+        android:id="@+id/about_top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/hud_top_bar_bg"
+        android:padding="20dp">
+
+        <Button
+            android:id="@+id/about_back"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:minWidth="56dp"
+            android:minHeight="44dp"
+            android:background="@drawable/diag_toggle_bg"
+            android:text="←"
+            android:textColor="@color/diag_toggle_text"
+            android:textSize="18sp"
+            android:contentDescription="Back to HUD" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:textSize="14sp"
+            android:textColor="@color/auriga_cyan"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.12"
+            android:textAllCaps="true"
+            android:text="About" />
+    </RelativeLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/about_top_bar"
+        android:fillViewport="true"
+        android:padding="22dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/HUDLabelSmall"
+                android:text="DrakoSanctis // Auriga" />
+
+            <TextView
+                style="@style/DocH1"
+                android:layout_marginTop="2dp"
+                android:text="AurigaNavi" />
+
+            <TextView
+                style="@style/HUDLabelSmall"
+                android:layout_marginTop="2dp"
+                android:text="Universal Spatial Intelligence" />
+
+            <TextView
+                style="@style/DocH2"
+                android:text="What it does" />
+
+            <TextView
+                style="@style/DocBody"
+                android:text="AurigaNavi turns your phone camera into a real-time spatial-intelligence engine. It estimates distance and bearing to objects, walls and overhangs around you, then surfaces that information through a heads-up display, voice prompts and haptics — fully on-device, fully offline." />
+
+            <TextView
+                style="@style/DocH2"
+                android:text="Core technology" />
+
+            <TextView
+                style="@style/DocBody"
+                android:text="• TruePath™ — dual-estimator distance from object width and image row, sanity-gated for sub-20 cm accuracy on calibrated devices.\n• GhostAnchor™ — frame-to-frame bearing stabilisation that cancels handheld jitter using the inertial sensor stack.\n• SkyShield™ — overhang detection that warns when an obstacle enters the head-strike zone above the camera.\n• DrakoVoice™ — accessible audio output, including the OrCam-style printed-page reader." />
+
+            <TextView
+                style="@style/DocH2"
+                android:text="Privacy" />
+
+            <TextView
+                style="@style/DocBody"
+                android:text="Frames never leave the device. Calibration profiles are bundled with the APK. License checks are signed locally; no telemetry is sent anywhere." />
+
+            <TextView
+                style="@style/DocH2"
+                android:text="Build" />
+
+            <TextView
+                android:id="@+id/about_build_stamp"
+                style="@style/DocBody"
+                android:layout_marginBottom="32dp"
+                android:fontFamily="monospace"
+                android:text="" />
+
+        </LinearLayout>
+    </ScrollView>
+
+</RelativeLayout>

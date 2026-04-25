@@ -1,18 +1,23 @@
 package com.drakosanctis.auriga;
 
 import android.app.Activity;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.Manifest;
+
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -72,6 +77,15 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     private TextView diagnosticOverlay;
     private Button diagToggle;
     private View radarView;
+
+    // Hamburger drawer (0.4e). drawerLayout wraps the entire HUD so the side
+    // panel slides in over the live camera; pinDiagToHud + the corresponding
+    // SharedPreferences flag control whether the inline DIAG pill in the top
+    // bar is shown alongside the drawer entry.
+    private DrawerLayout drawerLayout;
+    private boolean pinDiagToHud = false;
+    private static final String PREFS_NAME = "auriga_prefs";
+    private static final String PREF_PIN_DIAG = "pin_diag_to_hud";
 
     // Diagnostic overlay state. Toggled by tapping the DIAG button in
     // the HUD top bar (explicit affordance; replaces the earlier
@@ -240,6 +254,15 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         radarView = findViewById(R.id.radar_sweep);
         diagnosticOverlay = findViewById(R.id.diagnostic_overlay);
         diagToggle = findViewById(R.id.diag_toggle);
+        drawerLayout = findViewById(R.id.drawer_layout);
+
+        // Restore the user's "pin DIAG to HUD" preference so the toggle
+        // state survives an app restart. Default is false (DIAG lives in
+        // the drawer only) which keeps the HUD chrome minimal for new
+        // users; power users can opt back into the inline button.
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        pinDiagToHud = prefs.getBoolean(PREF_PIN_DIAG, false);
+        applyDiagPinVisibility();
 
         // Explicit DIAG button replaces the earlier long-press-on-title
         // gesture, which had no visual affordance and no TalkBack hit
@@ -254,18 +277,141 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         // uses on-device ML Kit text recognition + TextToSpeech to read
         // printed pages aloud. Wired here (not in ReaderActivity) so the
         // HUD button stays consistent with the DIAG affordance.
-        android.widget.Button readerBtn = findViewById(R.id.reader_launch);
+        Button readerBtn = findViewById(R.id.reader_launch);
         if (readerBtn != null) {
-            readerBtn.setOnClickListener(v -> {
-                try {
-                    startActivity(new android.content.Intent(this, ReaderActivity.class));
-                } catch (Throwable t) {
-                    Toast.makeText(this,
-                            "Reader unavailable: " + t.getMessage(),
-                            Toast.LENGTH_LONG).show();
+            readerBtn.setOnClickListener(v -> launchReader());
+        }
+
+        wireDrawer(prefs);
+    }
+
+    /**
+     * Wire the hamburger drawer (0.4e): the ≡ pill in the top bar opens
+     * it, every drawer row either navigates or toggles state, and the
+     * "Pin DIAG to HUD" Switch persists into SharedPreferences so the
+     * choice survives app restarts.
+     */
+    private void wireDrawer(SharedPreferences prefs) {
+        Button menuBtn = findViewById(R.id.menu_toggle);
+        if (menuBtn != null && drawerLayout != null) {
+            menuBtn.setOnClickListener(v -> {
+                if (drawerLayout.isDrawerOpen(Gravity.START)) {
+                    drawerLayout.closeDrawer(Gravity.START);
+                } else {
+                    drawerLayout.openDrawer(Gravity.START);
                 }
             });
         }
+
+        Button navHome = findViewById(R.id.nav_home);
+        if (navHome != null) {
+            navHome.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
+            });
+        }
+
+        Button navReader = findViewById(R.id.nav_reader);
+        if (navReader != null) {
+            navReader.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
+                launchReader();
+            });
+        }
+
+        Button navAbout = findViewById(R.id.nav_about);
+        if (navAbout != null) {
+            navAbout.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
+                safeStart(AboutActivity.class, "About");
+            });
+        }
+
+        Button navHelp = findViewById(R.id.nav_help);
+        if (navHelp != null) {
+            navHelp.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
+                safeStart(HelpActivity.class, "Help");
+            });
+        }
+
+        Button navDiag = findViewById(R.id.nav_diag_toggle);
+        if (navDiag != null) {
+            // Reflect current state on first show so the row label matches
+            // whatever DIAG state we restored at startup.
+            navDiag.setText(diagnosticVisible
+                    ? "Hide Diagnostic Overlay"
+                    : "Show Diagnostic Overlay");
+            navDiag.setActivated(diagnosticVisible);
+            navDiag.setOnClickListener(v -> {
+                toggleDiagnosticOverlay();
+                navDiag.setText(diagnosticVisible
+                        ? "Hide Diagnostic Overlay"
+                        : "Show Diagnostic Overlay");
+                navDiag.setActivated(diagnosticVisible);
+            });
+        }
+
+        Switch pinSwitch = findViewById(R.id.nav_pin_diag);
+        if (pinSwitch != null) {
+            pinSwitch.setChecked(pinDiagToHud);
+            pinSwitch.setOnCheckedChangeListener((btn, checked) -> {
+                pinDiagToHud = checked;
+                prefs.edit().putBoolean(PREF_PIN_DIAG, checked).apply();
+                applyDiagPinVisibility();
+            });
+        }
+
+        TextView versionStamp = findViewById(R.id.nav_version_stamp);
+        if (versionStamp != null) {
+            try {
+                android.content.pm.PackageInfo info =
+                        getPackageManager().getPackageInfo(getPackageName(), 0);
+                versionStamp.setText("© DrakoSanctis · v" + info.versionName);
+            } catch (Throwable ignored) {
+                // Keep the layout's default text if PackageManager misbehaves.
+            }
+        }
+    }
+
+    /** Show/hide the inline DIAG pill in the top bar based on user preference. */
+    private void applyDiagPinVisibility() {
+        if (diagToggle != null) {
+            diagToggle.setVisibility(pinDiagToHud ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    /** Launch the OrCam-style reader, surfacing failures as a Toast. */
+    private void launchReader() {
+        try {
+            startActivity(new android.content.Intent(this, ReaderActivity.class));
+        } catch (Throwable t) {
+            Toast.makeText(this,
+                    "Reader unavailable: " + t.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void safeStart(Class<?> target, String label) {
+        try {
+            startActivity(new android.content.Intent(this, target));
+        } catch (Throwable t) {
+            Toast.makeText(this,
+                    label + " unavailable: " + t.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /**
+     * Close the drawer on Back rather than exiting the HUD when it's open,
+     * matching standard Material drawer behaviour.
+     */
+    @Override
+    public void onBackPressed() {
+        if (drawerLayout != null && drawerLayout.isDrawerOpen(Gravity.START)) {
+            drawerLayout.closeDrawer(Gravity.START);
+            return;
+        }
+        super.onBackPressed();
     }
 
     /**

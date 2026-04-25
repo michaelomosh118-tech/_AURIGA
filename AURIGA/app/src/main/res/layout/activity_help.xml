@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/deep_space">
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/hud_grid_overlay" />
+
+    <RelativeLayout
+        android:id="@+id/help_top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/hud_top_bar_bg"
+        android:padding="20dp">
+
+        <Button
+            android:id="@+id/help_back"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:minWidth="56dp"
+            android:minHeight="44dp"
+            android:background="@drawable/diag_toggle_bg"
+            android:text="←"
+            android:textColor="@color/diag_toggle_text"
+            android:textSize="18sp"
+            android:contentDescription="Back to HUD" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:textSize="14sp"
+            android:textColor="@color/auriga_cyan"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.12"
+            android:textAllCaps="true"
+            android:text="Help &amp; Tips" />
+    </RelativeLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/help_top_bar"
+        android:fillViewport="true"
+        android:padding="22dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/DocH1"
+                android:text="How to use" />
+
+            <TextView
+                style="@style/DocH2"
+                android:text="1 · Frame the scene" />
+
+            <TextView
+                style="@style/DocBody"
+                android:text="Hold the phone vertically at chest height, camera pointed at what you want to measure. The cyan reticle in the centre shows where the spatial engine is looking." />
+
+            <TextView
+                style="@style/DocH2"
+                android:text="2 · Read the HUD" />
+
+            <TextView
+                style="@style/DocBody"
+                android:text="Distance is shown on the left, bearing on the right. The bottom strip names the recognised object signature. A red banner across the top means an overhang is in your head-strike zone — duck or step back." />
+
+            <TextView
+                style="@style/DocH2"
+                android:text="3 · Use the Reader" />
+
+            <TextView
+                style="@style/DocBody"
+                android:text="Tap READ in the bottom-left to launch DrakoVoice Reader. Point the camera at any printed text, tap the cyan capture button, and AurigaNavi will read it aloud. Switch on AUTO to keep reading new pages every few seconds without tapping." />
+
+            <TextView
+                style="@style/DocH2"
+                android:text="4 · Diagnostics" />
+
+            <TextView
+                style="@style/DocBody"
+                android:text="Open the menu (≡) and tap Show Diagnostic Overlay to see per-frame metrics. If you use diagnostics often, switch on Pin DIAG button to HUD so the toggle stays visible in the top bar." />
+
+            <TextView
+                style="@style/DocH2"
+                android:text="5 · Accessibility" />
+
+            <TextView
+                style="@style/DocBody"
+                android:layout_marginBottom="32dp"
+                android:text="All HUD buttons meet the 44 dp tap-target minimum and announce their state through TalkBack. DrakoVoice can speak distance, bearing and any captured text using the device's preferred system voice." />
+
+        </LinearLayout>
+    </ScrollView>
+
+</RelativeLayout>

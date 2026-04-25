@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Side-drawer background. Layered radial glow + flat indigo + cyan
+    right-edge stroke so the panel reads as a piece of HUD chrome
+    instead of a generic Material drawer.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/deep_space" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="700"
+                android:centerX="0.0"
+                android:centerY="0.0"
+                android:startColor="@color/cobalt_glow_25"
+                android:endColor="@android:color/transparent" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="500"
+                android:centerX="1.0"
+                android:centerY="1.0"
+                android:startColor="@color/cyan_glow_15"
+                android:endColor="@android:color/transparent" />
+        </shape>
+    </item>
+    <!-- Right-edge accent line -->
+    <item android:left="278dp" android:width="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/auriga_cyan" />
+        </shape>
+    </item>
+</layer-list>

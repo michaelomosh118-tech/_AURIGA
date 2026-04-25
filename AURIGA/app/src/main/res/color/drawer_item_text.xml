@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Pairs with drawer_item_bg.xml: when a row is activated (filled cyan),
+    the label flips to deep space so it stays legible.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_activated="true" android:color="@color/space_black" />
+    <item android:color="@color/hud_text" />
+</selector>
