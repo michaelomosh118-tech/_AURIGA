@@ -77,15 +77,6 @@ jobs:
           fi
           echo "project_root=$PROJECT_ROOT" >> "$GITHUB_OUTPUT"
 
-      - name: Strip stray local.properties (force ANDROID_HOME)
-        working-directory: ${{ steps.locate.outputs.project_root }}
-        run: |
-          # local.properties is gitignored but a stale copy committed by
-          # mistake will make Gradle read a `sdk.dir=C:\...` Windows path
-          # and never fall back to $ANDROID_HOME on Linux runners. Always
-          # nuke it on CI as a hard guarantee.
-          rm -f local.properties
-
       - name: Decode release keystore (if provided)
         id: keystore
         env:
