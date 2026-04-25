@@ -52,6 +52,15 @@ jobs:
         echo "gradle_task=assemble${FLAVOR_CAP}${BUILD_TYPE_CAP}" >> "$GITHUB_OUTPUT"
         echo "apk_subdir=${FLAVOR}/${BUILD_TYPE}" >> "$GITHUB_OUTPUT"
 
+    - name: Strip stray local.properties (force ANDROID_HOME)
+      working-directory: ${{ steps.locate.outputs.project_root }}
+      run: |
+        # local.properties is gitignored, but if a stale copy is ever
+        # committed (it has happened) Gradle will read its Windows
+        # `sdk.dir=C:\...` and fail before ever falling back to
+        # $ANDROID_HOME. Delete it on every CI run as a hard guarantee.
+        rm -f local.properties
+
     - name: Build ${{ matrix.flavor }} ${{ matrix.buildType }} APK
       working-directory: ${{ steps.locate.outputs.project_root }}
       run: |
