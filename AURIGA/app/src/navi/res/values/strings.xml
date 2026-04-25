@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    AurigaNavi flavor string overrides.
+    Only values that differ from src/main/res/values/strings.xml are listed here.
+-->
+<resources>
+    <!-- Top bar mode pill -->
+    <string name="hud_mode_label">AurigaNavi // Navigation</string>
+
+    <!-- Drawer header -->
+    <string name="drawer_brand_name">AURIGA NAVI</string>
+    <string name="drawer_tagline">Spatial Navigation · Accessibility</string>
+
+    <!-- Drawer status strip -->
+    <string name="drawer_engine_label">TruePath™ + SkyShield™</string>
+    <string name="drawer_sys_status_text">OPERATIONAL</string>
+
+    <!-- SDK row — navi flavour messaging -->
+    <string name="drawer_contribute_sdk_sub">Assistive tech, white-label &amp; OEM licensing</string>
+</resources>

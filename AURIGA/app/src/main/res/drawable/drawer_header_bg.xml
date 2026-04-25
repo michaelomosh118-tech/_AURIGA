@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Drawer header: deep indigo gradient with cyan bottom edge glow -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:startColor="#FF0B1230"
+                android:endColor="#FF05060A"
+                android:angle="270" />
+        </shape>
+    </item>
+    <!-- Bottom glow strip -->
+    <item android:gravity="bottom">
+        <shape android:shape="rectangle">
+            <solid android:color="#3300F0FF" />
+            <size android:height="2dp" />
+        </shape>
+    </item>
+</layer-list>

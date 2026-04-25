@@ -262,12 +262,11 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         diagToggle = findViewById(R.id.diag_toggle);
         drawerLayout = findViewById(R.id.drawer_layout);
 
-        // Restore the user's "pin DIAG to HUD" preference so the toggle
-        // state survives an app restart. Default is false (DIAG lives in
-        // the drawer only) which keeps the HUD chrome minimal for new
-        // users; power users can opt back into the inline button.
+        // Restore the user's "pin DIAG to HUD" preference. Default is now
+        // true so the DIAG button is visible in the top bar on first launch —
+        // power users can untick it from the drawer if they prefer a cleaner HUD.
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        pinDiagToHud = prefs.getBoolean(PREF_PIN_DIAG, false);
+        pinDiagToHud = prefs.getBoolean(PREF_PIN_DIAG, true);
         applyDiagPinVisibility();
 
         // Explicit DIAG button replaces the earlier long-press-on-title
@@ -292,12 +291,13 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     }
 
     /**
-     * Wire the hamburger drawer (0.4e): the ≡ pill in the top bar opens
-     * it, every drawer row either navigates or toggles state, and the
-     * "Pin DIAG to HUD" Switch persists into SharedPreferences so the
-     * choice survives app restarts.
+     * Wire the hamburger drawer (v0.5): the ≡ pill opens it, every
+     * drawer row (now LinearLayouts for dual-line design) navigates or
+     * toggles state. Colour-coded sections: Navigate / Setup / Diagnostics
+     * / Support / Contribute.
      */
     private void wireDrawer(SharedPreferences prefs) {
+        // Hamburger toggle pill
         Button menuBtn = findViewById(R.id.menu_toggle);
         if (menuBtn != null && drawerLayout != null) {
             menuBtn.setOnClickListener(v -> {
@@ -309,29 +309,28 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             });
         }
 
-        // Refresh the calibration-walk gate hint every time the drawer
-        // opens. Required because users might finish the walk and come
-        // straight back here — without this, the amber "complete the
-        // walk first" warning would still be shown until next launch.
+        // Refresh gate UI + live status strip every open
         if (drawerLayout != null) {
             drawerLayout.addDrawerListener(new androidx.drawerlayout.widget.DrawerLayout.SimpleDrawerListener() {
                 @Override
                 public void onDrawerOpened(View drawerView) {
                     refreshFeedbackGateUi(
-                            findViewById(R.id.nav_feedback),
-                            findViewById(R.id.nav_feedback_hint));
+                            (View) findViewById(R.id.nav_feedback),
+                            (TextView) findViewById(R.id.nav_feedback_hint));
+                    refreshDrawerStatusStrip();
                 }
             });
         }
 
-        Button navHome = findViewById(R.id.nav_home);
+        // ── NAVIGATE ──────────────────────────────────────────────────
+        View navHome = findViewById(R.id.nav_home);
         if (navHome != null) {
             navHome.setOnClickListener(v -> {
                 if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
             });
         }
 
-        Button navReader = findViewById(R.id.nav_reader);
+        View navReader = findViewById(R.id.nav_reader);
         if (navReader != null) {
             navReader.setOnClickListener(v -> {
                 if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
@@ -339,7 +338,7 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             });
         }
 
-        Button navAbout = findViewById(R.id.nav_about);
+        View navAbout = findViewById(R.id.nav_about);
         if (navAbout != null) {
             navAbout.setOnClickListener(v -> {
                 if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
@@ -347,28 +346,33 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             });
         }
 
-        Button navHelp = findViewById(R.id.nav_help);
-        if (navHelp != null) {
-            navHelp.setOnClickListener(v -> {
+        // ── SETUP ─────────────────────────────────────────────────────
+        View navCalibrate = findViewById(R.id.nav_calibrate);
+        if (navCalibrate != null) {
+            navCalibrate.setOnClickListener(v -> {
                 if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
-                safeStart(HelpActivity.class, "Help");
+                safeStart(CalibrationWalkActivity.class, "Calibration walk");
             });
         }
 
-        Button navDiag = findViewById(R.id.nav_diag_toggle);
-        if (navDiag != null) {
-            // Reflect current state on first show so the row label matches
-            // whatever DIAG state we restored at startup.
-            navDiag.setText(diagnosticVisible
-                    ? "Hide Diagnostic Overlay"
-                    : "Show Diagnostic Overlay");
-            navDiag.setActivated(diagnosticVisible);
-            navDiag.setOnClickListener(v -> {
+        View navFeedback = findViewById(R.id.nav_feedback);
+        TextView feedbackHint = findViewById(R.id.nav_feedback_hint);
+        if (navFeedback != null) {
+            navFeedback.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
+                launchFeedback();
+            });
+        }
+        refreshFeedbackGateUi(navFeedback, feedbackHint);
+
+        // ── DIAGNOSTICS ───────────────────────────────────────────────
+        View navDiagRow = findViewById(R.id.nav_diag_toggle);
+        TextView navDiagLabel = findViewById(R.id.nav_diag_label);
+        if (navDiagRow != null) {
+            updateDiagLabel(navDiagLabel);
+            navDiagRow.setOnClickListener(v -> {
                 toggleDiagnosticOverlay();
-                navDiag.setText(diagnosticVisible
-                        ? "Hide Diagnostic Overlay"
-                        : "Show Diagnostic Overlay");
-                navDiag.setActivated(diagnosticVisible);
+                updateDiagLabel(navDiagLabel);
             });
         }
 
@@ -382,37 +386,71 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             });
         }
 
+        // ── SUPPORT ───────────────────────────────────────────────────
+        View navHelp = findViewById(R.id.nav_help);
+        if (navHelp != null) {
+            navHelp.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
+                safeStart(HelpActivity.class, "Help");
+            });
+        }
+
+        View navSupport = findViewById(R.id.nav_support);
+        if (navSupport != null) {
+            navSupport.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
+                safeStart(SupportActivity.class, "Support");
+            });
+        }
+
+        // ── CONTRIBUTE ────────────────────────────────────────────────
+        View navContributeCalibration = findViewById(R.id.nav_contribute_calibration);
+        if (navContributeCalibration != null) {
+            navContributeCalibration.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
+                safeStart(ContributeActivity.class, "Contribute");
+            });
+        }
+
+        View navContributeSdk = findViewById(R.id.nav_contribute_sdk);
+        if (navContributeSdk != null) {
+            navContributeSdk.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
+                safeStart(ContributeActivity.class, "Contribute");
+            });
+        }
+
+        // ── VERSION STAMP ─────────────────────────────────────────────
         TextView versionStamp = findViewById(R.id.nav_version_stamp);
         if (versionStamp != null) {
             try {
                 android.content.pm.PackageInfo info =
                         getPackageManager().getPackageInfo(getPackageName(), 0);
                 versionStamp.setText("© DrakoSanctis · v" + info.versionName);
-            } catch (Throwable ignored) {
-                // Keep the layout's default text if PackageManager misbehaves.
-            }
+            } catch (Throwable ignored) {}
         }
 
-        // ── Setup section ─────────────────────────────────────────────
-        Button navCalibrate = findViewById(R.id.nav_calibrate);
-        if (navCalibrate != null) {
-            navCalibrate.setOnClickListener(v -> {
-                if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
-                safeStart(CalibrationWalkActivity.class, "Calibration walk");
-            });
-        }
+        // Populate the header status strip on first wire-up
+        refreshDrawerStatusStrip();
+    }
 
-        Button navFeedback = findViewById(R.id.nav_feedback);
-        TextView feedbackHint = findViewById(R.id.nav_feedback_hint);
-        if (navFeedback != null) {
-            navFeedback.setOnClickListener(v -> {
-                if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
-                launchFeedback();
-            });
+    /** Update the diagnostic overlay row label to match current visibility. */
+    private void updateDiagLabel(TextView label) {
+        if (label == null) return;
+        label.setText(diagnosticVisible
+                ? "◉  Hide Diagnostic Overlay"
+                : "◎  Show Diagnostic Overlay");
+    }
+
+    /**
+     * Refresh the live status strip in the drawer header with the active
+     * engine profile label and system state.
+     */
+    private void refreshDrawerStatusStrip() {
+        TextView profileStatus = findViewById(R.id.drawer_profile_status);
+        if (profileStatus != null) {
+            profileStatus.setText(currentProfileLabel());
         }
-        // Drawer is recreated on every open in spirit (we don't tear it
-        // down) so refresh the gate hint each time we wire it up.
-        refreshFeedbackGateUi(navFeedback, feedbackHint);
     }
 
     /**
@@ -422,12 +460,12 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
      * gated Feedback row launches the walk so the user has a clear
      * forward path instead of just being blocked.
      */
-    private void refreshFeedbackGateUi(Button feedbackBtn, TextView hint) {
+    private void refreshFeedbackGateUi(View feedbackRow, TextView hint) {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         boolean walkDone = prefs.getBoolean(
                 CalibrationWalkActivity.PREF_WALK_DONE, false);
         if (hint != null) hint.setVisibility(walkDone ? View.GONE : View.VISIBLE);
-        if (feedbackBtn != null) feedbackBtn.setAlpha(walkDone ? 1f : 0.55f);
+        if (feedbackRow != null) feedbackRow.setAlpha(walkDone ? 1f : 0.55f);
     }
 
     private void launchFeedback() {

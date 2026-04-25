@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Root is now a DrawerLayout so the new hamburger menu (0.4e) can slide in
-    from the start edge over the live HUD. The original RelativeLayout HUD is
-    preserved verbatim as the first child (the "main content"); the drawer
-    panel is the second child with layout_gravity="start".
+    Root is a DrawerLayout so the hamburger menu slides in from the start
+    edge over the live HUD. Drawer panel completely redesigned in v0.5:
+    dual-line items, colour-coded sections, glow headers, status console.
 -->
 <androidx.drawerlayout.widget.DrawerLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -13,9 +12,9 @@
     android:layout_height="match_parent"
     android:fitsSystemWindows="false">
 
-    <!-- ────────────────────────────────────────────────────────────────
-         MAIN CONTENT: the AurigaNavi HUD
-    ──────────────────────────────────────────────────────────────── -->
+    <!-- ──────────────────────────────────────────────────────────────
+         MAIN CONTENT: AurigaNavi HUD
+    ────────────────────────────────────────────────────────────── -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -44,8 +43,7 @@
             android:paddingTop="20dp"
             android:paddingBottom="20dp">
 
-            <!-- Hamburger menu button (0.4e). Uses the same pill chrome as
-                 the DIAG/READ buttons so the HUD reads as one piece of kit. -->
+            <!-- Hamburger pill -->
             <Button
                 android:id="@+id/menu_toggle"
                 android:layout_width="wrap_content"
@@ -62,7 +60,7 @@
                 android:textSize="22sp"
                 android:contentDescription="Open navigation menu" />
 
-            <!-- Live status pill: pulsing dot + ONLINE label -->
+            <!-- Live status pill -->
             <LinearLayout
                 android:id="@+id/system_status_group"
                 android:layout_width="wrap_content"
@@ -84,9 +82,7 @@
                     android:text="ONLINE // 60FPS" />
             </LinearLayout>
 
-            <!-- DIAG button. Hidden by default in 0.4e; only shown when the
-                 user has flipped "Pin DIAG to HUD" in the drawer.
-                 visibility is initialised from SharedPreferences in MainActivity. -->
+            <!-- DIAG inline pill (hidden unless pinned) -->
             <Button
                 android:id="@+id/diag_toggle"
                 android:layout_width="wrap_content"
@@ -110,7 +106,7 @@
                 android:visibility="gone"
                 android:contentDescription="Diagnostics off. Double tap to show overlay." />
 
-            <!-- Mode label with sub-eyebrow -->
+            <!-- Mode pill: centre -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -136,11 +132,11 @@
                     android:fontFamily="sans-serif-medium"
                     android:letterSpacing="0.08"
                     android:textAllCaps="true"
-                    android:text="AurigaNavi // Navigation" />
+                    android:text="@string/hud_mode_label" />
             </LinearLayout>
         </RelativeLayout>
 
-        <!-- 4. CENTER HUD: RADAR SWEEP -->
+        <!-- 4. RADAR SWEEP -->
         <View
             android:id="@+id/radar_sweep"
             android:layout_width="220dp"
@@ -148,7 +144,7 @@
             android:layout_centerInParent="true"
             android:background="@drawable/radar_circle_anim" />
 
-        <!-- 5. LEFT HUD: DISTANCE READOUT -->
+        <!-- 5. DISTANCE READOUT (left) -->
         <LinearLayout
             style="@style/HUDGlassCard"
             android:layout_alignParentLeft="true"
@@ -172,7 +168,7 @@
                 android:text="meters · TruePath™" />
         </LinearLayout>
 
-        <!-- 6. RIGHT HUD: BEARING READOUT -->
+        <!-- 6. BEARING READOUT (right) -->
         <LinearLayout
             style="@style/HUDGlassCard"
             android:layout_alignParentRight="true"
@@ -200,7 +196,7 @@
                 android:text="azimuth · GhostAnchor™" />
         </LinearLayout>
 
-        <!-- 7. BOTTOM HUD: SIGNATURE TAG + READ button -->
+        <!-- 7. BOTTOM HUD: SIGNATURE + READ BUTTON -->
         <RelativeLayout
             android:id="@+id/bottom_bar"
             android:layout_width="match_parent"
@@ -226,7 +222,7 @@
                 android:letterSpacing="0.12"
                 android:fontFamily="sans-serif-medium"
                 android:textAllCaps="true"
-                android:contentDescription="Launch DrakoVoice Reader. Reads printed text aloud using the camera." />
+                android:contentDescription="Launch DrakoVoice Reader" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -250,7 +246,7 @@
 
         </RelativeLayout>
 
-        <!-- 9. DIAGNOSTIC OVERLAY (toggled from the hamburger drawer) -->
+        <!-- 8. DIAGNOSTIC OVERLAY -->
         <TextView
             android:id="@+id/diagnostic_overlay"
             android:layout_width="wrap_content"
@@ -268,7 +264,7 @@
             android:visibility="gone"
             android:contentDescription="Auriga diagnostic overlay" />
 
-        <!-- 8. ALERT HUD: SKYSHIELD™ OVERHANG BANNER -->
+        <!-- 9. SKYSHIELD™ ALERT BANNER -->
         <TextView
             android:id="@+id/alert_banner"
             android:layout_width="match_parent"
@@ -289,15 +285,13 @@
 
     </RelativeLayout>
 
-    <!-- ────────────────────────────────────────────────────────────────
-         DRAWER PANEL: hamburger navigation (0.4e)
-
-         Hand-rolled rather than using NavigationView so it inherits the
-         same Tron/Auriga aesthetic as the rest of the HUD without having
-         to override every Material default.
-    ──────────────────────────────────────────────────────────────── -->
+    <!-- ──────────────────────────────────────────────────────────────
+         DRAWER PANEL v0.5 — Genius HUD Console Design
+         Colour-coded sections, dual-line items, glow dividers,
+         live status strip in the header.
+    ────────────────────────────────────────────────────────────── -->
     <ScrollView
-        android:layout_width="280dp"
+        android:layout_width="300dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:background="@drawable/drawer_bg"
@@ -306,170 +300,725 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="20dp">
+            android:orientation="vertical">
 
-            <!-- Brand header -->
+            <!-- ── HEADER: Brand + live system console ── -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingTop="32dp"
-                android:paddingBottom="20dp">
+                android:background="@drawable/drawer_header_bg"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
+                android:paddingTop="40dp"
+                android:paddingBottom="18dp">
 
                 <TextView
                     style="@style/HUDLabelSmall"
-                    android:text="DrakoSanctis // Auriga" />
+                    android:textColor="@color/muted_label"
+                    android:text="DrakoSanctis // Auriga Ecosystem" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="AurigaNavi"
-                    android:textSize="22sp"
+                    android:text="@string/drawer_brand_name"
+                    android:textSize="30sp"
                     android:textStyle="bold"
-                    android:textColor="@color/auriga_cyan"
+                    android:textColor="@color/flavor_accent"
                     android:fontFamily="sans-serif-condensed"
-                    android:letterSpacing="0.08"
-                    android:shadowColor="@color/auriga_cyan"
+                    android:letterSpacing="0.14"
+                    android:shadowColor="@color/flavor_accent"
                     android:shadowDx="0"
                     android:shadowDy="0"
-                    android:shadowRadius="14" />
+                    android:shadowRadius="18" />
 
                 <TextView
-                    style="@style/HUDLabelSmall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:text="See Beyond Sight" />
+                    android:text="@string/drawer_tagline"
+                    android:textSize="12sp"
+                    android:textColor="@color/muted_label"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="0.06" />
+
+                <!-- Live system status strip -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/hud_glass_card"
+                    android:padding="10dp"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <View
+                            android:layout_width="7dp"
+                            android:layout_height="7dp"
+                            android:layout_marginEnd="8dp"
+                            android:background="@drawable/status_dot" />
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="SYSTEM"
+                            android:textSize="10sp"
+                            android:textColor="@color/section_header_text"
+                            android:fontFamily="sans-serif-medium"
+                            android:letterSpacing="0.14"
+                            android:textAllCaps="true" />
+
+                        <TextView
+                            android:id="@+id/drawer_sys_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/drawer_sys_status_text"
+                            android:textSize="10sp"
+                            android:textColor="@color/status_online"
+                            android:fontFamily="monospace"
+                            android:letterSpacing="0.08" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="ENGINE"
+                            android:textSize="10sp"
+                            android:textColor="@color/section_header_text"
+                            android:fontFamily="sans-serif-medium"
+                            android:letterSpacing="0.14"
+                            android:textAllCaps="true" />
+
+                        <TextView
+                            android:id="@+id/drawer_engine_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/drawer_engine_label"
+                            android:textSize="10sp"
+                            android:textColor="@color/flavor_accent"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="PROFILE"
+                            android:textSize="10sp"
+                            android:textColor="@color/section_header_text"
+                            android:fontFamily="sans-serif-medium"
+                            android:letterSpacing="0.14"
+                            android:textAllCaps="true" />
+
+                        <TextView
+                            android:id="@+id/drawer_profile_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="loading..."
+                            android:textSize="10sp"
+                            android:textColor="@color/muted_label"
+                            android:fontFamily="monospace" />
+                    </LinearLayout>
+                </LinearLayout>
             </LinearLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginBottom="12dp"
-                android:background="@color/glass_stroke" />
-
-            <!-- Section: Navigate -->
-            <TextView
-                style="@style/HUDLabelSmall"
-                android:layout_marginBottom="6dp"
-                android:text="Navigate" />
-
-            <Button
-                android:id="@+id/nav_home"
-                style="@style/DrawerItem"
-                android:text="HUD"
-                android:contentDescription="Close drawer and return to the live HUD" />
-
-            <Button
-                android:id="@+id/nav_reader"
-                style="@style/DrawerItem"
-                android:text="DrakoVoice Reader"
-                android:contentDescription="Open the OrCam-style page reader" />
-
-            <Button
-                android:id="@+id/nav_about"
-                style="@style/DrawerItem"
-                android:text="About"
-                android:contentDescription="About AurigaNavi" />
-
-            <Button
-                android:id="@+id/nav_help"
-                style="@style/DrawerItem"
-                android:text="Help &amp; Tips"
-                android:contentDescription="How to use AurigaNavi" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="14dp"
-                android:layout_marginBottom="12dp"
-                android:background="@color/glass_stroke" />
-
-            <!-- Section: Setup -->
-            <TextView
-                style="@style/HUDLabelSmall"
-                android:layout_marginBottom="6dp"
-                android:text="Setup" />
-
-            <Button
-                android:id="@+id/nav_calibrate"
-                style="@style/DrawerItem"
-                android:text="10-Point Calibration Walk"
-                android:contentDescription="Run the 10-point calibration walk to improve distance accuracy" />
-
-            <Button
-                android:id="@+id/nav_feedback"
-                style="@style/DrawerItem"
-                android:text="Send Feedback"
-                android:contentDescription="Send feedback to the DrakoSanctis team" />
-
-            <TextView
-                android:id="@+id/nav_feedback_hint"
-                style="@style/HUDLabelSmall"
-                android:layout_marginTop="6dp"
-                android:layout_marginStart="4dp"
-                android:textColor="@color/warning_amber"
-                android:visibility="gone"
-                android:text="Complete the calibration walk first" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="14dp"
-                android:layout_marginBottom="12dp"
-                android:background="@color/glass_stroke" />
-
-            <!-- Section: Diagnostics -->
-            <TextView
-                style="@style/HUDLabelSmall"
-                android:layout_marginBottom="6dp"
-                android:text="Diagnostics" />
-
-            <Button
-                android:id="@+id/nav_diag_toggle"
-                style="@style/DrawerItem"
-                android:text="Show Diagnostic Overlay"
-                android:contentDescription="Toggle the per-frame diagnostic overlay" />
-
-            <!-- Pin to HUD: when on, the inline DIAG button reappears in
-                 the top bar so power users can toggle without opening
-                 the drawer every frame. Persisted in SharedPreferences. -->
+            <!-- padding container for all rows below header -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:orientation="vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="24dp">
+
+                <!-- ── SECTION: NAVIGATE ── -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="18dp"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_section_navigate"
+                        android:textSize="10sp"
+                        android:textColor="@color/flavor_accent"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.22"
+                        android:textAllCaps="true"
+                        android:shadowColor="@color/flavor_accent"
+                        android:shadowRadius="6"
+                        android:shadowDx="0"
+                        android:shadowDy="0" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/drawer_section_divider" />
+                </LinearLayout>
+
+                <!-- HUD row -->
+                <LinearLayout
+                    android:id="@+id/nav_home"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/drawer_item_bg"
+                    android:orientation="vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Close drawer and return to the live HUD">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_nav_hud"
+                        android:textSize="14sp"
+                        android:textColor="@color/hud_text"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.04" />
+
+                    <TextView
+                        style="@style/DrawerItemSub"
+                        android:text="@string/drawer_nav_hud_sub" />
+                </LinearLayout>
+
+                <!-- DrakoVoice Reader row -->
+                <LinearLayout
+                    android:id="@+id/nav_reader"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/drawer_item_bg"
+                    android:orientation="vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Open the OrCam-style DrakoVoice page reader">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_nav_reader"
+                        android:textSize="14sp"
+                        android:textColor="@color/hud_text"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.04" />
+
+                    <TextView
+                        style="@style/DrawerItemSub"
+                        android:text="@string/drawer_nav_reader_sub" />
+                </LinearLayout>
+
+                <!-- About row -->
+                <LinearLayout
+                    android:id="@+id/nav_about"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/drawer_item_bg"
+                    android:orientation="vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="About AurigaNavi">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_nav_about"
+                        android:textSize="14sp"
+                        android:textColor="@color/hud_text"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.04" />
+
+                    <TextView
+                        style="@style/DrawerItemSub"
+                        android:text="@string/drawer_nav_about_sub" />
+                </LinearLayout>
+
+                <!-- ── SECTION: SETUP ── -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_section_setup"
+                        android:textSize="10sp"
+                        android:textColor="@color/warning_amber"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.22"
+                        android:textAllCaps="true"
+                        android:shadowColor="@color/warning_amber"
+                        android:shadowRadius="6"
+                        android:shadowDx="0"
+                        android:shadowDy="0" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/drawer_section_divider" />
+                </LinearLayout>
+
+                <!-- 10-Point Calibration Walk — AMBER accent -->
+                <LinearLayout
+                    android:id="@+id/nav_calibrate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/drawer_item_accent_bg"
+                    android:orientation="vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="12dp"
+                    android:minHeight="56dp"
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Run the 10-point calibration walk to improve distance accuracy">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_setup_calibrate"
+                        android:textSize="14sp"
+                        android:textColor="@color/amber_text"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.04"
+                        android:shadowColor="@color/warning_amber"
+                        android:shadowRadius="8"
+                        android:shadowDx="0"
+                        android:shadowDy="0" />
+
+                    <TextView
+                        style="@style/DrawerItemSub"
+                        android:textColor="#80FFB300"
+                        android:text="@string/drawer_setup_calibrate_sub" />
+                </LinearLayout>
+
+                <!-- Send Feedback row -->
+                <LinearLayout
+                    android:id="@+id/nav_feedback"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/drawer_item_bg"
+                    android:orientation="vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Send feedback to the DrakoSanctis team">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_setup_feedback"
+                        android:textSize="14sp"
+                        android:textColor="@color/hud_text"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.04" />
+
+                    <TextView
+                        style="@style/DrawerItemSub"
+                        android:text="@string/drawer_setup_feedback_sub" />
+                </LinearLayout>
 
                 <TextView
-                    android:layout_width="0dp"
+                    android:id="@+id/nav_feedback_hint"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Pin DIAG button to HUD"
-                    android:textColor="@color/hud_text"
-                    android:textSize="13sp" />
+                    android:layout_marginTop="6dp"
+                    android:layout_marginStart="4dp"
+                    android:textSize="11sp"
+                    android:textColor="@color/warning_amber"
+                    android:fontFamily="sans-serif"
+                    android:visibility="gone"
+                    android:text="@string/drawer_setup_feedback_gate" />
 
-                <androidx.appcompat.widget.SwitchCompat
-                    android:id="@+id/nav_pin_diag"
-                    android:layout_width="wrap_content"
+                <!-- ── SECTION: DIAGNOSTICS ── -->
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:contentDescription="Pin the DIAG toggle to the HUD top bar" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_section_diagnostics"
+                        android:textSize="10sp"
+                        android:textColor="@color/flavor_accent"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.22"
+                        android:textAllCaps="true"
+                        android:shadowColor="@color/flavor_accent"
+                        android:shadowRadius="6"
+                        android:shadowDx="0"
+                        android:shadowDy="0" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/drawer_section_divider" />
+                </LinearLayout>
+
+                <!-- Toggle Diagnostic Overlay row -->
+                <LinearLayout
+                    android:id="@+id/nav_diag_toggle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/drawer_item_bg"
+                    android:orientation="vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Toggle the per-frame diagnostic overlay">
+
+                    <TextView
+                        android:id="@+id/nav_diag_label"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_diag_overlay"
+                        android:textSize="14sp"
+                        android:textColor="@color/hud_text"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.04" />
+
+                    <TextView
+                        style="@style/DrawerItemSub"
+                        android:text="@string/drawer_diag_overlay_sub" />
+                </LinearLayout>
+
+                <!-- Pin DIAG to HUD — switch row, ACTIVE by default -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/drawer_item_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="10dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/drawer_diag_pin"
+                            android:textSize="14sp"
+                            android:textColor="@color/hud_text"
+                            android:fontFamily="sans-serif-medium"
+                            android:letterSpacing="0.04" />
+
+                        <TextView
+                            style="@style/DrawerItemSub"
+                            android:text="@string/drawer_diag_pin_sub" />
+                    </LinearLayout>
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/nav_pin_diag"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:contentDescription="Pin the DIAG toggle to the HUD top bar" />
+                </LinearLayout>
+
+                <!-- ── SECTION: SUPPORT ── -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_section_support"
+                        android:textSize="10sp"
+                        android:textColor="@color/cobalt_blue"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.22"
+                        android:textAllCaps="true"
+                        android:shadowColor="@color/cobalt_blue"
+                        android:shadowRadius="6"
+                        android:shadowDx="0"
+                        android:shadowDy="0" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/drawer_section_divider" />
+                </LinearLayout>
+
+                <!-- Help & Tips row -->
+                <LinearLayout
+                    android:id="@+id/nav_help"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/drawer_item_support_bg"
+                    android:orientation="vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="How to use AurigaNavi">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_support_help"
+                        android:textSize="14sp"
+                        android:textColor="@color/auriga_cyan"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.04" />
+
+                    <TextView
+                        style="@style/DrawerItemSub"
+                        android:textColor="#4D00C0FF"
+                        android:text="@string/drawer_support_help_sub" />
+                </LinearLayout>
+
+                <!-- Support Centre row -->
+                <LinearLayout
+                    android:id="@+id/nav_support"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/drawer_item_support_bg"
+                    android:orientation="vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Open the DrakoSanctis Support Centre">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_support_centre"
+                        android:textSize="14sp"
+                        android:textColor="@color/auriga_cyan"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.04" />
+
+                    <TextView
+                        style="@style/DrawerItemSub"
+                        android:textColor="#4D00C0FF"
+                        android:text="@string/drawer_support_centre_sub" />
+                </LinearLayout>
+
+                <!-- ── SECTION: CONTRIBUTE ── -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="20dp"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_section_contribute"
+                        android:textSize="10sp"
+                        android:textColor="@color/emerald_green"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.22"
+                        android:textAllCaps="true"
+                        android:shadowColor="@color/emerald_green"
+                        android:shadowRadius="6"
+                        android:shadowDx="0"
+                        android:shadowDy="0" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/drawer_section_divider" />
+                </LinearLayout>
+
+                <!-- Submit Calibration Profile row -->
+                <LinearLayout
+                    android:id="@+id/nav_contribute_calibration"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/drawer_item_contribute_bg"
+                    android:orientation="vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Submit your device calibration profile to the shared library">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_contribute_calibration"
+                        android:textSize="14sp"
+                        android:textColor="@color/emerald_green"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.04"
+                        android:shadowColor="@color/emerald_green"
+                        android:shadowRadius="6"
+                        android:shadowDx="0"
+                        android:shadowDy="0" />
+
+                    <TextView
+                        style="@style/DrawerItemSub"
+                        android:textColor="#4000D06A"
+                        android:text="@string/drawer_contribute_calibration_sub" />
+                </LinearLayout>
+
+                <!-- SDK Interest / Partner row -->
+                <LinearLayout
+                    android:id="@+id/nav_contribute_sdk"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/drawer_item_contribute_bg"
+                    android:orientation="vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Express SDK and partner integration interest">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_contribute_sdk"
+                        android:textSize="14sp"
+                        android:textColor="@color/emerald_green"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.04"
+                        android:shadowColor="@color/emerald_green"
+                        android:shadowRadius="6"
+                        android:shadowDx="0"
+                        android:shadowDy="0" />
+
+                    <TextView
+                        style="@style/DrawerItemSub"
+                        android:textColor="#4000D06A"
+                        android:text="@string/drawer_contribute_sdk_sub" />
+                </LinearLayout>
+
+                <!-- ── FOOTER ── -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/drawer_section_divider" />
+
+                <TextView
+                    android:id="@+id/nav_version_stamp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="20dp"
+                    android:text="© DrakoSanctis · v1.0.0"
+                    android:textSize="10sp"
+                    android:textColor="@color/drawer_sub_text"
+                    android:fontFamily="monospace"
+                    android:letterSpacing="0.08"
+                    android:gravity="center" />
+
             </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="14dp"
-                android:layout_marginBottom="12dp"
-                android:background="@color/glass_stroke" />
-
-            <!-- Footer: build / version stamp -->
-            <TextView
-                android:id="@+id/nav_version_stamp"
-                style="@style/HUDLabelSmall"
-                android:layout_marginBottom="20dp"
-                android:text="© DrakoSanctis · v1.0.0" />
-
         </LinearLayout>
     </ScrollView>
 

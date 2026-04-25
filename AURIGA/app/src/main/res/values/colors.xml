@@ -31,4 +31,12 @@
     <!-- Status text tints -->
     <color name="status_online">#00F0B4</color>
     <color name="muted_label">#7AA3C8</color>
+
+    <!-- Drawer section accent colours -->
+    <color name="emerald_green">#00D06A</color>
+    <color name="emerald_glow_25">#4000D06A</color>
+    <color name="support_blue">#0057FF</color>
+    <color name="section_header_text">#9AB8D8</color>
+    <color name="drawer_sub_text">#4D8AAA</color>
+    <color name="amber_text">#FFB300</color>
 </resources>

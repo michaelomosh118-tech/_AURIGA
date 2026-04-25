@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/deep_space"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Top bar -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="16dp"
+            android:paddingBottom="20dp">
+
+            <Button
+                android:id="@+id/support_back"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:background="@drawable/diag_toggle_bg"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:minHeight="44dp"
+                android:text="←"
+                android:textSize="18sp"
+                android:textColor="@color/auriga_cyan"
+                android:contentDescription="Back" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:orientation="vertical"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="SUPPORT CENTRE"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/auriga_cyan"
+                    android:fontFamily="sans-serif-condensed"
+                    android:letterSpacing="0.14"
+                    android:textAllCaps="true"
+                    android:shadowColor="@color/auriga_cyan"
+                    android:shadowRadius="12"
+                    android:shadowDx="0"
+                    android:shadowDy="0" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DrakoSanctis // Auriga"
+                    android:textSize="11sp"
+                    android:textColor="@color/muted_label"
+                    android:fontFamily="sans-serif"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+        </RelativeLayout>
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@drawable/drawer_section_divider"
+            android:layout_marginBottom="24dp" />
+
+        <!-- FAQ Section -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="FREQUENTLY ASKED"
+            android:textSize="10sp"
+            android:textColor="@color/auriga_cyan"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.22"
+            android:textAllCaps="true"
+            android:shadowColor="@color/auriga_cyan"
+            android:shadowRadius="6"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:layout_marginBottom="12dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/hud_glass_card"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                style="@style/DocH2"
+                android:text="Why is distance reading off?" />
+
+            <TextView
+                style="@style/DocBody"
+                android:textSize="13sp"
+                android:text="Run the 10-Point Calibration Walk from the Setup section of the menu. This teaches the TruePath™ engine your device\'s exact pixel-to-angle mapping, bringing distance accuracy to sub-20 cm." />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/hud_glass_card"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                style="@style/DocH2"
+                android:text="Does Auriga work offline?" />
+
+            <TextView
+                style="@style/DocBody"
+                android:textSize="13sp"
+                android:text="Yes. All spatial computation runs on-device — TruePath™, SkyShield™ and DrakoVoice Reader use no internet. The Calibration Library update and Feedback submission require connectivity but are always optional." />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/hud_glass_card"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                style="@style/DocH2"
+                android:text="How do I use it with TalkBack?" />
+
+            <TextView
+                style="@style/DocBody"
+                android:textSize="13sp"
+                android:text="Every UI element carries a content description readable by TalkBack. DrakoVoice automatically announces distance and bearing changes so screen-reader users receive spatial audio alongside voice readouts. Focus-ring contrast is WCAG AAA (3 px amber outline)." />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/hud_glass_card"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                style="@style/DocH2"
+                android:text="My crash log — how do I share it?" />
+
+            <TextView
+                style="@style/DocBody"
+                android:textSize="13sp"
+                android:text="If Auriga crashes, the Crash Viewer opens automatically with COPY / SHARE / DISMISS buttons. Use Share to attach the log to an email or cloud drive. You can also use Send Feedback from the Setup menu — it auto-attaches the latest diagnostic snapshot." />
+        </LinearLayout>
+
+        <!-- Contact Section -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CONTACT"
+            android:textSize="10sp"
+            android:textColor="@color/cobalt_blue"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.22"
+            android:textAllCaps="true"
+            android:shadowColor="@color/cobalt_blue"
+            android:shadowRadius="6"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:layout_marginBottom="12dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/drawer_item_support_bg"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✉  General Support"
+                android:textSize="14sp"
+                android:textColor="@color/auriga_cyan"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="support@drakosanctis.com"
+                android:textSize="13sp"
+                android:textColor="@color/muted_label"
+                android:fontFamily="monospace" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/drawer_item_support_bg"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:layout_marginBottom="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⊕  SDK &amp; Partnership"
+                android:textSize="14sp"
+                android:textColor="@color/auriga_cyan"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="sdk@drakosanctis.com"
+                android:textSize="13sp"
+                android:textColor="@color/muted_label"
+                android:fontFamily="monospace" />
+        </LinearLayout>
+
+        <!-- Accessibility note -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/hud_glass_card"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="♿  ACCESSIBILITY COMMITMENT"
+                android:textSize="10sp"
+                android:textColor="@color/warning_amber"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.14"
+                android:textAllCaps="true"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                style="@style/DocBody"
+                android:textSize="12sp"
+                android:text="Auriga is built first for blind and low-vision users. Every feature ships with TalkBack descriptors, high-contrast WCAG AAA focus rings, and DrakoVoice audio readouts. If you find an accessibility gap, please tell us — it is treated as a P0 bug." />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

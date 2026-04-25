@@ -3,13 +3,57 @@
     <!-- app_name is generated per product flavor via resValue in app/build.gradle. -->
     <string name="company_name">DrakoSanctis</string>
     <string name="tagline">See Beyond Sight</string>
-    
+
+    <!-- HUD top bar mode pill — overridden per flavor -->
+    <string name="hud_mode_label">Auriga // Spatial Intelligence</string>
+
+    <!-- Drawer header — overridden per flavor -->
+    <string name="drawer_brand_name">AURIGA</string>
+    <string name="drawer_tagline">See Beyond Sight</string>
+
+    <!-- Drawer status strip — overridden per flavor -->
+    <string name="drawer_engine_label">TruePath™ + SkyShield™</string>
+    <string name="drawer_sys_status_text">OPERATIONAL</string>
+
+    <!-- Drawer section headers -->
+    <string name="drawer_section_navigate">NAVIGATE</string>
+    <string name="drawer_section_setup">SETUP</string>
+    <string name="drawer_section_diagnostics">DIAGNOSTICS</string>
+    <string name="drawer_section_support">SUPPORT</string>
+    <string name="drawer_section_contribute">CONTRIBUTE</string>
+
+    <!-- Drawer row labels -->
+    <string name="drawer_nav_hud">⬡  Live HUD</string>
+    <string name="drawer_nav_hud_sub">Return to spatial awareness camera view</string>
+    <string name="drawer_nav_reader">◈  DrakoVoice Reader</string>
+    <string name="drawer_nav_reader_sub">Point &amp; read printed text aloud — ML Kit OCR</string>
+    <string name="drawer_nav_about">◉  About</string>
+    <string name="drawer_nav_about_sub">Version info, licenses &amp; DrakoSanctis mission</string>
+    <string name="drawer_setup_calibrate">⬡  10-Point Calibration Walk</string>
+    <string name="drawer_setup_calibrate_sub">Calibrate distance accuracy to sub-20 cm precision</string>
+    <string name="drawer_setup_feedback">✉  Send Feedback</string>
+    <string name="drawer_setup_feedback_sub">Bug reports, accuracy findings &amp; ideas</string>
+    <string name="drawer_setup_feedback_gate">⚠  Complete the Calibration Walk first to unlock Feedback</string>
+    <string name="drawer_diag_overlay">◎  Show Diagnostic Overlay</string>
+    <string name="drawer_diag_overlay_active">◉  Hide Diagnostic Overlay</string>
+    <string name="drawer_diag_overlay_sub">Per-frame pitch, LUT row, confidence &amp; SLAM shift</string>
+    <string name="drawer_diag_pin">◑  Pin DIAG to HUD</string>
+    <string name="drawer_diag_pin_sub">Always-visible DIAG button in the top bar</string>
+    <string name="drawer_support_help">?  Help &amp; Tips</string>
+    <string name="drawer_support_help_sub">Gestures, modes, accessibility &amp; TalkBack guide</string>
+    <string name="drawer_support_centre">⊕  Support Centre</string>
+    <string name="drawer_support_centre_sub">FAQs, contact DrakoSanctis &amp; crash log export</string>
+    <string name="drawer_contribute_calibration">⊛  Submit Calibration Profile</string>
+    <string name="drawer_contribute_calibration_sub">Share your device anchors to improve accuracy for all</string>
+    <string name="drawer_contribute_sdk">◈  SDK &amp; Partner Interest</string>
+    <string name="drawer_contribute_sdk_sub">Drone, robotics, industrial &amp; white-label enquiries</string>
+
     <!-- HUD Labels -->
     <string name="label_distance">Distance</string>
     <string name="label_bearing">Bearing</string>
     <string name="label_mode_nav">AurigaNavi // Navigation Mode</string>
     <string name="label_mode_calib">AurigaNavi // Calibration Mode</string>
-    
+
     <!-- Accessibility / Voice -->
     <string name="voice_obstacle_alert">%1$s at %2$.1f meters, %3$.0f degrees %4$s</string>
     <string name="voice_overhang_alert">Warning, overhang at %1$.1f meters</string>

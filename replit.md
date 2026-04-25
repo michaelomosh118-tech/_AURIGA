@@ -83,6 +83,16 @@ The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and 
   with what the visitor actually had loaded. Linked from `index.html`
   nav and the `reader.html` topbar with a 44 dp pill that matches the
   state-pill styling.
+- **Drawer v0.5 — full string-resource migration + flavor differentiation (complete)**: All
+  hardcoded strings in the drawer panel of `activity_main.xml` replaced with `@string/`
+  references defined in `src/main/res/values/strings.xml`. NAVIGATE and DIAGNOSTICS section
+  headers now use `@color/flavor_accent` (cyan `#00B8D4` for navi, red `#D50000` for sentinel)
+  for both `textColor` and `shadowColor`, making them auto-differentiate at build time.
+  The engine-label TextView likewise now reads `@color/flavor_accent`. Flavor-specific string
+  overrides live in `src/navi/res/values/strings.xml` and `src/sentinel/res/values/strings.xml`;
+  sentinel overrides: brand name, tagline, engine label, sys status, HUD sub, reader sub,
+  calibrate sub, feedback sub, diag overlay sub, both contribute-row subs.
+
 - **Netlify Function (`AURIGA/netlify/functions/submit-feedback.js`)**:
   Accepts the JSON payload, validates length, logs a one-line summary
   to Netlify function logs, and optionally fan-outs to a generic webhook

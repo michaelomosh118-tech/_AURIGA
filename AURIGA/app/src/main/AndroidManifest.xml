@@ -78,6 +78,20 @@
             android:configChanges="orientation|screenSize"
             android:theme="@style/AurigaDocTheme" />
 
+        <!-- Hamburger drawer v0.5: Support Centre + Contribute screens. -->
+        <activity
+            android:name=".SupportActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/AurigaDocTheme" />
+        <activity
+            android:name=".ContributeActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/AurigaDocTheme" />
+
         <!-- Crash viewer: surfaces the last crash report on launch with
              COPY / SHARE / DISMISS buttons so users can exfiltrate stack
              traces without adb (Android 11+ scoped storage blocks

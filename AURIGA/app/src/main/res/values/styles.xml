@@ -80,6 +80,35 @@
         <item name="android:letterSpacing">0.04</item>
     </style>
 
+    <!-- Drawer sub-description text under drawer item titles -->
+    <style name="DrawerItemSub">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">@color/drawer_sub_text</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="android:layout_marginTop">1dp</item>
+    </style>
+
+    <!-- Accent drawer row (Calibration Walk — amber) -->
+    <style name="DrawerItemAccent" parent="DrawerItem">
+        <item name="android:background">@drawable/drawer_item_accent_bg</item>
+        <item name="android:textColor">@color/amber_text</item>
+    </style>
+
+    <!-- Support drawer row (cobalt blue) -->
+    <style name="DrawerItemSupport" parent="DrawerItem">
+        <item name="android:background">@drawable/drawer_item_support_bg</item>
+        <item name="android:textColor">@color/auriga_cyan</item>
+    </style>
+
+    <!-- Contribute drawer row (emerald) -->
+    <style name="DrawerItemContribute" parent="DrawerItem">
+        <item name="android:background">@drawable/drawer_item_contribute_bg</item>
+        <item name="android:textColor">@color/emerald_green</item>
+    </style>
+
     <!-- Document/page surface for About + Help. Same indigo background as
          the HUD so the activities feel like extensions of the app, not
          system-default white sheets. -->

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    AurigaSentinel flavor string overrides.
+    Only values that differ from src/main/res/values/strings.xml are listed here.
+-->
+<resources>
+    <!-- Top bar mode pill -->
+    <string name="hud_mode_label">AurigaSentinel // Guardian</string>
+
+    <!-- Drawer header -->
+    <string name="drawer_brand_name">AURIGA SENTINEL</string>
+    <string name="drawer_tagline">Crowd Awareness · Fall Detection</string>
+
+    <!-- Drawer status strip -->
+    <string name="drawer_engine_label">SentinelCore™ + FallShield™</string>
+    <string name="drawer_sys_status_text">GUARDIAN ACTIVE</string>
+
+    <!-- Navigate rows — sentinel-specific descriptions -->
+    <string name="drawer_nav_hud_sub">Return to live crowd &amp; fall-detection HUD</string>
+    <string name="drawer_nav_reader_sub">Point &amp; read printed text aloud — offline OCR</string>
+
+    <!-- Setup rows — sentinel-specific descriptions -->
+    <string name="drawer_setup_calibrate_sub">Calibrate crowd-distance accuracy to sub-20 cm</string>
+    <string name="drawer_setup_feedback_sub">Report detection gaps, false alarms &amp; ideas</string>
+
+    <!-- Diagnostics — sentinel-specific -->
+    <string name="drawer_diag_overlay_sub">Per-frame fall risk score, pitch, LUT row &amp; confidence</string>
+
+    <!-- SDK row — sentinel flavour messaging -->
+    <string name="drawer_contribute_sdk_sub">Crowd monitoring, workplace safety &amp; OEM integration</string>
+
+    <!-- Contribute calibration — sentinel context -->
+    <string name="drawer_contribute_calibration_sub">Share your device anchors to improve crowd-distance accuracy</string>
+</resources>
