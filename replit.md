@@ -10,11 +10,12 @@ Static landing/PWA site for the Auriga Ecosystem by DrakoSanctis. The published 
 The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and a marketing HTML (`AURIGA/DrakoSanctis_LandingPage.html`), but the public web product is the static site under `web_deploy`.
 
 ## Replit Setup
-- Workflow `Start application` serves `AURIGA/web_deploy` via `python3 -m http.server` on `0.0.0.0:5000`.
-- Deployment is configured as a `static` site with `publicDir = AURIGA/web_deploy` (mirroring the existing Netlify config).
+- Workflow `Start application` serves `AURIGA/web_deploy` via `node server.js` on `0.0.0.0:5000`.
+- `server.js` (project root): Node.js HTTP server that serves static files from `AURIGA/web_deploy` and also handles the feedback endpoint at `/.netlify/functions/submit-feedback`, replacing the Netlify serverless function for Replit compatibility.
+- Deployment is configured as a `static` site with `publicDir = AURIGA/web_deploy`.
 
 ## Notes
-- No backend; the site is fully static.
+- The feedback endpoint (`/.netlify/functions/submit-feedback`) is handled server-side by `server.js`. It supports optional env vars: `FEEDBACK_FORWARD_WEBHOOK` (generic webhook), `FEEDBACK_GITHUB_REPO` + `FEEDBACK_GITHUB_TOKEN` (auto-file GitHub issues).
 - Service worker registers automatically on load (PWA).
 
 ## Recent Changes
