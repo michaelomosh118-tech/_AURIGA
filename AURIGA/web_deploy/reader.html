@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DrakoVoice Reader | Auriga Ecosystem</title>
+  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0A0A0F" />
+  <meta name="description" content="DrakoVoice Reader — OrCam-style page reader. Point your camera at printed text and have it read aloud, fully in your browser." />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --space-black: #0A0A0F;
+      --deep-space: #05060A;
+      --cobalt-blue: #0057FF;
+      --auriga-cyan: #00F0FF;
+      --warning-amber: #FFB300;
+      --alert-red: #FF3B30;
+      --hud-text: #FFFFFF;
+      --muted: #7AA3C8;
+      --glass: rgba(5, 10, 24, 0.72);
+      --glass-stroke: rgba(0, 240, 255, 0.22);
+      --mono: 'Share Tech Mono', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      background: var(--deep-space);
+      color: var(--hud-text);
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow: hidden;
+    }
+    *:focus-visible {
+      outline: 3px solid var(--warning-amber);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+    .skip-link {
+      position: absolute; top: -100px; left: 20px;
+      background: var(--warning-amber); color: #000;
+      padding: 12px 24px; z-index: 9999; text-decoration: none;
+      font-family: 'Orbitron', sans-serif; font-weight: 700;
+    }
+    .skip-link:focus { top: 20px; }
+
+    .stage {
+      position: relative;
+      width: 100%; height: 100vh;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 0% 100%, rgba(0,87,255,0.25) 0%, transparent 60%),
+        radial-gradient(circle at 100% 0%, rgba(0,240,255,0.10) 0%, transparent 55%),
+        var(--deep-space);
+    }
+
+    video, canvas#snapshot {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      filter: contrast(1.05) saturate(1.05);
+    }
+    canvas#snapshot { display: none; }
+
+    .scanline {
+      position: absolute; inset: 0;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0px,
+          transparent 3px,
+          rgba(0, 240, 255, 0.04) 4px
+        );
+      pointer-events: none;
+    }
+
+    /* ── Top bar ─────────────────────────────────────────── */
+    .topbar {
+      position: absolute; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px;
+      background: linear-gradient(to bottom, rgba(5,10,24,0.85), transparent);
+      z-index: 10;
+    }
+    .brand {
+      display: flex; flex-direction: column; line-height: 1.1;
+    }
+    .brand-eyebrow {
+      font-family: var(--mono);
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    .brand-name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--auriga-cyan);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-shadow: 0 0 12px rgba(0, 240, 255, 0.45);
+    }
+    .state-pill {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 14px;
+      background: var(--glass);
+      border: 1px solid var(--glass-stroke);
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--auriga-cyan);
+    }
+    .state-dot {
+      width: 8px; height: 8px; border-radius: 999px;
+      background: #00F0B4;
+      box-shadow: 0 0 0 4px rgba(0, 240, 180, 0.18);
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 4px rgba(0, 240, 180, 0.18); }
+      50%      { box-shadow: 0 0 0 8px rgba(0, 240, 180, 0.04); }
+    }
+
+    /* ── Centre framing reticle ──────────────────────────── */
+    .reticle {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(72vw, 540px);
+      height: min(38vh, 320px);
+      border: 1px solid rgba(0, 240, 255, 0.5);
+      border-radius: 10px;
+      box-shadow:
+        0 0 0 1px rgba(0, 240, 255, 0.15),
+        inset 0 0 60px rgba(0, 240, 255, 0.06);
+      pointer-events: none;
+    }
+    .reticle::before, .reticle::after,
+    .reticle > span:nth-child(1), .reticle > span:nth-child(2) {
+      content: ''; position: absolute;
+      width: 24px; height: 24px;
+      border: 2px solid var(--auriga-cyan);
+    }
+    .reticle::before { top: -3px; left: -3px;  border-right: 0; border-bottom: 0; }
+    .reticle::after  { top: -3px; right: -3px; border-left: 0;  border-bottom: 0; }
+    .reticle > span:nth-child(1) { bottom: -3px; left: -3px;  border-right: 0; border-top: 0; }
+    .reticle > span:nth-child(2) { bottom: -3px; right: -3px; border-left: 0;  border-top: 0; }
+
+    /* ── Bottom sheet ────────────────────────────────────── */
+    .sheet {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      padding: 18px 18px 22px;
+      background: linear-gradient(to top, rgba(5,10,24,0.96), rgba(5,10,24,0));
+      z-index: 10;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .text-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-stroke);
+      border-radius: 14px;
+      padding: 16px 18px;
+      max-height: min(32vh, 240px);
+      overflow-y: auto;
+      backdrop-filter: blur(14px);
+      font-family: 'Inter', serif;
+      font-size: 16px;
+      line-height: 1.55;
+      color: var(--hud-text);
+      white-space: pre-wrap;
+    }
+    .text-card .placeholder {
+      color: var(--muted);
+      font-style: italic;
+    }
+    .text-card .word.active {
+      background: rgba(255, 179, 0, 0.32);
+      border-radius: 4px;
+      padding: 0 2px;
+      box-shadow: 0 0 18px rgba(255, 179, 0, 0.35);
+    }
+
+    .controls {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px;
+    }
+    .btn {
+      appearance: none;
+      background: var(--glass);
+      border: 1px solid var(--glass-stroke);
+      color: var(--auriga-cyan);
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding: 12px 18px;
+      border-radius: 999px;
+      cursor: pointer;
+      min-height: 44px;
+      transition: transform 0.12s ease, background 0.12s ease, color 0.12s ease;
+      backdrop-filter: blur(10px);
+    }
+    .btn:hover { transform: translateY(-1px); background: rgba(0, 240, 255, 0.12); }
+    .btn[aria-pressed="true"], .btn.active {
+      background: var(--auriga-cyan);
+      color: var(--space-black);
+      border-color: var(--auriga-cyan);
+    }
+    .btn-capture {
+      width: 76px; height: 76px;
+      border-radius: 999px;
+      background: var(--auriga-cyan);
+      color: var(--space-black);
+      border: 4px solid rgba(255,255,255,0.85);
+      font-size: 26px;
+      box-shadow: 0 0 0 6px rgba(0, 240, 255, 0.18);
+    }
+    .btn-capture:hover { transform: scale(1.04); }
+    .btn-icon { min-width: 56px; padding: 10px 14px; font-size: 18px; }
+
+    .row-cap {
+      display: flex; align-items: center; justify-content: center;
+      gap: 14px;
+    }
+
+    /* ── No-camera fallback ──────────────────────────────── */
+    .fallback {
+      position: absolute; inset: 0;
+      display: none;
+      align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px; padding: 24px;
+      background: var(--deep-space);
+      text-align: center;
+      z-index: 5;
+    }
+    .fallback h1 {
+      font-family: 'Orbitron', sans-serif; color: var(--auriga-cyan);
+      letter-spacing: 0.1em;
+    }
+    .fallback p { color: var(--muted); max-width: 480px; }
+    .fallback label {
+      display: inline-block;
+      padding: 12px 18px;
+      border: 1px dashed var(--glass-stroke);
+      border-radius: 12px;
+      cursor: pointer;
+      color: var(--auriga-cyan);
+      font-family: var(--mono); letter-spacing: 0.12em; text-transform: uppercase;
+      font-size: 12px;
+    }
+    .fallback input[type="file"] { display: none; }
+    body.no-camera .fallback { display: flex; }
+    body.no-camera video { display: none; }
+
+    /* ── Progress + toast ────────────────────────────────── */
+    .progress {
+      position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+      padding: 6px 14px; border-radius: 999px;
+      background: var(--glass); border: 1px solid var(--glass-stroke);
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+      color: var(--auriga-cyan); display: none; z-index: 11;
+    }
+    .progress.show { display: inline-block; }
+
+    @media (max-width: 520px) {
+      .brand-name { font-size: 14px; }
+      .reticle { height: 32vh; }
+      .text-card { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#controls">Skip to reader controls</a>
+
+  <main class="stage" aria-label="DrakoVoice Reader">
+    <video id="cam" autoplay playsinline muted aria-hidden="true"></video>
+    <canvas id="snapshot"></canvas>
+    <div class="scanline" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-eyebrow">DrakoSanctis // Auriga</span>
+        <span class="brand-name">DrakoVoice Reader</span>
+      </div>
+      <div class="state-pill" aria-live="polite">
+        <span class="state-dot" aria-hidden="true"></span>
+        <span id="state">POINT &amp; READ</span>
+      </div>
+    </header>
+
+    <div class="reticle" aria-hidden="true"><span></span><span></span></div>
+
+    <div id="progress" class="progress" role="status" aria-live="polite">Loading recognition engine…</div>
+
+    <section class="sheet" id="controls">
+      <div class="text-card" id="textCard" tabindex="0" aria-live="polite">
+        <span class="placeholder">Tap the cyan button to capture printed text — or enable AUTO for hands-free reading. Works fully in your browser.</span>
+      </div>
+      <div class="row-cap">
+        <button class="btn btn-icon" id="prevBtn" aria-label="Previous paragraph">⏮</button>
+        <button class="btn btn-capture" id="captureBtn" aria-label="Capture page and read aloud">●</button>
+        <button class="btn btn-icon" id="nextBtn" aria-label="Next paragraph">⏭</button>
+      </div>
+      <div class="controls">
+        <button class="btn" id="playBtn" aria-label="Play or pause reading">PLAY</button>
+        <button class="btn" id="autoBtn" aria-pressed="false" aria-label="Toggle automatic reading every 6 seconds">AUTO</button>
+        <button class="btn" id="touchBtn" aria-pressed="false" aria-label="Touch-read: tap a word in the text below to read from there">TOUCH</button>
+      </div>
+    </section>
+
+    <div class="fallback">
+      <h1>Camera unavailable</h1>
+      <p>We couldn't access your camera in this browser. You can still upload a photo of the printed text below — DrakoVoice will read it aloud the same way.</p>
+      <label for="fileInput">Upload an image</label>
+      <input id="fileInput" type="file" accept="image/*" capture="environment" />
+    </div>
+  </main>
+
+  <!-- Tesseract.js: in-browser OCR. Loaded via CDN; lazy-warmed on first capture. -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
+  <script>
+    (function () {
+      const stateEl   = document.getElementById('state');
+      const textCard  = document.getElementById('textCard');
+      const captureBt = document.getElementById('captureBtn');
+      const playBt    = document.getElementById('playBtn');
+      const autoBt    = document.getElementById('autoBtn');
+      const touchBt   = document.getElementById('touchBtn');
+      const prevBt    = document.getElementById('prevBtn');
+      const nextBt    = document.getElementById('nextBtn');
+      const progress  = document.getElementById('progress');
+      const video     = document.getElementById('cam');
+      const canvas    = document.getElementById('snapshot');
+      const fileIn    = document.getElementById('fileInput');
+
+      const synth     = window.speechSynthesis;
+      let voice       = null;
+      let paragraphs  = [];
+      let words       = [];
+      let currentPara = 0;
+      let autoMode    = false;
+      let touchMode   = false;
+      let autoTimer   = null;
+      let speaking    = false;
+      let ocrWorker   = null;
+
+      function setState(t) { stateEl.textContent = t; }
+      function showProgress(msg) {
+        progress.textContent = msg;
+        progress.classList.add('show');
+      }
+      function hideProgress() { progress.classList.remove('show'); }
+
+      // Pick the best matching voice once the synth has populated the list.
+      function pickVoice() {
+        const all = synth.getVoices();
+        const lang = (navigator.language || 'en-US').toLowerCase();
+        voice = all.find(v => v.lang.toLowerCase() === lang)
+             || all.find(v => v.lang.toLowerCase().startsWith(lang.split('-')[0]))
+             || all.find(v => v.default)
+             || all[0]
+             || null;
+      }
+      pickVoice();
+      if (synth) synth.onvoiceschanged = pickVoice;
+
+      // ── Camera ──────────────────────────────────────────────
+      async function startCamera() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+            audio: false
+          });
+          video.srcObject = stream;
+        } catch (e) {
+          console.warn('Camera unavailable, falling back to upload mode', e);
+          document.body.classList.add('no-camera');
+          setState('UPLOAD MODE');
+        }
+      }
+      startCamera();
+
+      fileIn.addEventListener('change', async (ev) => {
+        const f = ev.target.files && ev.target.files[0];
+        if (!f) return;
+        const url = URL.createObjectURL(f);
+        const img = new Image();
+        img.onload = async () => {
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          URL.revokeObjectURL(url);
+          await runOcrFromCanvas();
+        };
+        img.src = url;
+      });
+
+      // ── OCR ─────────────────────────────────────────────────
+      async function ensureWorker() {
+        if (ocrWorker) return ocrWorker;
+        showProgress('Loading recognition engine…');
+        ocrWorker = await Tesseract.createWorker('eng', 1, {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              showProgress('Reading page · ' + Math.round((m.progress || 0) * 100) + '%');
+            }
+          }
+        });
+        hideProgress();
+        return ocrWorker;
+      }
+
+      function snapshotFromVideo() {
+        const w = video.videoWidth || 1280;
+        const h = video.videoHeight || 720;
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+      }
+
+      async function runOcrFromCanvas() {
+        try {
+          setState('ANALYZING…');
+          const w = await ensureWorker();
+          showProgress('Reading page · 0%');
+          const { data } = await w.recognize(canvas);
+          hideProgress();
+          const text = (data && data.text || '').trim();
+          if (!text) {
+            setState('NO TEXT');
+            renderText(['No text detected. Move closer or improve lighting, then capture again.'], true);
+            return;
+          }
+          paragraphs = text.split(/\n\s*\n+/).map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+          if (!paragraphs.length) paragraphs = [text.replace(/\s+/g, ' ').trim()];
+          currentPara = 0;
+          renderText(paragraphs, false);
+          setState('READING');
+          speakCurrent();
+        } catch (e) {
+          hideProgress();
+          setState('OCR ERROR');
+          console.error(e);
+          renderText(['OCR failed: ' + (e.message || e)], true);
+        }
+      }
+
+      async function captureAndRead() {
+        if (document.body.classList.contains('no-camera')) {
+          fileIn.click();
+          return;
+        }
+        if (!video.videoWidth) {
+          setState('CAMERA WARMING…');
+          return;
+        }
+        snapshotFromVideo();
+        await runOcrFromCanvas();
+      }
+
+      // ── Render + touch-read ────────────────────────────────
+      function renderText(paras, isPlaceholder) {
+        textCard.innerHTML = '';
+        words = [];
+        if (isPlaceholder) {
+          const span = document.createElement('span');
+          span.className = 'placeholder';
+          span.textContent = paras.join('\n\n');
+          textCard.appendChild(span);
+          return;
+        }
+        paras.forEach((p, pi) => {
+          const para = document.createElement('p');
+          para.dataset.para = String(pi);
+          para.style.marginBottom = '12px';
+          p.split(/\s+/).forEach((w, wi) => {
+            const span = document.createElement('span');
+            span.className = 'word';
+            span.dataset.para = String(pi);
+            span.dataset.word = String(wi);
+            span.textContent = w + ' ';
+            span.addEventListener('click', () => {
+              if (!touchMode) return;
+              currentPara = pi;
+              speakFromWord(pi, wi);
+            });
+            para.appendChild(span);
+            words.push(span);
+          });
+          textCard.appendChild(para);
+        });
+      }
+
+      function highlightWord(idx) {
+        words.forEach(w => w.classList.remove('active'));
+        if (idx >= 0 && idx < words.length) {
+          words[idx].classList.add('active');
+          words[idx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }
+
+      // ── TTS ────────────────────────────────────────────────
+      function speakUtterance(text, onEnd) {
+        if (!synth || !text) return;
+        synth.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        if (voice) u.voice = voice;
+        u.rate = 1.0; u.pitch = 1.0; u.volume = 1.0;
+        u.onstart = () => { speaking = true; playBt.textContent = 'PAUSE'; };
+        u.onend   = () => { speaking = false; playBt.textContent = 'PLAY'; highlightWord(-1); if (onEnd) onEnd(); };
+        u.onerror = () => { speaking = false; playBt.textContent = 'PLAY'; };
+        // Highlight the current word as the synth advances.
+        u.onboundary = (ev) => {
+          if (ev.name && ev.name !== 'word') return;
+          const before = text.slice(0, ev.charIndex);
+          const offsetWord = before.trim().split(/\s+/).filter(Boolean).length;
+          // Find the global word index for currentPara + offsetWord.
+          let count = 0;
+          for (let i = 0; i < words.length; i++) {
+            if (Number(words[i].dataset.para) === currentPara) {
+              if (count === offsetWord) { highlightWord(i); break; }
+              count++;
+            }
+          }
+        };
+        synth.speak(u);
+      }
+
+      function speakCurrent() {
+        if (!paragraphs.length) return;
+        const text = paragraphs[currentPara] || '';
+        speakUtterance(text, () => {
+          if (currentPara < paragraphs.length - 1) {
+            currentPara++;
+            speakCurrent();
+          } else {
+            setState(autoMode ? 'AUTO' : 'POINT & READ');
+          }
+        });
+      }
+
+      function speakFromWord(paraIdx, wordIdx) {
+        const para = paragraphs[paraIdx] || '';
+        const ws = para.split(/\s+/);
+        const text = ws.slice(wordIdx).join(' ');
+        speakUtterance(text, () => {
+          if (paraIdx < paragraphs.length - 1) {
+            currentPara = paraIdx + 1;
+            speakCurrent();
+          }
+        });
+      }
+
+      function togglePlay() {
+        if (speaking) { synth.cancel(); speaking = false; playBt.textContent = 'PLAY'; setState(autoMode ? 'AUTO' : 'POINT & READ'); return; }
+        if (paragraphs.length) speakCurrent();
+        else captureAndRead();
+      }
+
+      function step(delta) {
+        if (!paragraphs.length) return;
+        currentPara = Math.max(0, Math.min(paragraphs.length - 1, currentPara + delta));
+        speakCurrent();
+      }
+
+      function toggleAuto() {
+        autoMode = !autoMode;
+        autoBt.setAttribute('aria-pressed', String(autoMode));
+        autoBt.classList.toggle('active', autoMode);
+        if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+        if (autoMode) {
+          setState('AUTO');
+          captureAndRead();
+          autoTimer = setInterval(() => { if (!speaking) captureAndRead(); }, 6000);
+        } else {
+          setState('POINT & READ');
+        }
+      }
+
+      function toggleTouch() {
+        touchMode = !touchMode;
+        touchBt.setAttribute('aria-pressed', String(touchMode));
+        touchBt.classList.toggle('active', touchMode);
+      }
+
+      // Wire up
+      captureBt.addEventListener('click', captureAndRead);
+      playBt.addEventListener('click', togglePlay);
+      prevBt.addEventListener('click', () => step(-1));
+      nextBt.addEventListener('click', () => step(+1));
+      autoBt.addEventListener('click', toggleAuto);
+      touchBt.addEventListener('click', toggleTouch);
+
+      // Keyboard parity with the OrCam touch bar:
+      //   Space → play/pause, ←/→ → previous/next paragraph, A → auto, T → touch-read.
+      window.addEventListener('keydown', (ev) => {
+        if (ev.target && /input|textarea/i.test(ev.target.tagName)) return;
+        if (ev.code === 'Space')      { ev.preventDefault(); togglePlay(); }
+        else if (ev.code === 'ArrowLeft')  step(-1);
+        else if (ev.code === 'ArrowRight') step(+1);
+        else if (ev.key === 'a' || ev.key === 'A') toggleAuto();
+        else if (ev.key === 't' || ev.key === 'T') toggleTouch();
+        else if (ev.key === 'Enter')               captureAndRead();
+      });
+
+      // PWA service worker (matches the rest of the deployed site).
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,5 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <stroke android:width="1dp" android:color="@color/cobalt_blue" />
-    <solid android:color="@android:color/transparent" />
-</shape>
+<!--
+    Background grid panel for the HUD. Two layered radial gradients give
+    a subtle vignette + corner glow, then a 1dp cobalt outline frames the
+    viewport so the HUD chrome reads as a single piece of equipment
+    instead of a collection of stray text.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="640"
+                android:centerX="0.5"
+                android:centerY="0.5"
+                android:startColor="@color/cyan_glow_08"
+                android:endColor="@android:color/transparent" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="900"
+                android:centerX="0.0"
+                android:centerY="1.0"
+                android:startColor="@color/cobalt_glow_25"
+                android:endColor="@android:color/transparent" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <stroke android:width="1dp" android:color="@color/glass_stroke" />
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+</layer-list>

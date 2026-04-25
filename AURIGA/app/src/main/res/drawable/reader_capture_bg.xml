@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Capture FAB background: solid cyan disc with a subtle outer ring so the
+    button feels weighty against a busy camera frame.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="@color/cyan_glow_30" />
+        </shape>
+    </item>
+    <item
+        android:left="6dp"
+        android:right="6dp"
+        android:top="6dp"
+        android:bottom="6dp">
+        <shape android:shape="oval">
+            <solid android:color="@color/auriga_cyan" />
+            <stroke android:width="2dp" android:color="@color/hud_text" />
+        </shape>
+    </item>
+</layer-list>

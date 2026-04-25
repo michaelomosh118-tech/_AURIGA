@@ -249,6 +249,23 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         if (diagToggle != null) {
             diagToggle.setOnClickListener(v -> toggleDiagnosticOverlay());
         }
+
+        // Reader launcher: opens the OrCam-style ReaderActivity which
+        // uses on-device ML Kit text recognition + TextToSpeech to read
+        // printed pages aloud. Wired here (not in ReaderActivity) so the
+        // HUD button stays consistent with the DIAG affordance.
+        android.widget.Button readerBtn = findViewById(R.id.reader_launch);
+        if (readerBtn != null) {
+            readerBtn.setOnClickListener(v -> {
+                try {
+                    startActivity(new android.content.Intent(this, ReaderActivity.class));
+                } catch (Throwable t) {
+                    Toast.makeText(this,
+                            "Reader unavailable: " + t.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                }
+            });
+        }
     }
 
     /**

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Core brand palette (unchanged for product consistency) -->
     <color name="space_black">#0A0A0F</color>
     <color name="cobalt_blue">#0057FF</color>
     <color name="auriga_cyan">#00F0FF</color>
@@ -8,4 +9,26 @@
     <color name="hud_text">#FFFFFF</color>
     <color name="black">#000000</color>
     <color name="white">#FFFFFF</color>
+
+    <!-- Extended palette for the redesigned HUD -->
+    <color name="deep_space">#05060A</color>
+    <color name="nebula_indigo">#0B1230</color>
+    <color name="cyan_glow_30">#4D00F0FF</color>
+    <color name="cyan_glow_15">#2600F0FF</color>
+    <color name="cyan_glow_08">#1400F0FF</color>
+    <color name="cobalt_glow_25">#400057FF</color>
+    <color name="cobalt_dim">#1F0057FF</color>
+    <color name="amber_glow_25">#40FFB300</color>
+    <color name="alert_glow_30">#4DFF3B30</color>
+    <color name="alert_red_dark">#B82B25</color>
+
+    <!-- Glassmorphism / card surfaces -->
+    <color name="glass_panel">#80050A18</color>
+    <color name="glass_panel_strong">#B3050A18</color>
+    <color name="glass_stroke">#3300F0FF</color>
+    <color name="glass_stroke_dim">#1A00F0FF</color>
+
+    <!-- Status text tints -->
+    <color name="status_online">#00F0B4</color>
+    <color name="muted_label">#7AA3C8</color>
 </resources>

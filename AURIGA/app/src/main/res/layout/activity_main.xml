@@ -2,7 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/space_black">
+    android:background="@color/deep_space">
 
     <!-- 1. FULL SCREEN CAMERA PREVIEW -->
     <TextureView
@@ -10,11 +10,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- 2. GRID / SCANLINE OVERLAY (Aesthetic) -->
+    <!-- 2. AMBIENT GLOW + FRAME OVERLAY (replaces flat grid) -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:alpha="0.05"
         android:background="@drawable/hud_grid_overlay" />
 
     <!-- 3. TOP HUD: STATUS & MODE -->
@@ -29,16 +28,36 @@
         solver converges on older Android versions.
     -->
     <RelativeLayout
+        android:id="@+id/top_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp">
+        android:background="@drawable/hud_top_bar_bg"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="20dp">
 
-        <TextView
-            android:id="@+id/system_status"
-            style="@style/HUDLabelSmall"
+        <!-- Live status pill: pulsing dot + ONLINE label -->
+        <LinearLayout
+            android:id="@+id/system_status_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:text="ONLINE // 60FPS" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <View
+                android:layout_width="10dp"
+                android:layout_height="10dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/status_dot" />
+
+            <TextView
+                android:id="@+id/system_status"
+                style="@style/HUDLabelAccent"
+                android:text="ONLINE // 60FPS" />
+        </LinearLayout>
 
         <!--
             Explicit diagnostic toggle. Replaces the earlier "long-press
@@ -52,100 +71,164 @@
             android:id="@+id/diag_toggle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:minWidth="56dp"
+            android:minWidth="64dp"
             android:minHeight="44dp"
-            android:layout_toStartOf="@id/system_status"
-            android:layout_marginEnd="8dp"
+            android:layout_toStartOf="@id/system_status_group"
+            android:layout_marginEnd="10dp"
             android:layout_centerVertical="true"
             android:background="@drawable/diag_toggle_bg"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
             android:paddingTop="6dp"
             android:paddingBottom="6dp"
             android:text="DIAG"
             android:textSize="11sp"
             android:textColor="@color/diag_toggle_text"
-            android:letterSpacing="0.08"
+            android:letterSpacing="0.12"
             android:fontFamily="sans-serif-medium"
             android:textAllCaps="true"
             android:contentDescription="Diagnostics off. Double tap to show overlay." />
 
-        <TextView
-            android:id="@+id/mode_label"
-            style="@style/HUDLabelSmall"
+        <!-- Mode label with optional subtitle -->
+        <LinearLayout
             android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_alignParentStart="true"
             android:layout_toStartOf="@id/diag_toggle"
-            android:layout_marginEnd="8dp"
-            android:ellipsize="end"
-            android:singleLine="true"
-            android:minHeight="44dp"
-            android:gravity="center_vertical"
-            android:text="AURIGANAVI // NAVIGATION MODE" />
+            android:layout_marginEnd="10dp"
+            android:layout_centerVertical="true"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/HUDLabelSmall"
+                android:text="MODE" />
+
+            <TextView
+                android:id="@+id/mode_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:gravity="center_vertical"
+                android:textSize="14sp"
+                android:textColor="@color/auriga_cyan"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.08"
+                android:textAllCaps="true"
+                android:text="AurigaNavi // Navigation" />
+        </LinearLayout>
     </RelativeLayout>
 
     <!-- 4. CENTER HUD: RADAR SWEEP -->
     <View
         android:id="@+id/radar_sweep"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
+        android:layout_width="220dp"
+        android:layout_height="220dp"
         android:layout_centerInParent="true"
-        android:alpha="0.2"
         android:background="@drawable/radar_circle_anim" />
 
-    <!-- 5. LEFT HUD: DISTANCE READOUT -->
+    <!-- 5. LEFT HUD: DISTANCE READOUT (glass card) -->
     <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        style="@style/HUDGlassCard"
         android:layout_alignParentLeft="true"
         android:layout_centerVertical="true"
-        android:orientation="vertical"
-        android:padding="24dp">
+        android:layout_marginStart="16dp">
 
         <TextView
             style="@style/HUDLabelSmall"
-            android:text="DISTANCE" />
+            android:text="Distance" />
 
         <TextView
             android:id="@+id/distance_readout"
             style="@style/HUDReadoutLarge"
+            android:layout_marginTop="2dp"
             android:text="0.0m" />
+
+        <TextView
+            android:id="@+id/distance_unit"
+            style="@style/HUDLabelSmall"
+            android:layout_marginTop="-4dp"
+            android:text="meters · TruePath™" />
     </LinearLayout>
 
-    <!-- 6. RIGHT HUD: BEARING READOUT -->
+    <!-- 6. RIGHT HUD: BEARING READOUT (glass card) -->
     <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        style="@style/HUDGlassCard"
         android:layout_alignParentRight="true"
         android:layout_centerVertical="true"
-        android:orientation="vertical"
-        android:padding="24dp">
+        android:layout_marginEnd="16dp"
+        android:gravity="end">
 
         <TextView
             style="@style/HUDLabelSmall"
-            android:layout_gravity="right"
-            android:text="BEARING" />
+            android:layout_gravity="end"
+            android:text="Bearing" />
 
         <TextView
             android:id="@+id/bearing_readout"
             style="@style/HUDReadoutLarge"
-            android:layout_gravity="right"
+            android:layout_gravity="end"
+            android:layout_marginTop="2dp"
             android:text="0°" />
+
+        <TextView
+            android:id="@+id/bearing_unit"
+            style="@style/HUDLabelSmall"
+            android:layout_gravity="end"
+            android:layout_marginTop="-4dp"
+            android:text="azimuth · GhostAnchor™" />
     </LinearLayout>
 
     <!-- 7. BOTTOM HUD: SIGNATURE TAG -->
     <RelativeLayout
+        android:id="@+id/bottom_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:padding="24dp">
+        android:background="@drawable/hud_bottom_bar_bg"
+        android:padding="20dp">
 
-        <TextView
-            android:id="@+id/object_signature"
-            style="@style/HUDReadoutLarge"
-            android:layout_centerHorizontal="true"
-            android:text="SCANNING..."
-            android:textSize="32sp" />
+        <!-- Reader launcher (OrCam-style text reading) -->
+        <Button
+            android:id="@+id/reader_launch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:minWidth="64dp"
+            android:minHeight="44dp"
+            android:background="@drawable/diag_toggle_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:text="READ"
+            android:textSize="11sp"
+            android:textColor="@color/diag_toggle_text"
+            android:letterSpacing="0.12"
+            android:fontFamily="sans-serif-medium"
+            android:textAllCaps="true"
+            android:contentDescription="Launch DrakoVoice Reader. Reads printed text aloud using the camera." />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/HUDLabelSmall"
+                android:layout_gravity="center_horizontal"
+                android:text="Object Signature" />
+
+            <TextView
+                android:id="@+id/object_signature"
+                style="@style/HUDReadoutMedium"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="4dp"
+                android:text="SCANNING..." />
+        </LinearLayout>
+
     </RelativeLayout>
 
     <!--
@@ -161,12 +244,12 @@
         android:id="@+id/diagnostic_overlay"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
+        android:layout_below="@id/top_bar"
         android:layout_alignParentEnd="true"
-        android:layout_marginTop="72dp"
-        android:layout_marginEnd="12dp"
-        android:background="#CC000000"
-        android:padding="8dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/hud_glass_card"
+        android:padding="10dp"
         android:fontFamily="monospace"
         android:textColor="#B2FFE6"
         android:textSize="10sp"
@@ -179,14 +262,18 @@
         android:id="@+id/alert_banner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="60dp"
-        android:background="@color/alert_red"
+        android:layout_below="@id/top_bar"
+        android:layout_marginTop="12dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/alert_banner_bg"
         android:gravity="center"
-        android:padding="12dp"
+        android:padding="14dp"
         android:text="⚠ OVERHANG DETECTED"
         android:textColor="@color/hud_text"
-        android:textSize="20sp"
+        android:textSize="18sp"
         android:textStyle="bold"
+        android:letterSpacing="0.08"
         android:visibility="gone" />
 
 </RelativeLayout>

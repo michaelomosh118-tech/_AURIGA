@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Top status bar background: thin gradient strip that fades from a
+    near-opaque indigo at the top to fully transparent at the bottom,
+    so the HUD chrome legibly anchors mode/status text without blocking
+    the live camera frame underneath.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#CC050A18"
+        android:endColor="#00050A18" />
+</shape>

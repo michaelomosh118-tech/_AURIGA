@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    DrakoVoice Reader — OrCam-style page reader.
+
+    Camera preview fills the screen so the user can frame a printed page.
+    A glass header explains state ("LISTENING" / "READING") and lets the
+    user toggle auto-read. A capture FAB triggers an on-demand snapshot.
+    The bottom sheet shows the recognised text plus playback controls
+    (back / play-pause / forward) — same gesture vocabulary as the OrCam
+    touch bar (swipe through paragraphs, double-tap to pause).
+-->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/deep_space">
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/reader_preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/hud_grid_overlay" />
+
+    <!-- Top bar: title + auto-read toggle + close -->
+    <RelativeLayout
+        android:id="@+id/reader_top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/hud_top_bar_bg"
+        android:padding="20dp">
+
+        <Button
+            android:id="@+id/reader_close"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:minWidth="56dp"
+            android:minHeight="44dp"
+            android:background="@drawable/diag_toggle_bg"
+            android:text="✕"
+            android:textColor="@color/diag_toggle_text"
+            android:textSize="14sp"
+            android:contentDescription="Close reader" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/HUDLabelSmall"
+                android:layout_gravity="center_horizontal"
+                android:text="DrakoVoice™ Reader" />
+
+            <TextView
+                android:id="@+id/reader_state"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textSize="14sp"
+                android:textColor="@color/auriga_cyan"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.08"
+                android:textAllCaps="true"
+                android:text="POINT &amp; READ" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/reader_auto_toggle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:minWidth="64dp"
+            android:minHeight="44dp"
+            android:background="@drawable/diag_toggle_bg"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:text="AUTO"
+            android:textColor="@color/diag_toggle_text"
+            android:textSize="11sp"
+            android:letterSpacing="0.12"
+            android:textAllCaps="true"
+            android:fontFamily="sans-serif-medium"
+            android:contentDescription="Auto-read off. Double tap to enable automatic page reading." />
+    </RelativeLayout>
+
+    <!-- Centre framing reticle -->
+    <View
+        android:layout_width="260dp"
+        android:layout_height="180dp"
+        android:layout_centerInParent="true"
+        android:background="@drawable/hud_glass_card" />
+
+    <!-- Capture FAB -->
+    <Button
+        android:id="@+id/reader_capture"
+        android:layout_width="76dp"
+        android:layout_height="76dp"
+        android:layout_above="@+id/reader_sheet"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/reader_capture_bg"
+        android:text="●"
+        android:textColor="@color/space_black"
+        android:textSize="34sp"
+        android:contentDescription="Capture page and read aloud" />
+
+    <!-- Bottom sheet: recognised text + playback controls -->
+    <LinearLayout
+        android:id="@+id/reader_sheet"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@drawable/hud_bottom_bar_bg"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:background="@drawable/hud_glass_card"
+            android:padding="14dp">
+
+            <TextView
+                android:id="@+id/reader_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/hud_text"
+                android:textSize="16sp"
+                android:lineSpacingMultiplier="1.25"
+                android:fontFamily="serif"
+                android:text="Tap the capture button or enable AUTO to read printed text aloud." />
+        </ScrollView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/reader_prev"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="56dp"
+                android:minHeight="44dp"
+                android:background="@drawable/diag_toggle_bg"
+                android:text="⏮"
+                android:textColor="@color/diag_toggle_text"
+                android:textSize="20sp"
+                android:contentDescription="Previous paragraph" />
+
+            <Button
+                android:id="@+id/reader_play"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:layout_marginEnd="14dp"
+                android:minWidth="84dp"
+                android:minHeight="44dp"
+                android:background="@drawable/diag_toggle_bg"
+                android:text="PLAY"
+                android:textColor="@color/diag_toggle_text"
+                android:textSize="13sp"
+                android:letterSpacing="0.12"
+                android:textAllCaps="true"
+                android:fontFamily="sans-serif-medium"
+                android:contentDescription="Play or pause reading" />
+
+            <Button
+                android:id="@+id/reader_next"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="56dp"
+                android:minHeight="44dp"
+                android:background="@drawable/diag_toggle_bg"
+                android:text="⏭"
+                android:textColor="@color/diag_toggle_text"
+                android:textSize="20sp"
+                android:contentDescription="Next paragraph" />
+        </LinearLayout>
+    </LinearLayout>
+
+</RelativeLayout>
