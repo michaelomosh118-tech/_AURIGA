@@ -73,6 +73,15 @@ The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and 
   `AURIGA_FEEDBACK_*` env vars. The drawer's "Send Feedback" row dims
   and shows an amber gate hint until the walk is done; tapping a gated
   row launches the walk so users always have a forward path.
+- **Web Send Feedback page (`AURIGA/web_deploy/feedback.html`)**: Mirrors
+  the Android `FeedbackActivity` for blind/low-vision users on the PWA.
+  Same JSON shape, same endpoint (`/.netlify/functions/submit-feedback`),
+  same graceful `mailto:` fallback when the network or function is down.
+  Auto-attaches a browser profile (UA, language, screen dims, online
+  status, cookie support, current URL) so accuracy reports correlate
+  with what the visitor actually had loaded. Linked from `index.html`
+  nav and the `reader.html` topbar with a 44 dp pill that matches the
+  state-pill styling.
 - **Netlify Function (`AURIGA/netlify/functions/submit-feedback.js`)**:
   Accepts the JSON payload, validates length, logs a one-line summary
   to Netlify function logs, and optionally fan-outs to a generic webhook

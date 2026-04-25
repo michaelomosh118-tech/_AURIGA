@@ -114,6 +114,30 @@
       text-transform: uppercase;
       color: var(--auriga-cyan);
     }
+    /* Pill-style "Feedback" link in the topbar — same shape as
+       .state-pill so it visually balances the row, but sized for a
+       comfortable 44 px tap target on mobile. */
+    .feedback-link {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 8px 16px;
+      margin-left: 10px;
+      background: var(--glass);
+      border: 1px solid var(--glass-stroke);
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+      color: var(--auriga-cyan);
+      text-decoration: none;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+    .feedback-link:hover, .feedback-link:focus {
+      background: rgba(0, 240, 255, 0.14);
+      outline: none;
+    }
     .state-dot {
       width: 8px; height: 8px; border-radius: 999px;
       background: #00F0B4;
@@ -289,6 +313,8 @@
         <span class="state-dot" aria-hidden="true"></span>
         <span id="state">POINT &amp; READ</span>
       </div>
+      <a href="feedback.html" class="feedback-link"
+         aria-label="Send feedback to the DrakoSanctis team">Feedback</a>
     </header>
 
     <div class="reticle" aria-hidden="true"><span></span><span></span></div>

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#05060A" />
+  <title>Send Feedback · DrakoSanctis Auriga</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <style>
+    /* Same visual language as the rest of the site (deep_space + auriga
+       cyan + glass cards). Kept inline so this page stays a single
+       drop-in file with no extra CSS dependency. */
+    :root {
+      --deep-space: #05060A;
+      --auriga-cyan: #00F0FF;
+      --hud-text: #FFFFFF;
+      --muted: #7AA3C8;
+      --warning: #FFB300;
+      --glass-bg: rgba(0, 240, 255, 0.06);
+      --glass-stroke: rgba(0, 240, 255, 0.20);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      background: var(--deep-space);
+      color: var(--hud-text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    a { color: var(--auriga-cyan); text-decoration: none; }
+    a:hover, a:focus { text-decoration: underline; }
+    header.topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 22px;
+      background: rgba(5, 6, 10, 0.92);
+      border-bottom: 1px solid var(--glass-stroke);
+      backdrop-filter: blur(8px);
+    }
+    .brand-eyebrow {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      color: var(--auriga-cyan);
+      text-transform: uppercase;
+    }
+    .brand-name {
+      display: block;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 28px 22px 80px;
+    }
+    h1 {
+      font-size: 32px;
+      color: var(--auriga-cyan);
+      text-shadow: 0 0 14px rgba(0, 240, 255, 0.45);
+      margin: 0 0 8px;
+      letter-spacing: 0.04em;
+    }
+    .lede {
+      color: var(--muted);
+      margin: 0 0 28px;
+      line-height: 1.6;
+    }
+    fieldset {
+      border: 1px solid var(--glass-stroke);
+      background: var(--glass-bg);
+      border-radius: 14px;
+      padding: 18px 18px 14px;
+      margin: 0 0 20px;
+    }
+    legend {
+      padding: 0 8px;
+      color: var(--auriga-cyan);
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.04em;
+    }
+    .radio-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 6px;
+    }
+    .radio-row label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      padding: 10px 14px;
+      min-height: 44px;
+      border: 1px solid var(--glass-stroke);
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.25);
+      color: var(--hud-text);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .radio-row input { accent-color: var(--auriga-cyan); }
+    .radio-row label:has(input:checked) {
+      background: rgba(0, 240, 255, 0.12);
+      border-color: var(--auriga-cyan);
+    }
+    input[type="text"], input[type="email"], textarea {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.30);
+      border: 1px solid var(--glass-stroke);
+      border-radius: 10px;
+      padding: 12px 14px;
+      color: var(--hud-text);
+      font: inherit;
+      font-size: 15px;
+      min-height: 48px;
+    }
+    textarea {
+      min-height: 160px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    input:focus, textarea:focus {
+      outline: 2px solid var(--auriga-cyan);
+      outline-offset: 2px;
+    }
+    .submit-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    button.submit {
+      background: var(--auriga-cyan);
+      color: #001016;
+      border: none;
+      border-radius: 999px;
+      padding: 14px 32px;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      min-height: 52px;
+      cursor: pointer;
+      box-shadow: 0 0 24px rgba(0, 240, 255, 0.35);
+    }
+    button.submit:hover, button.submit:focus { filter: brightness(1.1); }
+    button.submit[disabled] {
+      opacity: 0.55;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    .status {
+      flex: 1 1 200px;
+      min-width: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .status.ok { color: #6EFAB6; }
+    .status.err { color: var(--warning); }
+    .meta {
+      margin-top: 22px;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.30);
+      border: 1px dashed var(--glass-stroke);
+      border-radius: 10px;
+      font-family: 'Consolas', 'Menlo', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--muted);
+      white-space: pre-wrap;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 18px;
+      padding: 8px 14px;
+      border: 1px solid var(--glass-stroke);
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    @media (max-width: 600px) {
+      h1 { font-size: 26px; }
+      main { padding: 22px 16px 80px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <span class="brand-eyebrow">DrakoSanctis // Auriga</span>
+      <span class="brand-name">Send Feedback</span>
+    </div>
+    <a href="index.html" aria-label="Back to home">← Home</a>
+  </header>
+
+  <main>
+    <a class="back-link" href="reader.html">← Back to DrakoVoice Reader</a>
+    <h1>Tell us what's working — and what isn't.</h1>
+    <p class="lede">
+      Bug reports, accuracy issues, ideas, kind words — they all help us
+      sharpen Auriga. Your message goes straight to the DrakoSanctis team.
+      We attach your browser profile automatically so we can reproduce
+      what you saw; nothing else leaves this page.
+    </p>
+
+    <form id="feedbackForm" novalidate>
+      <fieldset>
+        <legend>Category</legend>
+        <div class="radio-row" role="radiogroup" aria-label="Feedback category">
+          <label><input type="radio" name="category" value="bug" checked> Bug or crash</label>
+          <label><input type="radio" name="category" value="accuracy"> Accuracy issue</label>
+          <label><input type="radio" name="category" value="idea"> Feature idea</label>
+          <label><input type="radio" name="category" value="other"> Other</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Your message</legend>
+        <label for="message">Describe the issue or idea</label>
+        <textarea id="message" name="message" required minlength="5" maxlength="8000"
+                  placeholder="What happened? What did you expect?"></textarea>
+
+        <label for="email">Reply-to email (optional)</label>
+        <input id="email" name="email" type="email" autocomplete="email"
+               placeholder="you@example.com" />
+      </fieldset>
+
+      <fieldset>
+        <legend>What we'll attach</legend>
+        <div class="meta" id="metaPreview" aria-live="polite"></div>
+      </fieldset>
+
+      <div class="submit-row">
+        <button type="submit" class="submit" id="submitBtn">Submit Feedback</button>
+        <span class="status" id="status" role="status" aria-live="polite"></span>
+      </div>
+    </form>
+  </main>
+
+  <script>
+    /*
+     * The web feedback page mirrors the Android FeedbackActivity:
+     *   POST JSON  →  /.netlify/functions/submit-feedback
+     *   payload:   { message, email, category, product, version, device,
+     *                profile, diagnostic, ts }
+     *
+     * On any non-2xx (or network failure) we fall back to a mailto: so
+     * users always have a working escape hatch — same pattern as the
+     * Android FeedbackSubmitter.
+     */
+    const ENDPOINT = '/.netlify/functions/submit-feedback';
+    const MAILTO_FALLBACK = 'feedback@drakosanctis.local';
+
+    const meta = collectMeta();
+    document.getElementById('metaPreview').textContent = renderMeta(meta);
+
+    document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      const status = document.getElementById('status');
+      const messageEl = document.getElementById('message');
+      const emailEl = document.getElementById('email');
+      const message = (messageEl.value || '').trim();
+      if (message.length < 5) {
+        status.className = 'status err';
+        status.textContent = 'Please describe the issue (at least a few words).';
+        messageEl.focus();
+        return;
+      }
+      const category = (document.querySelector('input[name="category"]:checked') || {}).value || 'other';
+      const payload = {
+        message,
+        email: (emailEl.value || '').trim(),
+        category,
+        ...meta,
+        ts: Date.now(),
+      };
+
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      status.className = 'status';
+      status.textContent = '';
+
+      try {
+        const res = await fetch(ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        status.className = 'status ok';
+        status.textContent = 'Thanks — feedback sent. We read every message.';
+        document.getElementById('feedbackForm').reset();
+        document.getElementById('metaPreview').textContent = renderMeta(meta);
+      } catch (err) {
+        status.className = 'status err';
+        status.innerHTML =
+          'Couldn\u2019t reach the server. ' +
+          '<a href="' + buildMailto(payload) + '">Open your email app instead</a> ' +
+          'to send the same message.';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit Feedback';
+      }
+    });
+
+    function collectMeta() {
+      return {
+        product: 'WEB',
+        version: 'web-' + (document.lastModified || ''),
+        device: (navigator.userAgent || 'unknown').slice(0, 240),
+        profile: 'browser:' + (navigator.language || 'en'),
+        diagnostic: [
+          'href=' + location.href,
+          'screen=' + screen.width + 'x' + screen.height,
+          'window=' + window.innerWidth + 'x' + window.innerHeight,
+          'dpr=' + (window.devicePixelRatio || 1),
+          'cookies=' + (navigator.cookieEnabled ? 'on' : 'off'),
+          'online=' + (navigator.onLine ? 'yes' : 'no'),
+        ].join('\n'),
+      };
+    }
+
+    function renderMeta(m) {
+      return [
+        'Product:    ' + m.product,
+        'Version:    ' + m.version,
+        'Device:     ' + m.device,
+        'Profile:    ' + m.profile,
+        'Diagnostic: ',
+        m.diagnostic,
+      ].join('\n');
+    }
+
+    function buildMailto(p) {
+      const subj = 'AurigaNavi feedback — ' + (p.category || 'other');
+      const body =
+        (p.message || '') + '\n\n' +
+        '— Auto-attached metadata —\n' +
+        'Product: ' + p.product + '\n' +
+        'Version: ' + p.version + '\n' +
+        'Device: ' + p.device + '\n' +
+        'Profile: ' + p.profile + '\n' +
+        'Diagnostic snapshot:\n' + p.diagnostic;
+      return 'mailto:' + MAILTO_FALLBACK +
+             '?subject=' + encodeURIComponent(subj) +
+             '&body=' + encodeURIComponent(body);
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>
