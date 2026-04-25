@@ -157,6 +157,31 @@ android {
 }
 
 dependencies {
+    // Align all transitive Kotlin stdlib artifacts to 1.8.22.
+    //
+    // CameraX 1.3.x and a few ML Kit deps pull in kotlin-stdlib:1.8.22,
+    // while older transitive deps still ask for kotlin-stdlib-jdk7:1.6.0
+    // and kotlin-stdlib-jdk8:1.6.0. As of Kotlin 1.8 the jdk7/jdk8
+    // artifacts were merged into kotlin-stdlib, so mixing the two
+    // versions produces "Duplicate class kotlin.collections.jdk8.*"
+    // errors during :app:checkXxxDuplicateClasses.
+    //
+    // Constraints (rather than `force`) is the JetBrains-recommended
+    // fix: it upgrades the legacy jdk7/jdk8 artifacts to 1.8.22 where
+    // they are empty shims that just re-export kotlin-stdlib, removing
+    // the overlap without locking the rest of the graph.
+    constraints {
+        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22') {
+            because 'kotlin-stdlib-jdk7 is folded into kotlin-stdlib in Kotlin 1.8+'
+        }
+        implementation('org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22') {
+            because 'kotlin-stdlib-jdk8 is folded into kotlin-stdlib in Kotlin 1.8+'
+        }
+        implementation('org.jetbrains.kotlin:kotlin-stdlib:1.8.22') {
+            because 'pin a single Kotlin stdlib version across all transitive deps'
+        }
+    }
+
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
