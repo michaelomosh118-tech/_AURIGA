@@ -69,39 +69,10 @@
             font-weight: 900;
         }
 
-        /* ── ACCESSIBILITY TOOLBAR ── */
-        .a11y-toolbar {
-            position: fixed;
-            top: 0; left: 0; right: 0;
-            background: #000;
-            border-bottom: 2px solid var(--warning-amber);
-            z-index: 2000;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px 20px;
-            flex-wrap: wrap;
-        }
-        .a11y-label {
-            font-family: 'Orbitron'; font-size: 0.6rem;
-            letter-spacing: 3px; color: var(--warning-amber);
-            text-transform: uppercase; margin-right: 4px;
-        }
-        .a11y-btn {
-            background: transparent;
-            border: 1px solid #444;
-            color: #fff;
-            font-family: 'Inter'; font-size: 0.78rem;
-            padding: 5px 14px; cursor: pointer;
-            transition: all 0.2s;
-            min-height: 36px; min-width: 48px;
-        }
-        .a11y-btn:hover, .a11y-btn.active {
-            border-color: var(--warning-amber);
-            color: var(--warning-amber);
-            background: rgba(255,179,0,0.08);
-        }
-        .a11y-sep { width: 1px; height: 24px; background: #333; }
+        /* The accessibility toolbar that used to live above the
+           navbar has moved into the hamburger drawer's console
+           (see nav-drawer.css). Its toggles persist across all
+           four pages now, not just the home page. */
 
         /* ── HIGH CONTRAST MODE ── */
         body.high-contrast {
@@ -632,16 +603,6 @@
 <body>
 
 <a href="#home" class="skip-link">Skip to Main Content</a>
-
-<div class="a11y-toolbar" role="region" aria-label="Accessibility Options">
-    <span class="a11y-label">ACCESSIBILITY:</span>
-    <button class="a11y-btn" id="btn-hc" onclick="toggleHighContrast()" aria-pressed="false">High Contrast</button>
-    <button class="a11y-btn" id="btn-lt" onclick="toggleLargeText()" aria-pressed="false">Large Text</button>
-    <button class="a11y-btn" id="btn-rm" onclick="toggleReduceMotion()" aria-pressed="false">Reduce Motion</button>
-    <div class="a11y-sep"></div>
-    <span class="a11y-label">DRAKOVOICE™:</span>
-    <button class="a11y-btn" id="btn-tts" onclick="toggleTTS()" aria-pressed="false">Screen Reader [OFF]</button>
-</div>
 
 <div id="starfield"></div>
 
@@ -1432,52 +1393,11 @@ float[] result = AurigaCore::triangulate(
 
 <script>
     // ── ACCESSIBILITY & DRAKOVOICE ──
-    let ttsEnabled = false;
-
-    function srAnnounce(message) {
-        if (!ttsEnabled) return;
-        const utterance = new SpeechSynthesisUtterance(message);
-        utterance.rate = 1.1; 
-        utterance.pitch = 0.9;
-        window.speechSynthesis.speak(utterance);
-    }
-
-    function toggleHighContrast() {
-        const active = document.body.classList.toggle('high-contrast');
-        const btn = document.getElementById('btn-hc');
-        btn.classList.toggle('active');
-        btn.setAttribute('aria-pressed', active);
-        srAnnounce(active ? 'High contrast enabled' : 'High contrast disabled');
-    }
-
-    function toggleLargeText() {
-        const active = document.body.classList.toggle('large-text');
-        const btn = document.getElementById('btn-lt');
-        btn.classList.toggle('active');
-        btn.setAttribute('aria-pressed', active);
-        srAnnounce(active ? 'Large text enabled' : 'Large text disabled');
-    }
-
-    function toggleReduceMotion() {
-        const active = document.body.classList.toggle('reduce-motion');
-        const btn = document.getElementById('btn-rm');
-        btn.classList.toggle('active');
-        btn.setAttribute('aria-pressed', active);
-        srAnnounce(active ? 'Reduced motion enabled' : 'Reduced motion disabled');
-    }
-
-    function toggleTTS() {
-        ttsEnabled = !ttsEnabled;
-        const btn = document.getElementById('btn-tts');
-        btn.classList.toggle('active');
-        btn.setAttribute('aria-pressed', ttsEnabled);
-        btn.innerText = ttsEnabled ? 'Screen Reader [ON]' : 'Screen Reader [OFF]';
-        if (ttsEnabled) {
-            srAnnounce('DrakoVoice activated. Welcome to the Auriga Ecosystem.');
-        } else {
-            window.speechSynthesis.cancel();
-        }
-    }
+    // The toggle handlers and srAnnounce() now live in
+    // nav-drawer.js (shared across every page) so the modes
+    // persist across navigation. window.srAnnounce() is still
+    // available globally — used by the APK download handler
+    // farther down to read the install instructions aloud.
 
     // ── NAVIGATION ──
     function showSection(id) {

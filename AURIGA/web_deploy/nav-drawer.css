@@ -1,15 +1,14 @@
 /* ─────────────────────────────────────────────────────────────
-   Auriga shared hamburger nav drawer
+   Auriga shared hamburger nav drawer + accessibility console
    ─────────────────────────────────────────────────────────────
-   Single source of truth for the hamburger menu used across
+   Single source of truth for the nav drawer used across
    index.html, calibration-library.html, reader.html, and
-   feedback.html. Pages either place their own #navToggle
-   button (e.g. inside an existing topbar) or let nav-drawer.js
-   inject a floating one in the top-right corner.
+   feedback.html. Pages either place their own #navToggle button
+   (e.g. inside an existing topbar) or let nav-drawer.js inject
+   a floating one in the top-right corner.
    ───────────────────────────────────────────────────────────── */
 
-/* Hamburger button — primary nav affordance at every viewport
-   size. Three-bar icon + MENU label, sized as a 48x44 tap target. */
+/* ── HAMBURGER BUTTON ─────────────────────────────────────── */
 .nav-toggle {
     display: inline-flex;
     align-items: center;
@@ -47,9 +46,8 @@
     border-radius: 1px;
 }
 
-/* Floating variant: when the page has no topbar to host the
-   hamburger, nav-drawer.js injects one with .floating, which
-   pins it to the top-right corner above all content. */
+/* Floating variant — pinned to the top-right when no topbar
+   hosts the hamburger. */
 .nav-toggle.floating {
     position: fixed;
     top: 14px;
@@ -59,15 +57,13 @@
     backdrop-filter: blur(8px);
 }
 
-/* Slide-in drawer: hidden off the right edge by default,
-   transitions in when .open is set. Fixed-width on desktop
-   so it doesn't take the whole screen; full-width on phones. */
+/* ── DRAWER SHELL ─────────────────────────────────────────── */
 .nav-drawer {
     position: fixed;
     top: 0; right: 0;
     height: 100vh;
-    width: 320px;
-    max-width: 88vw;
+    width: 340px;
+    max-width: 90vw;
     background: rgba(8, 10, 18, 0.97);
     backdrop-filter: blur(16px);
     border-left: 1px solid rgba(0, 87, 255, 0.35);
@@ -77,18 +73,25 @@
     z-index: 1200;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    padding: 24px 22px 40px;
     color: #e0e0e0;
 }
 .nav-drawer.open { transform: translateX(0); }
+
 .nav-drawer-head {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
-    padding-bottom: 14px;
-    margin-bottom: 12px;
+    gap: 12px;
+    padding: 22px 22px 14px;
     border-bottom: 1px solid rgba(0, 87, 255, 0.28);
+    flex-shrink: 0;
+}
+.nav-drawer-head-left {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
 }
 .nav-drawer-title {
     font-family: 'Orbitron', sans-serif;
@@ -110,11 +113,19 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 .nav-drawer-close:hover { background: rgba(0, 240, 255, 0.1); }
 .nav-drawer-close:focus-visible {
     outline: 2px solid #00f0ff;
     outline-offset: 2px;
+}
+
+/* ── DRAWER BODY (scrollable middle) ──────────────────────── */
+.nav-drawer-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 22px 18px;
 }
 .nav-section-label {
     font-family: 'Orbitron', sans-serif;
@@ -125,6 +136,7 @@
     margin: 18px 4px 6px;
     opacity: 0.85;
 }
+.nav-section-label:first-child { margin-top: 4px; }
 .nav-section {
     display: flex;
     flex-direction: column;
@@ -153,8 +165,167 @@
     outline: none;
 }
 
-/* Scrim that dims the page behind the open drawer and acts as
-   a click-outside-to-close affordance. */
+/* ── LIVE STATUS CHIP STRIP (top of drawer) ───────────────── */
+/* Empty by default; renders one chip per active accessibility
+   mode so the user gets a live read-out of what's on without
+   having to scroll down to the console. */
+.a11y-status {
+    display: none;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.a11y-status.has-chips { display: flex; }
+.a11y-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 11px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    border: 1px solid currentColor;
+}
+.a11y-chip[data-tone="cyan"] {
+    color: #00f0ff;
+    background: rgba(0, 240, 255, 0.1);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.35);
+}
+.a11y-chip[data-tone="amber"] {
+    color: #ffb300;
+    background: rgba(255, 179, 0, 0.12);
+    box-shadow: 0 0 10px rgba(255, 179, 0, 0.4);
+    animation: a11yChipPulse 1.6s ease-in-out infinite;
+}
+@keyframes a11yChipPulse {
+    0%, 100% { box-shadow: 0 0 6px  rgba(255, 179, 0, 0.35); }
+    50%      { box-shadow: 0 0 14px rgba(255, 179, 0, 0.7); }
+}
+
+/* ── ACCESSIBILITY CONSOLE (sticky drawer footer) ─────────── */
+.a11y-console {
+    flex-shrink: 0;
+    padding: 14px 22px 22px;
+    border-top: 1px solid rgba(255, 179, 0, 0.35);
+    background:
+        linear-gradient(180deg,
+            rgba(255, 179, 0, 0.04) 0%,
+            rgba(8, 10, 18, 0.0) 100%),
+        rgba(8, 10, 18, 0.85);
+}
+.a11y-console-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.a11y-console-eyebrow {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.32em;
+    color: #ffb300;
+    text-transform: uppercase;
+}
+.a11y-console-hint {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.62rem;
+    color: rgba(255, 255, 255, 0.45);
+    letter-spacing: 0.04em;
+    text-align: right;
+}
+
+.a11y-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+/* Toggle tile: LED dot on the left, two-line label on the
+   right. Whole tile is the click target so it hits the 44px
+   minimum tap-target requirement comfortably. */
+.a11y-tile {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    min-height: 56px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    font-family: 'Orbitron', sans-serif;
+    color: rgba(224, 224, 224, 0.85);
+}
+.a11y-tile:hover {
+    border-color: rgba(0, 240, 255, 0.4);
+    background: rgba(0, 240, 255, 0.04);
+}
+.a11y-tile:focus-visible {
+    outline: 2px solid #00f0ff;
+    outline-offset: 2px;
+}
+.a11y-tile-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+.a11y-tile-label span:first-child { color: rgba(255, 255, 255, 0.95); }
+.a11y-tile-label span:last-child  { color: rgba(255, 255, 255, 0.55); }
+
+/* LED dot — dim amber halo when off; bright glow when on. */
+.a11y-led {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 179, 0, 0.18);
+    border: 1px solid rgba(255, 179, 0, 0.4);
+    flex-shrink: 0;
+    transition: background 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+/* ON state — cyan tone for visual modes, amber pulse for the
+   audio (DrakoVoice) tile, so they're visually distinct. */
+.a11y-tile.on[data-tone="cyan"] {
+    border-color: #00f0ff;
+    background: rgba(0, 240, 255, 0.08);
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.25),
+                inset 0 0 16px rgba(0, 240, 255, 0.08);
+    color: #ffffff;
+}
+.a11y-tile.on[data-tone="cyan"] .a11y-led {
+    background: #00f0ff;
+    border-color: #00f0ff;
+    box-shadow: 0 0 8px #00f0ff, 0 0 16px rgba(0, 240, 255, 0.6);
+}
+.a11y-tile.on[data-tone="amber"] {
+    border-color: #ffb300;
+    background: rgba(255, 179, 0, 0.1);
+    box-shadow: 0 0 12px rgba(255, 179, 0, 0.3),
+                inset 0 0 16px rgba(255, 179, 0, 0.08);
+    color: #ffffff;
+}
+.a11y-tile.on[data-tone="amber"] .a11y-led {
+    background: #ffb300;
+    border-color: #ffb300;
+    box-shadow: 0 0 8px #ffb300, 0 0 16px rgba(255, 179, 0, 0.6);
+    animation: a11yLedPulse 1.6s ease-in-out infinite;
+}
+@keyframes a11yLedPulse {
+    0%, 100% { box-shadow: 0 0 6px  #ffb300, 0 0 12px rgba(255, 179, 0, 0.4); }
+    50%      { box-shadow: 0 0 12px #ffb300, 0 0 22px rgba(255, 179, 0, 0.85); }
+}
+
+/* ── SCRIM ────────────────────────────────────────────────── */
 .nav-scrim {
     position: fixed;
     inset: 0;
@@ -169,3 +340,44 @@
     pointer-events: auto;
 }
 body.nav-open { overflow: hidden; }
+
+/* ── GENERIC ACCESSIBILITY MODE EFFECTS ───────────────────── */
+/* Pages can (and index.html does) provide bespoke styles for
+   each body class. These rules are the universal fallback so
+   the toggles are still useful on pages without custom rules. */
+
+/* High contrast — boost contrast & saturation, beef up text
+   weight, and outline focus targets in a vivid cyan. */
+body.high-contrast {
+    filter: contrast(1.18) saturate(1.25);
+}
+body.high-contrast :focus-visible {
+    outline: 3px solid #00f0ff !important;
+    outline-offset: 2px !important;
+}
+
+/* Large text — scale the root font size so anything sized in
+   rem grows proportionally. We also nudge specific text-only
+   nodes with px sizing inside the drawer to keep them legible. */
+html.large-text,
+body.large-text { font-size: 118%; }
+body.large-text .nav-section a { font-size: 1rem; }
+
+/* Reduce motion — kill transitions/animations everywhere,
+   honoring the user's request universally (including elements
+   our own code animates inline). */
+body.reduce-motion *,
+body.reduce-motion *::before,
+body.reduce-motion *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+}
+
+/* ── RESPONSIVE TWEAKS ────────────────────────────────────── */
+@media (max-width: 480px) {
+    .nav-drawer { width: 100vw; max-width: 100vw; }
+    .a11y-grid { gap: 6px; }
+    .a11y-tile { min-height: 52px; padding: 8px 10px; }
+}
