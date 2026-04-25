@@ -56,3 +56,28 @@ The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and 
   the destination screens. Back-press closes the drawer instead of
   exiting the HUD when it's open. Activities registered in
   `AndroidManifest.xml`.
+- **10-Point Calibration Walk + Send Feedback (D1=C, D3=gated)**: New
+  `CalibrationWalkActivity` + `activity_calibration_walk.xml` step the
+  user through ten phone poses (distance, tilt, pan, lighting) and
+  persist `calibration_walk_completed` in `auriga_prefs` on completion.
+  New `FeedbackActivity` + `activity_feedback.xml` collect a category
+  (bug/accuracy/idea/other), free-text description and optional reply-to
+  email, auto-attaching the device profile, app version, calibration
+  profile label and the latest diagnostic snapshot mirrored from
+  `MainActivity#lastDiagnosticSnapshot`. Submissions go through
+  `FeedbackSubmitter` which POSTs JSON to `BuildConfig.FEEDBACK_ENDPOINT`
+  (defaults to `https://drakosanctis-auriga.netlify.app/.netlify/functions/submit-feedback`)
+  with a graceful `mailto:` fallback to `BuildConfig.FEEDBACK_MAILTO`
+  when the endpoint is unreachable. Both URLs are overridable at build
+  time via `-PfeedbackEndpoint` / `-PfeedbackMailto` Gradle properties or
+  `AURIGA_FEEDBACK_*` env vars. The drawer's "Send Feedback" row dims
+  and shows an amber gate hint until the walk is done; tapping a gated
+  row launches the walk so users always have a forward path.
+- **Netlify Function (`AURIGA/netlify/functions/submit-feedback.js`)**:
+  Accepts the JSON payload, validates length, logs a one-line summary
+  to Netlify function logs, and optionally fan-outs to a generic webhook
+  (`FEEDBACK_FORWARD_WEBHOOK` env var, e.g. Slack/Discord/Zapier) and/or
+  files a GitHub issue (`FEEDBACK_GITHUB_REPO` + `FEEDBACK_GITHUB_TOKEN`)
+  with `user-feedback` + `cat:<category>` labels. `netlify.toml` now
+  declares `functions = "AURIGA/netlify/functions"` so the function ships
+  on every Netlify build of the public site.

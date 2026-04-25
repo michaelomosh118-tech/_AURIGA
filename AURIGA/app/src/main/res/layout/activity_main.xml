@@ -385,6 +385,40 @@
                 android:layout_marginBottom="12dp"
                 android:background="@color/glass_stroke" />
 
+            <!-- Section: Setup -->
+            <TextView
+                style="@style/HUDLabelSmall"
+                android:layout_marginBottom="6dp"
+                android:text="Setup" />
+
+            <Button
+                android:id="@+id/nav_calibrate"
+                style="@style/DrawerItem"
+                android:text="10-Point Calibration Walk"
+                android:contentDescription="Run the 10-point calibration walk to improve distance accuracy" />
+
+            <Button
+                android:id="@+id/nav_feedback"
+                style="@style/DrawerItem"
+                android:text="Send Feedback"
+                android:contentDescription="Send feedback to the DrakoSanctis team" />
+
+            <TextView
+                android:id="@+id/nav_feedback_hint"
+                style="@style/HUDLabelSmall"
+                android:layout_marginTop="6dp"
+                android:layout_marginStart="4dp"
+                android:textColor="@color/warning_amber"
+                android:visibility="gone"
+                android:text="Complete the calibration walk first" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="14dp"
+                android:layout_marginBottom="12dp"
+                android:background="@color/glass_stroke" />
+
             <!-- Section: Diagnostics -->
             <TextView
                 style="@style/HUDLabelSmall"

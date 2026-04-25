@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/deep_space">
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/hud_grid_overlay" />
+
+    <RelativeLayout
+        android:id="@+id/fb_top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/hud_top_bar_bg"
+        android:padding="20dp">
+
+        <Button
+            android:id="@+id/fb_back"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:minWidth="56dp"
+            android:minHeight="44dp"
+            android:background="@drawable/diag_toggle_bg"
+            android:text="←"
+            android:textColor="@color/diag_toggle_text"
+            android:textSize="18sp"
+            android:contentDescription="Back to HUD" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:textSize="14sp"
+            android:textColor="@color/auriga_cyan"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.12"
+            android:textAllCaps="true"
+            android:text="Send Feedback" />
+    </RelativeLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/fb_action_bar"
+        android:layout_below="@id/fb_top_bar"
+        android:fillViewport="true"
+        android:padding="22dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/DocH1"
+                android:text="What's on your mind?" />
+
+            <TextView
+                style="@style/DocBody"
+                android:layout_marginTop="10dp"
+                android:text="Bug reports, calibration issues, feature ideas — they all help. We'll attach your device profile and the latest diagnostic snapshot automatically." />
+
+            <!-- Category chips -->
+            <TextView
+                style="@style/DocH2"
+                android:text="Category" />
+
+            <RadioGroup
+                android:id="@+id/fb_category"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <RadioButton
+                    android:id="@+id/fb_cat_bug"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="44dp"
+                    android:textColor="@color/hud_text"
+                    android:text="Bug or crash"
+                    android:checked="true" />
+
+                <RadioButton
+                    android:id="@+id/fb_cat_accuracy"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="44dp"
+                    android:textColor="@color/hud_text"
+                    android:text="Distance / bearing accuracy" />
+
+                <RadioButton
+                    android:id="@+id/fb_cat_idea"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="44dp"
+                    android:textColor="@color/hud_text"
+                    android:text="Feature idea" />
+
+                <RadioButton
+                    android:id="@+id/fb_cat_other"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="44dp"
+                    android:textColor="@color/hud_text"
+                    android:text="Other" />
+            </RadioGroup>
+
+            <TextView
+                style="@style/DocH2"
+                android:text="Describe the issue" />
+
+            <EditText
+                android:id="@+id/fb_message"
+                android:layout_width="match_parent"
+                android:layout_height="180dp"
+                android:background="@drawable/hud_glass_card"
+                android:gravity="top|start"
+                android:hint="What happened? What did you expect?"
+                android:textColorHint="@color/muted_label"
+                android:inputType="textMultiLine|textCapSentences"
+                android:padding="14dp"
+                android:textColor="@color/hud_text"
+                android:textSize="15sp" />
+
+            <TextView
+                style="@style/DocH2"
+                android:text="Reply-to email (optional)" />
+
+            <EditText
+                android:id="@+id/fb_email"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/hud_glass_card"
+                android:hint="you@example.com"
+                android:textColorHint="@color/muted_label"
+                android:inputType="textEmailAddress"
+                android:padding="14dp"
+                android:textColor="@color/hud_text"
+                android:textSize="15sp" />
+
+            <TextView
+                style="@style/DocH2"
+                android:text="What we'll attach" />
+
+            <TextView
+                android:id="@+id/fb_attached_summary"
+                style="@style/DocBody"
+                android:layout_marginBottom="32dp"
+                android:fontFamily="monospace"
+                android:textSize="12sp"
+                android:textColor="@color/muted_label"
+                android:text="" />
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/fb_action_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@drawable/hud_bottom_bar_bg"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="20dp">
+
+        <Button
+            android:id="@+id/fb_submit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="160dp"
+            android:minHeight="52dp"
+            android:background="@drawable/diag_toggle_bg"
+            android:paddingStart="22dp"
+            android:paddingEnd="22dp"
+            android:text="SUBMIT"
+            android:textColor="@color/diag_toggle_text"
+            android:textSize="14sp"
+            android:letterSpacing="0.18"
+            android:textAllCaps="true"
+            android:fontFamily="sans-serif-medium"
+            android:contentDescription="Submit feedback" />
+    </LinearLayout>
+
+</RelativeLayout>

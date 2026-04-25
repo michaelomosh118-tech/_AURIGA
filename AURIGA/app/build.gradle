@@ -18,6 +18,25 @@ android {
         // Build-time configuration for license security
         buildConfigField "String", "LICENSE_SALT", "\"DRAKO_SANCTIS_SECURE_SALT_2026\""
         buildConfigField "String", "DEFAULT_LICENSE", "\"AURIGA-PREMIUM-2026-BETA\""
+
+        // Feedback intake (D1=C). Override at build time via -P flags or a
+        // CI env var so production / staging / dev can target different
+        // Netlify sites without code changes:
+        //
+        //   ./gradlew assembleNaviDebug \
+        //       -PfeedbackEndpoint=https://auriga.example.app/.netlify/functions/submit-feedback \
+        //       -PfeedbackMailto=feedback@drakosanctis.example
+        //
+        // The defaults match the canonical Netlify-hosted public site so
+        // sideload builds still have a working endpoint out of the box.
+        def feedbackEndpoint = (project.findProperty('feedbackEndpoint')
+                ?: System.getenv('AURIGA_FEEDBACK_ENDPOINT')
+                ?: 'https://drakosanctis-auriga.netlify.app/.netlify/functions/submit-feedback')
+        def feedbackMailto = (project.findProperty('feedbackMailto')
+                ?: System.getenv('AURIGA_FEEDBACK_MAILTO')
+                ?: 'feedback@drakosanctis.local')
+        buildConfigField "String", "FEEDBACK_ENDPOINT", "\"" + feedbackEndpoint + "\""
+        buildConfigField "String", "FEEDBACK_MAILTO", "\"" + feedbackMailto + "\""
     }
 
     flavorDimensions += 'product'

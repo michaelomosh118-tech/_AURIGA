@@ -84,8 +84,14 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     // bar is shown alongside the drawer entry.
     private DrawerLayout drawerLayout;
     private boolean pinDiagToHud = false;
-    private static final String PREFS_NAME = "auriga_prefs";
+    static final String PREFS_NAME = "auriga_prefs";
     private static final String PREF_PIN_DIAG = "pin_diag_to_hud";
+
+    // Latest line written to the diagnostic overlay. We mirror it here so
+    // FeedbackActivity can attach it to the submission even when the
+    // overlay is hidden — feedback should always carry the freshest
+    // engine state, not whatever happened to be on screen.
+    private volatile String lastDiagnosticSnapshot = "";
 
     // Diagnostic overlay state. Toggled by tapping the DIAG button in
     // the HUD top bar (explicit affordance; replaces the earlier
@@ -303,6 +309,21 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             });
         }
 
+        // Refresh the calibration-walk gate hint every time the drawer
+        // opens. Required because users might finish the walk and come
+        // straight back here — without this, the amber "complete the
+        // walk first" warning would still be shown until next launch.
+        if (drawerLayout != null) {
+            drawerLayout.addDrawerListener(new androidx.drawerlayout.widget.DrawerLayout.SimpleDrawerListener() {
+                @Override
+                public void onDrawerOpened(View drawerView) {
+                    refreshFeedbackGateUi(
+                            findViewById(R.id.nav_feedback),
+                            findViewById(R.id.nav_feedback_hint));
+                }
+            });
+        }
+
         Button navHome = findViewById(R.id.nav_home);
         if (navHome != null) {
             navHome.setOnClickListener(v -> {
@@ -370,6 +391,70 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             } catch (Throwable ignored) {
                 // Keep the layout's default text if PackageManager misbehaves.
             }
+        }
+
+        // ── Setup section ─────────────────────────────────────────────
+        Button navCalibrate = findViewById(R.id.nav_calibrate);
+        if (navCalibrate != null) {
+            navCalibrate.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
+                safeStart(CalibrationWalkActivity.class, "Calibration walk");
+            });
+        }
+
+        Button navFeedback = findViewById(R.id.nav_feedback);
+        TextView feedbackHint = findViewById(R.id.nav_feedback_hint);
+        if (navFeedback != null) {
+            navFeedback.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
+                launchFeedback();
+            });
+        }
+        // Drawer is recreated on every open in spirit (we don't tear it
+        // down) so refresh the gate hint each time we wire it up.
+        refreshFeedbackGateUi(navFeedback, feedbackHint);
+    }
+
+    /**
+     * Show or hide the "Complete the calibration walk first" amber hint
+     * under the Send Feedback row, and dim the row itself when the gate
+     * is closed. Note that we still let the row be tappable — tapping a
+     * gated Feedback row launches the walk so the user has a clear
+     * forward path instead of just being blocked.
+     */
+    private void refreshFeedbackGateUi(Button feedbackBtn, TextView hint) {
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        boolean walkDone = prefs.getBoolean(
+                CalibrationWalkActivity.PREF_WALK_DONE, false);
+        if (hint != null) hint.setVisibility(walkDone ? View.GONE : View.VISIBLE);
+        if (feedbackBtn != null) feedbackBtn.setAlpha(walkDone ? 1f : 0.55f);
+    }
+
+    private void launchFeedback() {
+        try {
+            android.content.Intent it = new android.content.Intent(this, FeedbackActivity.class);
+            it.putExtra(FeedbackActivity.EXTRA_DIAGNOSTIC, lastDiagnosticSnapshot);
+            it.putExtra(FeedbackActivity.EXTRA_PROFILE, currentProfileLabel());
+            startActivity(it);
+        } catch (Throwable t) {
+            Toast.makeText(this,
+                    "Feedback unavailable: " + t.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+
+    /**
+     * Best-effort label describing the active calibration profile so the
+     * server can correlate accuracy reports across devices using the same
+     * profile. We use the BuildConfig product flavor (navi/sentinel/aero/
+     * industrial) as a coarse proxy when no finer profile is available.
+     */
+    private String currentProfileLabel() {
+        try {
+            return BuildConfig.AURIGA_PRODUCT
+                    + (calibrationManager != null ? " · loaded" : " · default");
+        } catch (Throwable t) {
+            return "(unknown)";
         }
     }
 
@@ -665,6 +750,9 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
                 groundSane, shiftMag,
                 profileSrc, lutPoints);
 
+        // Mirror the snapshot regardless of overlay visibility so Send
+        // Feedback always carries the freshest engine state.
+        lastDiagnosticSnapshot = msg;
         runOnUiThread(() -> {
             if (diagnosticOverlay != null && diagnosticVisible) {
                 diagnosticOverlay.setText(msg);

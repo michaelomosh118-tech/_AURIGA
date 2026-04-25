@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    10-point calibration walk. Pure presentational flow — does not actually
+    drive the optical pipeline; its job is to walk the user through the
+    standard calibration choreography (10 distinct phone poses) and persist
+    a "calibration_walk_completed" flag once they reach step 10. The flag
+    gates the Submit Feedback affordance so we never receive feedback from
+    a device that has not been baselined.
+-->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/deep_space">
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/hud_grid_overlay" />
+
+    <!-- Top bar with back, title, step counter -->
+    <RelativeLayout
+        android:id="@+id/calib_top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/hud_top_bar_bg"
+        android:padding="20dp">
+
+        <Button
+            android:id="@+id/calib_back"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:minWidth="56dp"
+            android:minHeight="44dp"
+            android:background="@drawable/diag_toggle_bg"
+            android:text="←"
+            android:textColor="@color/diag_toggle_text"
+            android:textSize="18sp"
+            android:contentDescription="Cancel calibration walk" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/HUDLabelSmall"
+                android:layout_gravity="center_horizontal"
+                android:text="Calibration Walk" />
+
+            <TextView
+                android:id="@+id/calib_step_counter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textSize="14sp"
+                android:textColor="@color/auriga_cyan"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.12"
+                android:textAllCaps="true"
+                android:text="STEP 1 OF 10" />
+        </LinearLayout>
+    </RelativeLayout>
+
+    <!-- Body card -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/calib_action_bar"
+        android:layout_below="@id/calib_top_bar"
+        android:fillViewport="true"
+        android:padding="22dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/calib_title"
+                style="@style/DocH1"
+                android:text="Stand 1 m from a flat wall" />
+
+            <TextView
+                android:id="@+id/calib_instructions"
+                style="@style/DocBody"
+                android:layout_marginTop="14dp"
+                android:text="Hold the phone vertical at chest height. Centre the wall in the cyan reticle. Hold steady and tap CAPTURE." />
+
+            <!-- Progress indicator: 10 dot row -->
+            <LinearLayout
+                android:id="@+id/calib_dots"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:gravity="center"
+                android:orientation="horizontal" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="28dp"
+                android:layout_marginBottom="20dp"
+                android:background="@color/glass_stroke" />
+
+            <TextView
+                style="@style/HUDLabelSmall"
+                android:text="Why this matters" />
+
+            <TextView
+                style="@style/DocBody"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="32dp"
+                android:text="Distance accuracy depends on knowing your phone's exact camera-to-IPD geometry. Ten captures across distances and angles teach the engine how your lens projects the world, getting TruePath™ from generic to sub-20 cm precision." />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Action bar: SKIP + CAPTURE -->
+    <LinearLayout
+        android:id="@+id/calib_action_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@drawable/hud_bottom_bar_bg"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="20dp">
+
+        <Button
+            android:id="@+id/calib_capture"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="160dp"
+            android:minHeight="52dp"
+            android:background="@drawable/diag_toggle_bg"
+            android:paddingStart="22dp"
+            android:paddingEnd="22dp"
+            android:text="CAPTURE"
+            android:textColor="@color/diag_toggle_text"
+            android:textSize="14sp"
+            android:letterSpacing="0.18"
+            android:textAllCaps="true"
+            android:fontFamily="sans-serif-medium"
+            android:contentDescription="Capture this calibration step and continue" />
+
+    </LinearLayout>
+
+</RelativeLayout>

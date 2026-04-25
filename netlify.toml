@@ -6,6 +6,14 @@
   # push to main builds the real public site.
   publish = "AURIGA/web_deploy"
 
+  # Functions directory for the AurigaNavi feedback intake (D1=C).
+  # The Android app POSTs JSON to /.netlify/functions/submit-feedback;
+  # the function (AURIGA/netlify/functions/submit-feedback.js) optionally
+  # forwards to a Slack/Discord/Zapier webhook and/or files a GitHub issue
+  # depending on the FEEDBACK_FORWARD_WEBHOOK / FEEDBACK_GITHUB_REPO /
+  # FEEDBACK_GITHUB_TOKEN environment variables set in the Netlify UI.
+  functions = "AURIGA/netlify/functions"
+
 [[headers]]
   for = "/*"
   [headers.values]
