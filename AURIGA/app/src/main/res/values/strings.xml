@@ -39,7 +39,7 @@
     <string name="drawer_diag_overlay_sub">Per-frame pitch, LUT row, confidence &amp; SLAM shift</string>
     <string name="drawer_diag_pin">◑  Pin DIAG to HUD</string>
     <string name="drawer_diag_pin_sub">Always-visible DIAG button in the top bar</string>
-    <string name="drawer_support_help">?  Help &amp; Tips</string>
+    <string name="drawer_support_help">\?  Help &amp; Tips</string>
     <string name="drawer_support_help_sub">Gestures, modes, accessibility &amp; TalkBack guide</string>
     <string name="drawer_support_centre">⊕  Support Centre</string>
     <string name="drawer_support_centre_sub">FAQs, contact DrakoSanctis &amp; crash log export</string>

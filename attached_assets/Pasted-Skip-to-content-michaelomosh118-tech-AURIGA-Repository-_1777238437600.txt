@@ -1,0 +1,102 @@
+Skip to content
+michaelomosh118-tech
+_AURIGA
+Repository navigation
+Code
+Issues
+Pull requests
+1
+ (1)
+Agents
+Actions
+Projects
+Security and quality
+Insights
+Settings
+
+ GitHub users are now required to enable two-factor authentication as an additional security measure. Your activity on GitHub includes you in this requirement. You will need to enable two-factor authentication on your account before June 10, 2026, or be restricted from account actions.
+
+AURIGA Professional Build Engine
+Clean up the app's main screen interface by removing unnecessary elem… #68
+All jobs
+Run details
+Annotations
+1 error and 1 warning
+build (navi, debug)
+failed 1 minute ago in 1m 13s
+Search logs
+2s
+1s
+2s
+1s
+0s
+0s
+1m 3s
+Run chmod +x ./gradlew
+Downloading https://services.gradle.org/distributions/gradle-8.5-bin.zip
+............10%.............20%............30%.............40%.............50%............60%.............70%.............80%............90%.............100%
+
+Welcome to Gradle 8.5!
+
+Here are the highlights of this release:
+ - Support for running on Java 21
+ - Faster first use with Kotlin DSL
+ - Improved error and warning messages
+
+For more details see https://docs.gradle.org/8.5/release-notes.html
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.5/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preNaviDebugBuild UP-TO-DATE
+> Task :app:mergeNaviDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateNaviDebugBuildConfig
+> Task :app:javaPreCompileNaviDebug FROM-CACHE
+> Task :app:generateNaviDebugResValues FROM-CACHE
+> Task :app:checkNaviDebugAarMetadata
+> Task :app:mapNaviDebugSourceSetPaths
+> Task :app:generateNaviDebugResources UP-TO-DATE
+> Task :app:packageNaviDebugResources
+> Task :app:createNaviDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksNaviDebug FROM-CACHE
+> Task :app:parseNaviDebugLocalResources
+> Task :app:mergeNaviDebugResources
+> Task :app:processNaviDebugMainManifest
+> Task :app:processNaviDebugManifest
+> Task :app:mergeNaviDebugShaders FROM-CACHE
+> Task :app:compileNaviDebugShaders NO-SOURCE
+> Task :app:generateNaviDebugAssets UP-TO-DATE
+> Task :app:mergeNaviDebugAssets FROM-CACHE
+> Task :app:compressNaviDebugAssets
+> Task :app:desugarNaviDebugFileDependencies
+> Task :app:processNaviDebugJavaRes NO-SOURCE
+> Task :app:processNaviDebugManifestForPackage
+> Task :app:checkNaviDebugDuplicateClasses
+> Task :app:processNaviDebugResources FAILED
+> Task :app:mergeExtDexNaviDebug
+
+20 actionable tasks: 15 executed, 5 from cache
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:processNaviDebugResources'.
+> A failure occurred while executing com.android.build.gradle.internal.res.LinkApplicationAndroidResourcesTask$TaskAction
+   > Android resource linking failed
+     com.drakosanctis.auriga.app-mergeNaviDebugResources-33:/values/values.xml:2052: error: resource attr/  Help & Tips (aka com.drakosanctis.auriga:attr/  Help & Tips) not found.
+     error: failed linking references.
+
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1m 2s
+Error: Process completed with exit code 1.
+0s
+0s
+0s
+1s
+0s
+0s
