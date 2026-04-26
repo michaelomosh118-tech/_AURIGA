@@ -86,10 +86,14 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     private boolean pinDiagToHud = false;
     private volatile boolean hapticEnabled = true;
     private volatile boolean voiceEnabled  = true;
+    private int quietStart = 22;
+    private int quietEnd   = 7;
     static final String PREFS_NAME = "auriga_prefs";
     private static final String PREF_PIN_DIAG   = "pin_diag_to_hud";
     private static final String PREF_HAPTIC      = "haptic_enabled";
     private static final String PREF_VOICE       = "voice_enabled";
+    private static final String PREF_QUIET_START = "quiet_hours_start";
+    private static final String PREF_QUIET_END   = "quiet_hours_end";
 
     // Latest line written to the diagnostic overlay. We mirror it here so
     // FeedbackActivity can attach it to the submission even when the
@@ -270,9 +274,11 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         // true so the DIAG button is visible in the top bar on first launch —
         // power users can untick it from the drawer if they prefer a cleaner HUD.
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        pinDiagToHud   = prefs.getBoolean(PREF_PIN_DIAG, true);
-        hapticEnabled  = prefs.getBoolean(PREF_HAPTIC,   true);
-        voiceEnabled   = prefs.getBoolean(PREF_VOICE,    true);
+        pinDiagToHud   = prefs.getBoolean(PREF_PIN_DIAG,   true);
+        hapticEnabled  = prefs.getBoolean(PREF_HAPTIC,     true);
+        voiceEnabled   = prefs.getBoolean(PREF_VOICE,      true);
+        quietStart     = prefs.getInt(PREF_QUIET_START,    22);
+        quietEnd       = prefs.getInt(PREF_QUIET_END,       7);
         applyDiagPinVisibility();
 
         // Explicit DIAG button replaces the earlier long-press-on-title
@@ -393,6 +399,13 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
                         checked ? "Voice feedback ON" : "Voice feedback OFF",
                         Toast.LENGTH_SHORT).show();
             });
+        }
+
+        View navQuietHours = findViewById(R.id.nav_quiet_hours);
+        TextView quietHoursSub = findViewById(R.id.nav_quiet_hours_sub);
+        updateQuietHoursLabel(quietHoursSub);
+        if (navQuietHours != null) {
+            navQuietHours.setOnClickListener(v -> showQuietHoursPicker(prefs, quietHoursSub));
         }
 
         // ── DIAGNOSTICS ───────────────────────────────────────────────
@@ -526,6 +539,61 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         }
     }
 
+    /**
+     * Returns true if the current hour falls within the user-defined quiet window.
+     * Handles overnight ranges (e.g. 22:00–07:00) correctly.
+     */
+    private boolean isQuietHours() {
+        int hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        if (quietStart <= quietEnd) {
+            return hour >= quietStart && hour < quietEnd;
+        } else {
+            return hour >= quietStart || hour < quietEnd;
+        }
+    }
+
+    /** Update the Quiet Hours sub-label to show the current configured range. */
+    private void updateQuietHoursLabel(TextView label) {
+        if (label == null) return;
+        if (quietStart == -1) {
+            label.setText("Off · tap to set quiet hours for voice auto-mute");
+        } else {
+            label.setText(String.format(java.util.Locale.US,
+                    "Muted %02d:00 – %02d:00 · tap to change", quietStart, quietEnd));
+        }
+    }
+
+    /**
+     * Shows two sequential TimePickerDialogs to let the user set the quiet start
+     * and end hours. Saves to SharedPreferences and refreshes the sub-label.
+     */
+    private void showQuietHoursPicker(SharedPreferences prefs, TextView label) {
+        android.app.TimePickerDialog startPicker = new android.app.TimePickerDialog(
+                this,
+                (view, hourOfDay, minute) -> {
+                    quietStart = hourOfDay;
+                    prefs.edit().putInt(PREF_QUIET_START, quietStart).apply();
+                    android.app.TimePickerDialog endPicker = new android.app.TimePickerDialog(
+                            this,
+                            (view2, endHour, endMinute) -> {
+                                quietEnd = endHour;
+                                prefs.edit().putInt(PREF_QUIET_END, quietEnd).apply();
+                                updateQuietHoursLabel(label);
+                                Toast.makeText(this,
+                                        String.format(java.util.Locale.US,
+                                                "Quiet hours set: %02d:00–%02d:00",
+                                                quietStart, quietEnd),
+                                        Toast.LENGTH_SHORT).show();
+                            },
+                            quietEnd, 0, true);
+                    endPicker.setTitle("Quiet hours end");
+                    endPicker.show();
+                },
+                quietStart, 0, true);
+        startPicker.setTitle("Quiet hours start");
+        startPicker.show();
+    }
+
     /** Show/hide the inline DIAG pill in the top bar based on user preference. */
     private void applyDiagPinVisibility() {
         if (diagToggle != null) {
@@ -606,22 +674,26 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
                 && calibrationManager.getState() == CalibrationManager.State.DETECTING;
         String modeDesc = detecting ? "CALIBRATION" : "SPATIAL ENGINE";
 
-        modeLabel.setText(variantName + " // " + modeDesc);
+        if (modeLabel != null) modeLabel.setText(variantName + " // " + modeDesc);
 
         // Variant-specific UI tweaks
         switch (AurigaConfig.CURRENT_PRODUCT) {
             case SENTINEL:
                 // Sentinel "God's Eye" mode uses a higher contrast HUD
-                signatureText.setTextColor(getColor(android.R.color.holo_red_dark));
+                if (signatureText != null)
+                    signatureText.setTextColor(getColor(android.R.color.holo_red_dark));
                 break;
             case AERO:
                 // Aero mode emphasizes height and bearing for drones
-                radarView.setScaleX(1.5f);
-                radarView.setScaleY(1.5f);
+                if (radarView != null) {
+                    radarView.setScaleX(1.5f);
+                    radarView.setScaleY(1.5f);
+                }
                 break;
             case INDUSTRIAL:
                 // Industrial mode uses a caution/warning color scheme
-                modeLabel.setTextColor(getColor(android.R.color.holo_orange_dark));
+                if (modeLabel != null)
+                    modeLabel.setTextColor(getColor(android.R.color.holo_orange_dark));
                 break;
             case NAVI:
             default:
@@ -900,8 +972,9 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
                 if (sonar != null)  sonar.updateSpatialData(dist, bearing, groundRes.signature);
                 if (haptic != null && hapticEnabled) haptic.pulse(dist);
 
-                // Voice announcement logic (debounced)
-                if (voice != null && voiceEnabled && dist < 1.0f && frameConf > 0.5f) {
+                // Voice announcement logic (debounced; suppressed during quiet hours)
+                if (voice != null && voiceEnabled && !isQuietHours()
+                        && dist < 1.0f && frameConf > 0.5f) {
                     voice.speak(groundRes.signature, dist, bearing);
                 }
             }
@@ -910,7 +983,7 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
                 alertBanner.setVisibility(View.VISIBLE);
                 alertBanner.setText("\u26A0 OVERHANG " + String.format("%.1f", hangRes.distanceM) + "m");
                 if (haptic != null && hapticEnabled) haptic.alert();
-                if (voice != null && voiceEnabled) voice.announceAlert("overhang", hangRes.distanceM);
+                if (voice != null && voiceEnabled && !isQuietHours()) voice.announceAlert("overhang", hangRes.distanceM);
             } else {
                 alertBanner.setVisibility(View.GONE);
             }

@@ -38,6 +38,8 @@
     <string name="drawer_setup_haptic_sub">Vibration pulses for obstacles and alerts</string>
     <string name="drawer_setup_voice">◈  Voice Feedback</string>
     <string name="drawer_setup_voice_sub">Spoken distance, bearing and obstacle alerts</string>
+    <string name="drawer_setup_quiet_hours">⏾  Quiet Hours</string>
+    <string name="drawer_setup_quiet_hours_sub">Voice auto-mutes between set times · tap to configure</string>
     <string name="drawer_diag_overlay">◎  Show Diagnostic Overlay</string>
     <string name="drawer_diag_overlay_active">◉  Hide Diagnostic Overlay</string>
     <string name="drawer_diag_overlay_sub">Per-frame pitch, LUT row, confidence &amp; SLAM shift</string>
