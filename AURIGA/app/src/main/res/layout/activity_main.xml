@@ -698,6 +698,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:checked="true"
+                        android:textOn=""
+                        android:textOff=""
                         app:showText="false"
                         android:contentDescription="Toggle vibration feedback" />
                 </LinearLayout>
@@ -741,6 +743,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:checked="true"
+                        android:textOn=""
+                        android:textOff=""
                         app:showText="false"
                         android:contentDescription="Toggle voice feedback" />
                 </LinearLayout>
@@ -881,6 +885,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:checked="true"
+                        android:textOn=""
+                        android:textOff=""
                         app:showText="false"
                         android:contentDescription="Pin the DIAG toggle to the HUD top bar" />
                 </LinearLayout>
