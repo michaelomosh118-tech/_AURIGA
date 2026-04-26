@@ -659,6 +659,90 @@
                     android:visibility="gone"
                     android:text="@string/drawer_setup_feedback_gate" />
 
+                <!-- Haptic Feedback toggle row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/drawer_item_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="10dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/drawer_setup_haptic"
+                            android:textSize="14sp"
+                            android:textColor="@color/hud_text"
+                            android:fontFamily="sans-serif-medium"
+                            android:letterSpacing="0.04" />
+
+                        <TextView
+                            style="@style/DrawerItemSub"
+                            android:text="@string/drawer_setup_haptic_sub" />
+                    </LinearLayout>
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/nav_haptic_toggle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:contentDescription="Toggle vibration feedback" />
+                </LinearLayout>
+
+                <!-- Voice Feedback toggle row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/drawer_item_bg"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="10dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/drawer_setup_voice"
+                            android:textSize="14sp"
+                            android:textColor="@color/hud_text"
+                            android:fontFamily="sans-serif-medium"
+                            android:letterSpacing="0.04" />
+
+                        <TextView
+                            style="@style/DrawerItemSub"
+                            android:text="@string/drawer_setup_voice_sub" />
+                    </LinearLayout>
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/nav_voice_toggle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:contentDescription="Toggle voice feedback" />
+                </LinearLayout>
+
                 <!-- ── SECTION: DIAGNOSTICS ── -->
                 <LinearLayout
                     android:layout_width="match_parent"

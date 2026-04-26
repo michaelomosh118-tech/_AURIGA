@@ -34,6 +34,10 @@
     <string name="drawer_setup_feedback">✉  Send Feedback</string>
     <string name="drawer_setup_feedback_sub">Bug reports, accuracy findings &amp; ideas</string>
     <string name="drawer_setup_feedback_gate">⚠  Complete the Calibration Walk first to unlock Feedback</string>
+    <string name="drawer_setup_haptic">⟁  Haptic Feedback</string>
+    <string name="drawer_setup_haptic_sub">Vibration pulses for obstacles and alerts</string>
+    <string name="drawer_setup_voice">◈  Voice Feedback</string>
+    <string name="drawer_setup_voice_sub">Spoken distance, bearing and obstacle alerts</string>
     <string name="drawer_diag_overlay">◎  Show Diagnostic Overlay</string>
     <string name="drawer_diag_overlay_active">◉  Hide Diagnostic Overlay</string>
     <string name="drawer_diag_overlay_sub">Per-frame pitch, LUT row, confidence &amp; SLAM shift</string>

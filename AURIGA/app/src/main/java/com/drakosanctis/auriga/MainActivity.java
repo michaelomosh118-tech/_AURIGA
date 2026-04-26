@@ -84,8 +84,12 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     // bar is shown alongside the drawer entry.
     private DrawerLayout drawerLayout;
     private boolean pinDiagToHud = false;
+    private volatile boolean hapticEnabled = true;
+    private volatile boolean voiceEnabled  = true;
     static final String PREFS_NAME = "auriga_prefs";
-    private static final String PREF_PIN_DIAG = "pin_diag_to_hud";
+    private static final String PREF_PIN_DIAG   = "pin_diag_to_hud";
+    private static final String PREF_HAPTIC      = "haptic_enabled";
+    private static final String PREF_VOICE       = "voice_enabled";
 
     // Latest line written to the diagnostic overlay. We mirror it here so
     // FeedbackActivity can attach it to the submission even when the
@@ -266,7 +270,9 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         // true so the DIAG button is visible in the top bar on first launch —
         // power users can untick it from the drawer if they prefer a cleaner HUD.
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        pinDiagToHud = prefs.getBoolean(PREF_PIN_DIAG, true);
+        pinDiagToHud   = prefs.getBoolean(PREF_PIN_DIAG, true);
+        hapticEnabled  = prefs.getBoolean(PREF_HAPTIC,   true);
+        voiceEnabled   = prefs.getBoolean(PREF_VOICE,    true);
         applyDiagPinVisibility();
 
         // Explicit DIAG button replaces the earlier long-press-on-title
@@ -364,6 +370,30 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             });
         }
         refreshFeedbackGateUi(navFeedback, feedbackHint);
+
+        SwitchCompat hapticSwitch = findViewById(R.id.nav_haptic_toggle);
+        if (hapticSwitch != null) {
+            hapticSwitch.setChecked(hapticEnabled);
+            hapticSwitch.setOnCheckedChangeListener((btn, checked) -> {
+                hapticEnabled = checked;
+                prefs.edit().putBoolean(PREF_HAPTIC, checked).apply();
+                Toast.makeText(this,
+                        checked ? "Haptic feedback ON" : "Haptic feedback OFF",
+                        Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        SwitchCompat voiceSwitch = findViewById(R.id.nav_voice_toggle);
+        if (voiceSwitch != null) {
+            voiceSwitch.setChecked(voiceEnabled);
+            voiceSwitch.setOnCheckedChangeListener((btn, checked) -> {
+                voiceEnabled = checked;
+                prefs.edit().putBoolean(PREF_VOICE, checked).apply();
+                Toast.makeText(this,
+                        checked ? "Voice feedback ON" : "Voice feedback OFF",
+                        Toast.LENGTH_SHORT).show();
+            });
+        }
 
         // ── DIAGNOSTICS ───────────────────────────────────────────────
         View navDiagRow = findViewById(R.id.nav_diag_toggle);
@@ -868,10 +898,10 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
                         1, groundRes.bearingDeg, frameConf, shiftMag);
                 updateHUD(dist, bearing, groundRes.signature);
                 if (sonar != null)  sonar.updateSpatialData(dist, bearing, groundRes.signature);
-                if (haptic != null) haptic.pulse(dist);
+                if (haptic != null && hapticEnabled) haptic.pulse(dist);
 
                 // Voice announcement logic (debounced)
-                if (voice != null && dist < 1.0f && frameConf > 0.5f) {
+                if (voice != null && voiceEnabled && dist < 1.0f && frameConf > 0.5f) {
                     voice.speak(groundRes.signature, dist, bearing);
                 }
             }
@@ -879,8 +909,8 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             if (hangRes != null && hangRes.heightM < 2.0f) {
                 alertBanner.setVisibility(View.VISIBLE);
                 alertBanner.setText("\u26A0 OVERHANG " + String.format("%.1f", hangRes.distanceM) + "m");
-                if (haptic != null) haptic.alert();
-                if (voice != null) voice.announceAlert("overhang", hangRes.distanceM);
+                if (haptic != null && hapticEnabled) haptic.alert();
+                if (voice != null && voiceEnabled) voice.announceAlert("overhang", hangRes.distanceM);
             } else {
                 alertBanner.setVisibility(View.GONE);
             }
