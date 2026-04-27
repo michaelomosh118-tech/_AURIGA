@@ -70,6 +70,17 @@ The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and 
 - Service worker registers automatically on load (PWA).
 
 ## Recent Changes
+- **Reverted website hamburger to its original 3-item Tools section**:
+  The earlier overhaul added a `TARGETS` link to the website's
+  `nav-drawer.js`, but that drawer is shared with the public PWA where
+  Targets is an APK-only concept. Removed the line so the website
+  drawer now matches what shipped before the locator overhaul
+  (Calibration Library / Object Locator / DrakoVoice Reader). The
+  Targets page itself (`locator-targets.html`) still exists and is
+  reachable from the locator's TARGETS button and the per-target
+  controls — only the global drawer entry was rolled back. SW cache
+  bumped to v8.
+
 - **APK launch crash fix — Theme.AppCompat requirement**: The launcher
   `LocatorWebActivity` (and the previously-broken `ReaderActivity`)
   extended `androidx.appcompat.app.AppCompatActivity` while their
