@@ -17,7 +17,7 @@ import android.webkit.WebViewClient;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
+import android.app.Activity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -38,7 +38,7 @@ import androidx.core.content.ContextCompat;
  *      autoplay so the page can wire it up the same way the web build
  *      does.
  */
-public class LocatorWebActivity extends AppCompatActivity {
+public class LocatorWebActivity extends Activity {
 
     private static final int CAMERA_PERMISSION_REQUEST = 1701;
     private static final String LOCATOR_URL = "file:///android_asset/web/locator.html";

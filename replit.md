@@ -70,6 +70,20 @@ The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and 
 - Service worker registers automatically on load (PWA).
 
 ## Recent Changes
+- **APK launch crash fix — Theme.AppCompat requirement**: The launcher
+  `LocatorWebActivity` (and the previously-broken `ReaderActivity`)
+  extended `androidx.appcompat.app.AppCompatActivity` while their
+  manifest themes (`AurigaHUDTheme`, `AurigaDocTheme`) inherit from
+  `android:Theme.NoTitleBar.Fullscreen` — not an AppCompat theme. On
+  every launch this crashed with `IllegalStateException: You need to
+  use a Theme.AppCompat theme (or descendant) with this activity`.
+  Neither activity actually used any AppCompat-specific API (no action
+  bar, no support delegate, no AppCompatDelegate), and every other
+  activity in the app already extends plain `android.app.Activity`.
+  Switched both to `extends Activity` so they match the rest of the
+  app and stop demanding an AppCompat-parented theme — no XML/theme
+  edits needed.
+
 - **Release APK build fix — Gradle 8.5 implicit-dependency validation**:
   AGP's release lint pipeline (`generate<Variant>LintVitalReportModel`,
   `lintVital*`, `lintAnalyze*`) scans the merged asset source-sets,

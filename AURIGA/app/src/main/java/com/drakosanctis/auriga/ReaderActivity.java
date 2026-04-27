@@ -14,7 +14,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.OptIn;
-import androidx.appcompat.app.AppCompatActivity;
+import android.app.Activity;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ExperimentalGetImage;
 import androidx.camera.core.ImageCapture;
@@ -62,7 +62,7 @@ import java.util.concurrent.Executors;
  * user who taps READ from the HUD before granting camera at install time
  * gets a sensible prompt instead of a black screen.
  */
-public class ReaderActivity extends AppCompatActivity {
+public class ReaderActivity extends Activity {
 
     private static final String TAG = "ReaderActivity";
     private static final int REQ_CAMERA = 4711;
