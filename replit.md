@@ -14,6 +14,21 @@ The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and 
 - `server.js` (project root): Node.js HTTP server that serves static files from `AURIGA/web_deploy` and also handles the feedback endpoint at `/.netlify/functions/submit-feedback`, replacing the Netlify serverless function for Replit compatibility.
 - Deployment is configured as a `static` site with `publicDir = AURIGA/web_deploy`.
 
+## Netlify Auto-Deploy
+- `package.json` pulls in `netlify-cli` as a dev dependency.
+- `scripts/deploy-netlify.js` does a one-shot production deploy of
+  `AURIGA/web_deploy` (and `AURIGA/netlify/functions`) to the live
+  Netlify site identified by the `NETLIFY_SITE_ID` secret using the
+  `NETLIFY_AUTH_TOKEN` secret. Run it manually with `npm run deploy`,
+  or `npm run deploy:draft` for a non-production preview deploy.
+- `scripts/watch-deploy.js` watches `AURIGA/web_deploy` and
+  `AURIGA/netlify/functions` and triggers a debounced production
+  deploy whenever any file changes (default debounce 4000 ms,
+  override with `NETLIFY_WATCH_DEBOUNCE_MS`).
+- Workflow `Netlify Auto-Deploy` runs the watcher in the background so
+  every save in Replit publishes to https://aurigaecosystem.netlify.app
+  automatically.
+
 ## Notes
 - The feedback endpoint (`/.netlify/functions/submit-feedback`) is handled server-side by `server.js`. It supports optional env vars: `FEEDBACK_FORWARD_WEBHOOK` (generic webhook), `FEEDBACK_GITHUB_REPO` + `FEEDBACK_GITHUB_TOKEN` (auto-file GitHub issues).
 - Service worker registers automatically on load (PWA).
