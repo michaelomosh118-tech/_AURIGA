@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Object Locator | Auriga Ecosystem</title>
+  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0A0A0F" />
+  <meta name="description" content="Auriga Object Locator — real-time on-device object detection with bounding boxes, distance, and bearing. Runs fully in your browser." />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --space-black: #0A0A0F;
+      --deep-space: #05060A;
+      --cobalt-blue: #0057FF;
+      --auriga-cyan: #00F0FF;
+      --warning-amber: #FFB300;
+      --alert-red: #FF3B30;
+      --hud-text: #FFFFFF;
+      --muted: #7AA3C8;
+      --glass: rgba(5, 10, 24, 0.72);
+      --glass-stroke: rgba(0, 240, 255, 0.22);
+      --mono: 'Share Tech Mono', monospace;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      background: var(--deep-space);
+      color: var(--hud-text);
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow: hidden;
+    }
+    *:focus-visible {
+      outline: 3px solid var(--warning-amber);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+    .skip-link {
+      position: absolute; top: -100px; left: 20px;
+      background: var(--warning-amber); color: #000;
+      padding: 12px 24px; z-index: 9999; text-decoration: none;
+      font-family: 'Orbitron', sans-serif; font-weight: 700;
+    }
+    .skip-link:focus { top: 20px; }
+
+    .stage {
+      position: relative;
+      width: 100%; height: 100vh;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 0% 100%, rgba(0,87,255,0.25) 0%, transparent 60%),
+        radial-gradient(circle at 100% 0%, rgba(0,240,255,0.10) 0%, transparent 55%),
+        var(--deep-space);
+    }
+
+    video, canvas#overlay {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+    }
+    video {
+      object-fit: cover;
+      filter: contrast(1.05) saturate(1.05);
+      z-index: 1;
+    }
+    canvas#overlay {
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .scanline {
+      position: absolute; inset: 0;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0px,
+          transparent 3px,
+          rgba(0, 240, 255, 0.04) 4px
+        );
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    /* ── Top bar ─────────────────────────────────────────── */
+    .topbar {
+      position: absolute; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px;
+      background: linear-gradient(to bottom, rgba(5,10,24,0.85), transparent);
+      z-index: 10;
+    }
+    .brand {
+      display: flex; flex-direction: column; line-height: 1.1;
+    }
+    .brand-eyebrow {
+      font-family: var(--mono);
+      color: var(--muted);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+    .brand-name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--auriga-cyan);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-shadow: 0 0 12px rgba(0, 240, 255, 0.45);
+    }
+    .state-pill {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 14px;
+      background: var(--glass);
+      border: 1px solid var(--glass-stroke);
+      border-radius: 999px;
+      backdrop-filter: blur(10px);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--auriga-cyan);
+    }
+    .state-dot {
+      width: 8px; height: 8px; border-radius: 999px;
+      background: #00F0B4;
+      box-shadow: 0 0 0 4px rgba(0, 240, 180, 0.18);
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 4px rgba(0, 240, 180, 0.18); }
+      50%      { box-shadow: 0 0 0 8px rgba(0, 240, 180, 0.04); }
+    }
+
+    /* ── Status readouts ─────────────────────────────────── */
+    .readouts {
+      position: absolute; top: 80px; left: 0; right: 0;
+      display: flex; justify-content: space-between;
+      padding: 0 22px; z-index: 9;
+      pointer-events: none;
+    }
+    .readout {
+      background: var(--glass);
+      border: 1px solid var(--glass-stroke);
+      border-radius: 8px;
+      padding: 10px 14px;
+      backdrop-filter: blur(10px);
+      min-width: 110px;
+    }
+    .readout-label {
+      font-family: 'Orbitron'; font-size: 0.55rem;
+      letter-spacing: 3px; color: var(--cobalt-blue);
+      text-transform: uppercase;
+      display: block; margin-bottom: 4px;
+    }
+    .readout-value {
+      font-family: 'Orbitron'; font-size: 1.4rem; font-weight: bold;
+      color: var(--auriga-cyan);
+      text-shadow: 0 0 10px var(--auriga-cyan);
+    }
+    .readout-value.alert { color: var(--alert-red); text-shadow: 0 0 10px var(--alert-red); }
+    .readout.right { text-align: right; }
+
+    /* ── Bottom sheet ────────────────────────────────────── */
+    .sheet {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      padding: 18px 18px 22px;
+      background: linear-gradient(to top, rgba(5,10,24,0.96), rgba(5,10,24,0));
+      z-index: 10;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .target-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-stroke);
+      border-radius: 14px;
+      padding: 14px 16px;
+      backdrop-filter: blur(14px);
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .target-card-head {
+      display: flex; justify-content: space-between; align-items: center;
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em;
+      color: var(--muted); text-transform: uppercase;
+    }
+    .target-card-head .target-count {
+      color: var(--warning-amber);
+    }
+    .target-active {
+      font-family: 'Orbitron'; font-size: 1rem;
+      color: var(--auriga-cyan);
+      text-transform: uppercase; letter-spacing: 2px;
+    }
+    .target-active.none { color: var(--muted); }
+    .target-chips {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      max-height: 110px; overflow-y: auto;
+    }
+    .target-chip {
+      appearance: none;
+      background: rgba(0, 87, 255, 0.06);
+      border: 1px solid rgba(0, 87, 255, 0.3);
+      color: var(--hud-text);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-family: var(--mono); font-size: 11px;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      cursor: pointer; min-height: 32px;
+      transition: all 0.12s ease;
+    }
+    .target-chip:hover { background: rgba(0, 240, 255, 0.12); }
+    .target-chip.on {
+      background: var(--auriga-cyan);
+      color: var(--space-black);
+      border-color: var(--auriga-cyan);
+      font-weight: bold;
+    }
+
+    .controls {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; flex-wrap: wrap;
+    }
+    .btn {
+      appearance: none;
+      background: var(--glass);
+      border: 1px solid var(--glass-stroke);
+      color: var(--auriga-cyan);
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      padding: 12px 18px;
+      border-radius: 999px;
+      cursor: pointer;
+      min-height: 44px;
+      transition: transform 0.12s ease, background 0.12s ease, color 0.12s ease;
+      backdrop-filter: blur(10px);
+    }
+    .btn:hover { transform: translateY(-1px); background: rgba(0, 240, 255, 0.12); }
+    .btn[aria-pressed="true"], .btn.active {
+      background: var(--auriga-cyan);
+      color: var(--space-black);
+      border-color: var(--auriga-cyan);
+    }
+
+    /* ── Loading / fallback ──────────────────────────────── */
+    .progress {
+      position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
+      padding: 6px 14px; border-radius: 999px;
+      background: var(--glass); border: 1px solid var(--glass-stroke);
+      font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em;
+      color: var(--auriga-cyan); display: none; z-index: 11;
+    }
+    .progress.show { display: inline-block; }
+
+    .fallback {
+      position: absolute; inset: 0;
+      display: none;
+      align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px; padding: 24px;
+      background: var(--deep-space);
+      text-align: center;
+      z-index: 5;
+    }
+    .fallback h1 {
+      font-family: 'Orbitron', sans-serif; color: var(--auriga-cyan);
+      letter-spacing: 0.1em;
+    }
+    .fallback p { color: var(--muted); max-width: 480px; }
+    body.no-camera .fallback { display: flex; }
+    body.no-camera video { display: none; }
+
+    @media (max-width: 520px) {
+      .brand-name { font-size: 14px; }
+      .readouts { top: 72px; }
+      .readout { min-width: 90px; padding: 8px 12px; }
+      .readout-value { font-size: 1.1rem; }
+    }
+  </style>
+  <link rel="stylesheet" href="nav-drawer.css">
+  <script defer src="nav-drawer.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#controls">Skip to locator controls</a>
+
+  <main class="stage" aria-label="Auriga Object Locator">
+    <video id="cam" autoplay playsinline muted aria-hidden="true"></video>
+    <canvas id="overlay" aria-hidden="true"></canvas>
+    <div class="scanline" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-eyebrow">DrakoSanctis // Auriga</span>
+        <span class="brand-name">Object Locator</span>
+      </div>
+      <div class="state-pill" aria-live="polite">
+        <span class="state-dot" aria-hidden="true"></span>
+        <span id="state">INIT</span>
+      </div>
+      <button type="button" class="nav-toggle" id="navToggle"
+              aria-expanded="false" aria-controls="navLinks"
+              aria-label="Open navigation menu">
+        <span class="hamburger-icon" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </span>
+        MENU
+      </button>
+    </header>
+
+    <div id="progress" class="progress" role="status" aria-live="polite">Loading detection model…</div>
+
+    <div class="readouts" aria-live="polite">
+      <div class="readout">
+        <span class="readout-label">Distance</span>
+        <span class="readout-value" id="dist">—</span>
+      </div>
+      <div class="readout right">
+        <span class="readout-label">Bearing</span>
+        <span class="readout-value" id="bearing">—</span>
+      </div>
+    </div>
+
+    <section class="sheet" id="controls">
+      <div class="target-card">
+        <div class="target-card-head">
+          <span>Active Target</span>
+          <span class="target-count" id="targetCount">0 detected</span>
+        </div>
+        <div class="target-active none" id="activeTarget">No target selected — tap a chip below</div>
+        <div class="target-chips" id="targetChips" aria-label="Pick targets to track"></div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="speakBtn" aria-pressed="true" aria-label="Toggle voice readout">VOICE ON</button>
+        <button class="btn" id="allBtn" aria-label="Track all object classes">ALL</button>
+        <button class="btn" id="clearBtn" aria-label="Clear all targets">CLEAR</button>
+      </div>
+    </section>
+
+    <div class="fallback">
+      <h1>Camera unavailable</h1>
+      <p>The Object Locator needs camera access to detect objects in real time. Please grant permission or open this page in a browser that allows camera access.</p>
+    </div>
+  </main>
+
+  <!-- TensorFlow.js + COCO-SSD: in-browser object detection. Cached by the
+       service worker after the first load so it works offline thereafter. -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  <script>
+    (function () {
+      const stateEl    = document.getElementById('state');
+      const progress   = document.getElementById('progress');
+      const video      = document.getElementById('cam');
+      const overlay    = document.getElementById('overlay');
+      const distEl     = document.getElementById('dist');
+      const bearEl     = document.getElementById('bearing');
+      const targetCount= document.getElementById('targetCount');
+      const activeEl   = document.getElementById('activeTarget');
+      const chipsEl    = document.getElementById('targetChips');
+      const speakBtn   = document.getElementById('speakBtn');
+      const allBtn     = document.getElementById('allBtn');
+      const clearBtn   = document.getElementById('clearBtn');
+      const ctx        = overlay.getContext('2d');
+
+      // The 80 COCO classes the bundled COCO-SSD model recognises.
+      // Same set as the attached Object-Locator reference.
+      const COCO_CLASSES = [
+        'person','bicycle','car','motorcycle','airplane','bus','train','truck','boat',
+        'traffic light','fire hydrant','stop sign','parking meter','bench',
+        'bird','cat','dog','horse','sheep','cow','elephant','bear','zebra','giraffe',
+        'backpack','umbrella','handbag','tie','suitcase',
+        'frisbee','skis','snowboard','sports ball','kite','baseball bat','baseball glove','skateboard','surfboard','tennis racket',
+        'bottle','wine glass','cup','fork','knife','spoon','bowl',
+        'banana','apple','sandwich','orange','broccoli','carrot','hot dog','pizza','donut','cake',
+        'chair','couch','potted plant','bed','dining table','toilet',
+        'tv','laptop','mouse','remote','keyboard','cell phone',
+        'microwave','oven','toaster','sink','refrigerator',
+        'book','clock','vase','scissors','teddy bear','hair drier','toothbrush'
+      ];
+
+      // Distance estimation: empirical reference height (in pixels at 1m).
+      // Same model as the attached Object-Locator project: distance grows
+      // inversely with the apparent object height in the frame.
+      const REFERENCE_CONSTANT = 100;
+      // Field of view, degrees — typical phone rear camera. Used for bearing.
+      const FOV_DEGREES = 60;
+      // Confidence threshold below which we drop a detection.
+      const MIN_SCORE = 0.55;
+
+      const STORAGE_KEY = 'auriga-locator-targets';
+
+      let model = null;
+      let running = false;
+      let speakOn = true;
+      let lastSpoken = 0;
+      let lastSpokenLabel = '';
+      let targets = new Set();
+
+      // ── Persistence ────────────────────────────────────────
+      function loadTargets() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const arr = JSON.parse(raw);
+            if (Array.isArray(arr)) targets = new Set(arr);
+          }
+        } catch (_) {}
+      }
+      function saveTargets() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(targets)));
+        } catch (_) {}
+      }
+
+      // ── UI build ───────────────────────────────────────────
+      function setState(t) { stateEl.textContent = t; }
+      function showProgress(msg) { progress.textContent = msg; progress.classList.add('show'); }
+      function hideProgress() { progress.classList.remove('show'); }
+
+      function renderChips() {
+        chipsEl.innerHTML = '';
+        COCO_CLASSES.forEach(cls => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'target-chip' + (targets.has(cls) ? ' on' : '');
+          b.textContent = cls;
+          b.setAttribute('aria-pressed', targets.has(cls) ? 'true' : 'false');
+          b.addEventListener('click', () => {
+            if (targets.has(cls)) targets.delete(cls); else targets.add(cls);
+            saveTargets();
+            renderChips();
+            renderActive();
+          });
+          chipsEl.appendChild(b);
+        });
+      }
+      function renderActive() {
+        if (targets.size === 0) {
+          activeEl.classList.add('none');
+          activeEl.textContent = 'No target selected — tap a chip below';
+        } else if (targets.size === COCO_CLASSES.length) {
+          activeEl.classList.remove('none');
+          activeEl.textContent = 'All classes';
+        } else {
+          activeEl.classList.remove('none');
+          activeEl.textContent = Array.from(targets).slice(0, 6).join(', ')
+            + (targets.size > 6 ? ' +' + (targets.size - 6) : '');
+        }
+      }
+
+      // ── Camera ─────────────────────────────────────────────
+      async function startCamera() {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false
+          });
+          video.srcObject = stream;
+          await new Promise(res => {
+            if (video.readyState >= 2) return res();
+            video.onloadeddata = () => res();
+          });
+          await video.play().catch(() => {});
+          resizeOverlay();
+          return true;
+        } catch (e) {
+          console.warn('Camera unavailable', e);
+          document.body.classList.add('no-camera');
+          setState('NO CAMERA');
+          return false;
+        }
+      }
+
+      function resizeOverlay() {
+        // Match the overlay canvas to the video's CSS box so the
+        // bounding boxes line up with what the user sees.
+        const r = video.getBoundingClientRect();
+        overlay.width  = r.width;
+        overlay.height = r.height;
+      }
+      window.addEventListener('resize', resizeOverlay);
+
+      // ── Model ──────────────────────────────────────────────
+      async function loadModel() {
+        showProgress('Loading detection model…');
+        setState('LOADING MODEL');
+        // Use the lite model so first load is fast and stays cached.
+        model = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
+        hideProgress();
+      }
+
+      // ── Render & metrics ───────────────────────────────────
+      function drawDetections(predictions) {
+        const vw = video.videoWidth || 1;
+        const vh = video.videoHeight || 1;
+        const cw = overlay.width;
+        const ch = overlay.height;
+        // Account for object-fit:cover on the video element.
+        const scale = Math.max(cw / vw, ch / vh);
+        const dispW = vw * scale;
+        const dispH = vh * scale;
+        const offX  = (cw - dispW) / 2;
+        const offY  = (ch - dispH) / 2;
+
+        ctx.clearRect(0, 0, cw, ch);
+
+        const filtered = predictions.filter(p => {
+          if (p.score < MIN_SCORE) return false;
+          if (targets.size === 0) return true;        // show everything when nothing picked
+          return targets.has(p.class);
+        });
+
+        targetCount.textContent = filtered.length + ' detected';
+
+        // Pick the most prominent (largest area) detection that matches
+        // a target — that's the one we show distance/bearing for.
+        let primary = null;
+        let bestArea = 0;
+        filtered.forEach(p => {
+          const a = p.bbox[2] * p.bbox[3];
+          const isTarget = targets.size === 0 || targets.has(p.class);
+          if (isTarget && a > bestArea) { bestArea = a; primary = p; }
+        });
+
+        filtered.forEach(p => {
+          const [x, y, w, h] = p.bbox;
+          const sx = offX + x * scale;
+          const sy = offY + y * scale;
+          const sw = w * scale;
+          const sh = h * scale;
+          const isPrimary = (p === primary);
+          ctx.lineWidth = isPrimary ? 3 : 2;
+          ctx.strokeStyle = isPrimary ? '#FFB300' : '#00F0FF';
+          ctx.shadowColor = ctx.strokeStyle;
+          ctx.shadowBlur = isPrimary ? 18 : 10;
+          ctx.strokeRect(sx, sy, sw, sh);
+          ctx.shadowBlur = 0;
+
+          const label = p.class + ' · ' + Math.round(p.score * 100) + '%';
+          ctx.font = 'bold 13px "Share Tech Mono", monospace';
+          const padX = 6, padY = 4;
+          const tw = ctx.measureText(label).width + padX * 2;
+          const th = 18;
+          ctx.fillStyle = isPrimary ? 'rgba(255, 179, 0, 0.92)' : 'rgba(0, 240, 255, 0.85)';
+          ctx.fillRect(sx, Math.max(0, sy - th), tw, th);
+          ctx.fillStyle = '#05060A';
+          ctx.fillText(label, sx + padX, Math.max(th - padY, sy - padY));
+        });
+
+        if (primary) {
+          // Distance: REFERENCE_CONSTANT / heightPercent (0..1)
+          const heightPct = primary.bbox[3] / vh;
+          const distance = REFERENCE_CONSTANT / Math.max(heightPct * 100, 0.1);
+          // Bearing: horizontal offset from frame centre, mapped to FOV.
+          const cx = primary.bbox[0] + primary.bbox[2] / 2;
+          const off = (cx - vw / 2) / vw;
+          const bearing = off * FOV_DEGREES;
+
+          const distStr = distance < 1
+            ? (distance * 100).toFixed(0) + 'cm'
+            : distance.toFixed(1) + 'm';
+          distEl.textContent = distStr;
+          distEl.classList.toggle('alert', distance < 1.0);
+
+          const bearStr = Math.abs(bearing) < 1
+            ? '0°'
+            : Math.abs(bearing).toFixed(0) + '° ' + (bearing < 0 ? 'L' : 'R');
+          bearEl.textContent = bearStr;
+
+          maybeSpeak(primary.class, distStr, bearStr);
+        } else {
+          distEl.textContent = '—';
+          bearEl.textContent = '—';
+          distEl.classList.remove('alert');
+        }
+      }
+
+      function maybeSpeak(label, distStr, bearStr) {
+        if (!speakOn) return;
+        if (!('speechSynthesis' in window)) return;
+        const now = Date.now();
+        // Speak when the target changes, or every 3.5s for the same target.
+        if (label === lastSpokenLabel && now - lastSpoken < 3500) return;
+        lastSpokenLabel = label;
+        lastSpoken = now;
+        const u = new SpeechSynthesisUtterance(label + ', ' + distStr + ', ' + bearStr);
+        u.rate = 1.05; u.pitch = 0.95; u.volume = 1.0;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(u);
+      }
+
+      // ── Detect loop ────────────────────────────────────────
+      async function loop() {
+        if (!running || !model) return;
+        try {
+          if (video.readyState >= 2 && video.videoWidth > 0) {
+            const preds = await model.detect(video);
+            drawDetections(preds);
+          }
+        } catch (e) {
+          console.warn('detect error', e);
+        }
+        // ~2 detections per second is a good battery/responsiveness mix.
+        setTimeout(() => requestAnimationFrame(loop), 500);
+      }
+
+      // ── Init ───────────────────────────────────────────────
+      async function init() {
+        loadTargets();
+        renderChips();
+        renderActive();
+
+        speakBtn.addEventListener('click', () => {
+          speakOn = !speakOn;
+          speakBtn.textContent = speakOn ? 'VOICE ON' : 'VOICE OFF';
+          speakBtn.setAttribute('aria-pressed', String(speakOn));
+          speakBtn.classList.toggle('active', speakOn);
+          if (!speakOn && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+        });
+        speakBtn.classList.add('active');
+
+        allBtn.addEventListener('click', () => {
+          targets = new Set(COCO_CLASSES);
+          saveTargets(); renderChips(); renderActive();
+        });
+        clearBtn.addEventListener('click', () => {
+          targets = new Set();
+          saveTargets(); renderChips(); renderActive();
+          if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        });
+
+        const camOk = await startCamera();
+        if (!camOk) return;
+        await loadModel();
+        setState('SCANNING');
+        running = true;
+        loop();
+      }
+
+      init().catch(e => {
+        console.error(e);
+        setState('ERROR');
+        showProgress('Initialisation error: ' + (e.message || e));
+      });
+
+      // PWA service worker (matches the rest of the deployed site).
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      }
+    })();
+  </script>
+</body>
+</html>

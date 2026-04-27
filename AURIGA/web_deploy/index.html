@@ -694,23 +694,46 @@
             <span class="hud-status"><span class="status-dot"></span> ENGINE ACTIVE</span>
         </div>
 
-        <!-- HUD SCREEN -->
-        <div class="hud-container">
-            <div class="context-bg" style="background-image:url('https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&q=80&w=1000');"></div>
+        <!-- HUD SCREEN — wired to a real on-device object detector
+             (TF.js + COCO-SSD) when the user taps "GO LIVE". Until then
+             a static reference frame plays so the page is never empty. -->
+        <div class="hud-container" id="navi-hud">
+            <video id="navi-video" autoplay playsinline muted
+                   style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;"
+                   aria-hidden="true"></video>
+            <canvas id="navi-canvas"
+                    style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:none;z-index:5;"
+                    aria-hidden="true"></canvas>
+            <div class="context-bg" id="navi-bg" style="background-image:url('https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&q=80&w=1000');"></div>
             <div class="hud-scanlines"></div>
             <div class="hud-overlay"></div>
-            <div class="hud-readout" style="top:40px;left:40px;">
+            <div class="hud-readout" style="top:40px;left:40px;z-index:6;">
                 <span class="label">DISTANCE</span>
                 <span class="value" id="navi-dist">0.8m</span>
             </div>
-            <div class="hud-readout" style="top:40px;right:40px;text-align:right;">
+            <div class="hud-readout" style="top:40px;right:40px;text-align:right;z-index:6;">
                 <span class="label">BEARING</span>
                 <span class="value" id="navi-bearing">12° L</span>
             </div>
-            <div class="hud-radar"><div class="radar-sweep"></div></div>
-            <div class="hud-readout" style="bottom:40px;left:50%;transform:translateX(-50%);text-align:center;">
+            <div class="hud-radar" id="navi-radar"><div class="radar-sweep"></div></div>
+            <div class="hud-readout" id="navi-signature" style="bottom:40px;left:50%;transform:translateX(-50%);text-align:center;z-index:6;">
                 <span class="label">SIGNATURE</span>
-                <span class="value" style="font-size:1.5rem;color:var(--alert-red);">⚠ POLE</span>
+                <span class="value" style="font-size:1.5rem;color:var(--alert-red);" id="navi-sig-value">⚠ POLE</span>
+            </div>
+            <button type="button" id="navi-live-btn"
+                    style="position:absolute;bottom:18px;right:18px;z-index:7;
+                           background:rgba(0,240,255,0.92);color:#05060A;border:none;
+                           font-family:'Orbitron',sans-serif;font-size:0.7rem;letter-spacing:2px;
+                           padding:10px 16px;cursor:pointer;text-transform:uppercase;
+                           box-shadow:0 0 20px rgba(0,240,255,0.5);">
+                ▶ Go Live
+            </button>
+            <div id="navi-live-status"
+                 style="position:absolute;bottom:18px;left:18px;z-index:7;display:none;
+                        font-family:'Share Tech Mono',monospace;font-size:0.7rem;
+                        background:rgba(5,10,24,0.7);border:1px solid rgba(0,240,255,0.3);
+                        padding:6px 10px;color:var(--auriga-cyan);letter-spacing:1px;">
+                LIVE
             </div>
         </div>
 
@@ -1429,11 +1452,18 @@ float[] result = AurigaCore::triangulate(
     document.addEventListener('DOMContentLoaded', routeFromHash);
 
     // ── HUD SIMULATION ──
+    // The NAVI panel can run in two modes:
+    //   - Demo mode (default): cycles plausible numbers so the marketing
+    //     section is never blank. Skipped once Live mode is engaged.
+    //   - Live mode: real COCO-SSD object detection from the user's
+    //     camera. Bounding boxes + real distance + real bearing —
+    //     see initNaviLive() further down. Driven by the GO LIVE button.
+    let naviLiveActive = false;
     function updateHUDSim() {
-        // NAVI
+        // NAVI demo (skipped when live detection is running)
         const nd = document.getElementById('navi-dist');
         const nb = document.getElementById('navi-bearing');
-        if (nd && nb) {
+        if (nd && nb && !naviLiveActive) {
             const dist = (0.5 + Math.random() * 3).toFixed(1);
             const bear = Math.floor(Math.random() * 20);
             const side = Math.random() > 0.5 ? 'L' : 'R';
@@ -1477,6 +1507,180 @@ float[] result = AurigaCore::triangulate(
         }
     }
     setInterval(updateHUDSim, 1000);
+
+    // ── NAVI LIVE OBJECT DETECTION ──
+    // When the user taps "GO LIVE" on the NAVI HUD we lazy-load TF.js
+    // and the bundled COCO-SSD model from CDN (then cached offline by
+    // sw.js), open the rear camera, draw bounding boxes on top, and
+    // replace the random distance/bearing readouts with real values
+    // measured from the largest detected object's bbox. Same model
+    // that powers the standalone Object Locator page.
+    (function () {
+        const liveBtn = document.getElementById('navi-live-btn');
+        if (!liveBtn) return;
+
+        let tfReady = false;
+        let model = null;
+        let stream = null;
+        let detectTimer = null;
+        const REFERENCE_CONSTANT = 100;   // see locator.html — same heuristic
+        const FOV_DEGREES = 60;
+        const MIN_SCORE = 0.55;
+
+        function loadScript(src) {
+            return new Promise((res, rej) => {
+                const s = document.createElement('script');
+                s.src = src; s.async = true;
+                s.onload = () => res(); s.onerror = () => rej(new Error('load ' + src));
+                document.head.appendChild(s);
+            });
+        }
+
+        async function ensureModel() {
+            if (tfReady && model) return;
+            if (!window.tf)        await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js');
+            if (!window.cocoSsd)   await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js');
+            model = await window.cocoSsd.load({ base: 'lite_mobilenet_v2' });
+            tfReady = true;
+        }
+
+        async function startCamera(video) {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false
+            });
+            video.srcObject = stream;
+            await new Promise(res => {
+                if (video.readyState >= 2) return res();
+                video.onloadeddata = () => res();
+            });
+            await video.play().catch(() => {});
+        }
+
+        function stopLive() {
+            naviLiveActive = false;
+            if (detectTimer) { clearTimeout(detectTimer); detectTimer = null; }
+            if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+            const video  = document.getElementById('navi-video');
+            const canvas = document.getElementById('navi-canvas');
+            const bg     = document.getElementById('navi-bg');
+            const status = document.getElementById('navi-live-status');
+            if (video)  video.style.display  = 'none';
+            if (canvas) canvas.style.display = 'none';
+            if (bg)     bg.style.display     = 'block';
+            if (status) status.style.display = 'none';
+            liveBtn.textContent = '▶ Go Live';
+            liveBtn.style.background = 'rgba(0,240,255,0.92)';
+        }
+
+        function drawAndMeasure(predictions) {
+            const video  = document.getElementById('navi-video');
+            const canvas = document.getElementById('navi-canvas');
+            const dist   = document.getElementById('navi-dist');
+            const bear   = document.getElementById('navi-bearing');
+            const sigVal = document.getElementById('navi-sig-value');
+            if (!video || !canvas) return;
+
+            const r = video.getBoundingClientRect();
+            canvas.width = r.width; canvas.height = r.height;
+            const vw = video.videoWidth || 1, vh = video.videoHeight || 1;
+            const scale = Math.max(canvas.width / vw, canvas.height / vh);
+            const offX = (canvas.width  - vw * scale) / 2;
+            const offY = (canvas.height - vh * scale) / 2;
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const filtered = predictions.filter(p => p.score >= MIN_SCORE);
+            let primary = null, bestArea = 0;
+            filtered.forEach(p => {
+                const a = p.bbox[2] * p.bbox[3];
+                if (a > bestArea) { bestArea = a; primary = p; }
+            });
+
+            filtered.forEach(p => {
+                const [x, y, w, h] = p.bbox;
+                const sx = offX + x * scale, sy = offY + y * scale;
+                const sw = w * scale, sh = h * scale;
+                const isPrimary = (p === primary);
+                ctx.lineWidth = isPrimary ? 3 : 2;
+                ctx.strokeStyle = isPrimary ? '#FFB300' : '#00F0FF';
+                ctx.shadowColor = ctx.strokeStyle;
+                ctx.shadowBlur = isPrimary ? 16 : 8;
+                ctx.strokeRect(sx, sy, sw, sh);
+                ctx.shadowBlur = 0;
+
+                const label = p.class + ' ' + Math.round(p.score * 100) + '%';
+                ctx.font = 'bold 12px "Share Tech Mono", monospace';
+                const tw = ctx.measureText(label).width + 10, th = 16;
+                ctx.fillStyle = isPrimary ? 'rgba(255,179,0,0.92)' : 'rgba(0,240,255,0.85)';
+                ctx.fillRect(sx, Math.max(0, sy - th), tw, th);
+                ctx.fillStyle = '#05060A';
+                ctx.fillText(label, sx + 5, Math.max(th - 4, sy - 4));
+            });
+
+            if (primary) {
+                const heightPct = primary.bbox[3] / vh;
+                const distance = REFERENCE_CONSTANT / Math.max(heightPct * 100, 0.1);
+                const cx = primary.bbox[0] + primary.bbox[2] / 2;
+                const off = (cx - vw / 2) / vw;
+                const bearing = off * FOV_DEGREES;
+                const distStr = distance < 1
+                    ? (distance * 100).toFixed(0) + 'cm'
+                    : distance.toFixed(1) + 'm';
+                dist.innerText = distStr;
+                dist.style.color = distance < 1 ? 'var(--alert-red)' : 'var(--auriga-cyan)';
+                const bearStr = Math.abs(bearing) < 1 ? '0°'
+                    : Math.abs(bearing).toFixed(0) + '° ' + (bearing < 0 ? 'L' : 'R');
+                bear.innerText = bearStr;
+                if (sigVal) sigVal.innerText = '⚠ ' + primary.class.toUpperCase();
+            } else {
+                dist.innerText = '—';
+                bear.innerText = '—';
+                if (sigVal) sigVal.innerText = '⚠ SCANNING';
+            }
+        }
+
+        async function loop() {
+            if (!naviLiveActive) return;
+            const video = document.getElementById('navi-video');
+            try {
+                if (video && video.readyState >= 2 && video.videoWidth > 0) {
+                    const preds = await model.detect(video);
+                    drawAndMeasure(preds);
+                }
+            } catch (e) { console.warn('navi detect error', e); }
+            detectTimer = setTimeout(() => requestAnimationFrame(loop), 500);
+        }
+
+        liveBtn.addEventListener('click', async () => {
+            if (naviLiveActive) { stopLive(); return; }
+            const video  = document.getElementById('navi-video');
+            const canvas = document.getElementById('navi-canvas');
+            const bg     = document.getElementById('navi-bg');
+            const status = document.getElementById('navi-live-status');
+            try {
+                liveBtn.textContent = 'LOADING…';
+                liveBtn.disabled = true;
+                await ensureModel();
+                await startCamera(video);
+                video.style.display  = 'block';
+                canvas.style.display = 'block';
+                if (bg) bg.style.display = 'none';
+                if (status) status.style.display = 'block';
+                liveBtn.textContent = '■ Stop';
+                liveBtn.style.background = 'rgba(255,59,48,0.92)';
+                liveBtn.disabled = false;
+                naviLiveActive = true;
+                loop();
+            } catch (e) {
+                console.warn('navi live failed', e);
+                liveBtn.disabled = false;
+                liveBtn.textContent = '▶ Go Live';
+                alert('Could not start live mode: ' + (e.message || e) + '\n\nCheck camera permission, then try again.');
+            }
+        });
+    })();
 
     // ── MODAL FLOWS ──
     function openInstallFlow(variant) {

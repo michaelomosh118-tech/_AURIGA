@@ -424,9 +424,17 @@
         const url = URL.createObjectURL(f);
         const img = new Image();
         img.onload = async () => {
-          canvas.width = img.naturalWidth;
-          canvas.height = img.naturalHeight;
-          canvas.getContext('2d').drawImage(img, 0, 0);
+          // For uploads the user has already framed the photo, so we
+          // just upscale + preprocess the whole image rather than
+          // cropping to the (irrelevant) on-screen reticle.
+          const upscale = img.naturalWidth < 1200 ? 2 : 1;
+          canvas.width  = img.naturalWidth  * upscale;
+          canvas.height = img.naturalHeight * upscale;
+          const cx = canvas.getContext('2d');
+          cx.imageSmoothingEnabled = true;
+          cx.imageSmoothingQuality = 'high';
+          cx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          preprocessForOcr(cx, canvas.width, canvas.height);
           URL.revokeObjectURL(url);
           await runOcrFromCanvas();
         };
@@ -444,15 +452,81 @@
             }
           }
         });
+        // PSM 6 = "Assume a single uniform block of text". This is the
+        // OrCam-style assumption: the user has framed a paragraph or
+        // page within the reticle. It dramatically reduces the gibberish
+        // Tesseract emits when it tries to auto-segment a noisy scene.
+        try {
+          await ocrWorker.setParameters({
+            tessedit_pageseg_mode: '6',
+            preserve_interword_spaces: '1',
+            user_defined_dpi: '300'
+          });
+        } catch (_) { /* older tesseract.js builds tolerate the call but ignore params */ }
         hideProgress();
         return ocrWorker;
       }
 
       function snapshotFromVideo() {
-        const w = video.videoWidth || 1280;
-        const h = video.videoHeight || 720;
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(video, 0, 0, w, h);
+        // Capture only the area inside the on-screen reticle (the frame
+        // the user lined the text up with), then preprocess that crop:
+        //   1. upscale 2× so small body text has enough pixels per glyph
+        //   2. convert to grayscale
+        //   3. boost contrast
+        // This is the difference between "OCR returns gibberish" and
+        // "OCR returns the actual paragraph", because Tesseract is very
+        // sensitive to noise from background scenery and JPEG colour fringing.
+        const vw = video.videoWidth || 1280;
+        const vh = video.videoHeight || 720;
+        // Reticle in CSS is 72vw × 38vh, capped at 540 × 320. We want
+        // the matching region of the underlying video frame, accounting
+        // for object-fit: cover.
+        const cssW = window.innerWidth, cssH = window.innerHeight;
+        const reticleCssW = Math.min(cssW * 0.72, 540);
+        const reticleCssH = Math.min(cssH * 0.38, 320);
+        const scale = Math.max(cssW / vw, cssH / vh);
+        const dispW = vw * scale, dispH = vh * scale;
+        const offX  = (cssW - dispW) / 2;
+        const offY  = (cssH - dispH) / 2;
+        const reticleCssX = (cssW - reticleCssW) / 2;
+        const reticleCssY = (cssH - reticleCssH) / 2;
+        const sx = Math.max(0, (reticleCssX - offX) / scale);
+        const sy = Math.max(0, (reticleCssY - offY) / scale);
+        const sw = Math.min(vw - sx, reticleCssW / scale);
+        const sh = Math.min(vh - sy, reticleCssH / scale);
+        const upscale = 2;
+        canvas.width  = Math.round(sw * upscale);
+        canvas.height = Math.round(sh * upscale);
+        const cx = canvas.getContext('2d');
+        cx.imageSmoothingEnabled = true;
+        cx.imageSmoothingQuality = 'high';
+        cx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        preprocessForOcr(cx, canvas.width, canvas.height);
+      }
+
+      function preprocessForOcr(cx, w, h) {
+        // Grayscale + contrast stretch in one pass. We compute the min
+        // and max luma of the cropped frame and remap that to 0..255 so
+        // faded ink, glare, and warm white-balance all look like clean
+        // black-on-white to Tesseract.
+        const img = cx.getImageData(0, 0, w, h);
+        const d = img.data;
+        let lo = 255, hi = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          const y = (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) | 0;
+          d[i] = d[i + 1] = d[i + 2] = y;
+          if (y < lo) lo = y;
+          if (y > hi) hi = y;
+        }
+        const range = Math.max(1, hi - lo);
+        // Slight headroom so we don't crush real glyph anti-aliasing.
+        const gain = 255 / range;
+        for (let i = 0; i < d.length; i += 4) {
+          let y = (d[i] - lo) * gain;
+          if (y < 0) y = 0; else if (y > 255) y = 255;
+          d[i] = d[i + 1] = d[i + 2] = y;
+        }
+        cx.putImageData(img, 0, 0);
       }
 
       async function runOcrFromCanvas() {
