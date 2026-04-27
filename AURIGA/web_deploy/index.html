@@ -574,6 +574,195 @@
         .close-modal { position: absolute; top: 20px; right: 20px; color: #555; cursor: pointer; font-size: 1.5rem; }
         .close-modal:hover { color: white; }
 
+        /* ── POSITION SECTION (strategic positioning vs competitors) ── */
+        .position-intro {
+            max-width: 900px;
+            text-align: center;
+            color: #ccc;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 50px;
+        }
+        .position-intro strong { color: var(--auriga-cyan); }
+
+        .wedge-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 60px;
+        }
+        .wedge-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(0, 87, 255, 0.25);
+            padding: 28px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+        .wedge-card:hover {
+            border-color: var(--auriga-cyan);
+            background: rgba(0, 87, 255, 0.08);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 87, 255, 0.18);
+        }
+        .wedge-num {
+            font-family: 'Orbitron';
+            font-size: 0.65rem;
+            letter-spacing: 4px;
+            color: var(--cobalt-blue);
+            margin-bottom: 8px;
+        }
+        .wedge-card h3 {
+            color: var(--auriga-cyan);
+            font-size: 1rem;
+            margin-bottom: 14px;
+            line-height: 1.3;
+        }
+        .wedge-card p {
+            font-size: 0.85rem;
+            color: #ccc;
+            margin-bottom: 12px;
+        }
+        .wedge-card .wedge-tag {
+            margin-top: auto;
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            color: var(--warning-amber);
+            letter-spacing: 1px;
+            border-top: 1px solid rgba(255, 179, 0, 0.25);
+            padding-top: 10px;
+        }
+
+        /* Competitor comparison matrix */
+        .matrix-wrap {
+            width: 100%;
+            max-width: 1100px;
+            overflow-x: auto;
+            border: 1px solid rgba(0, 87, 255, 0.3);
+            background: rgba(0, 10, 30, 0.6);
+            margin-bottom: 50px;
+        }
+        .matrix-header-bar {
+            background: rgba(0, 87, 255, 0.08);
+            border-bottom: 1px solid rgba(0, 87, 255, 0.3);
+            padding: 12px 24px;
+            font-family: 'Orbitron';
+            font-size: 0.65rem;
+            letter-spacing: 4px;
+            color: var(--cobalt-blue);
+            text-transform: uppercase;
+        }
+        table.comp-matrix {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.78rem;
+            min-width: 720px;
+        }
+        table.comp-matrix th,
+        table.comp-matrix td {
+            padding: 12px 14px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0, 87, 255, 0.12);
+            border-right: 1px solid rgba(0, 87, 255, 0.08);
+        }
+        table.comp-matrix th {
+            font-family: 'Orbitron';
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            color: var(--cobalt-blue);
+            text-transform: uppercase;
+            background: rgba(0, 87, 255, 0.05);
+            position: sticky;
+            top: 0;
+        }
+        table.comp-matrix th.us {
+            color: var(--auriga-cyan);
+            background: rgba(0, 240, 255, 0.08);
+            border-bottom: 2px solid var(--auriga-cyan);
+        }
+        table.comp-matrix td.feat {
+            text-align: left;
+            color: #ddd;
+            font-weight: 600;
+        }
+        table.comp-matrix td.us {
+            background: rgba(0, 240, 255, 0.04);
+            color: var(--auriga-cyan);
+        }
+        table.comp-matrix .yes  { color: var(--auriga-cyan); font-weight: 700; }
+        table.comp-matrix .no   { color: #555; }
+        table.comp-matrix .part { color: var(--warning-amber); }
+        table.comp-matrix tr:hover td { background: rgba(0, 87, 255, 0.04); }
+        table.comp-matrix tr:hover td.us { background: rgba(0, 240, 255, 0.10); }
+
+        /* Roadmap rail */
+        .roadmap-rail {
+            width: 100%;
+            max-width: 1100px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+        .phase-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(0, 87, 255, 0.25);
+            border-left: 3px solid var(--cobalt-blue);
+            padding: 18px 18px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .phase-card.now { border-left-color: var(--auriga-cyan); }
+        .phase-card.now .phase-tag { color: var(--auriga-cyan); }
+        .phase-tag {
+            font-family: 'Orbitron';
+            font-size: 0.6rem;
+            letter-spacing: 3px;
+            color: var(--cobalt-blue);
+            text-transform: uppercase;
+        }
+        .phase-card h4 {
+            font-family: 'Orbitron';
+            font-size: 0.85rem;
+            color: white;
+            letter-spacing: 1px;
+        }
+        .phase-card ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 0.78rem;
+            color: #bbb;
+            line-height: 1.6;
+        }
+        .phase-card ul li::before {
+            content: '▸ ';
+            color: var(--cobalt-blue);
+        }
+
+        .position-callout {
+            max-width: 900px;
+            margin: 30px 0 0;
+            padding: 24px 28px;
+            border: 1px solid var(--warning-amber);
+            background: rgba(255, 179, 0, 0.06);
+            font-family: var(--mono);
+            font-size: 0.92rem;
+            color: #ffe9b3;
+            text-align: center;
+            line-height: 1.7;
+        }
+        .position-callout strong { color: var(--warning-amber); }
+
+        @media (max-width: 768px) {
+            table.comp-matrix { font-size: 0.7rem; }
+            .position-intro { font-size: 0.85rem; }
+        }
+
         /* ── FOOTER ── */
         footer {
             padding: 50px; text-align: center;
@@ -676,6 +865,194 @@
             </div>
         </div>
     </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     2.5. POSITION — strategic context
+══════════════════════════════════════ -->
+<section id="position">
+    <h2 style="margin-bottom:6px;">POSITION</h2>
+    <p style="margin-bottom:36px;color:var(--cobalt-blue);font-family:'Orbitron';font-size:0.7rem;letter-spacing:4px;">WHY AURIGA WINS</p>
+
+    <p class="position-intro">
+        Every other vision-assistance product on the market — Seeing AI, Lookout, Be My Eyes, Envision, OrCam —
+        does <strong>read-my-world</strong>: OCR, scene description, currency ID. None of them do
+        <strong>spatial awareness</strong>: distance, bearing, obstacle scan, overhead detection.
+        AURIGA is the only product on either side of the line that runs <strong>100% on-device, $0, zero cloud.</strong>
+    </p>
+
+    <!-- Three strategic wedges -->
+    <div class="wedge-grid">
+        <div class="wedge-card">
+            <div class="wedge-num">WEDGE 01</div>
+            <h3>The Only Integrated Stack</h3>
+            <p>Blind users juggle 3–5 apps today: Seeing AI for scanning, Be My Eyes for help, Voice Dream for books,
+               Google Maps for navigation, the WeWALK app for their cane. No single app does everything.</p>
+            <p>AURIGA is being built to be the first that does.</p>
+            <div class="wedge-tag">// ONE APP. ONE BATTERY. ONE GESTURE TO LEARN.</div>
+        </div>
+        <div class="wedge-card">
+            <div class="wedge-num">WEDGE 02</div>
+            <h3>100% Independent, Zero Cloud</h3>
+            <p>Seeing AI → Azure. Lookout → Gemini. Be My AI → GPT-4V. Envision → cloud for Ally/Aira.
+               Every competitor ships your camera feed to a third party.</p>
+            <p>AURIGA is the only stack that can credibly claim zero third-party cloud dependency — critical
+               for privacy, rural connectivity, and institutional buyers (schools, VA, vocational rehab).</p>
+            <div class="wedge-tag">// YOUR CAMERA. YOUR PHONE. NOTHING LEAVES.</div>
+        </div>
+        <div class="wedge-card">
+            <div class="wedge-num">WEDGE 03</div>
+            <h3>Free vs. $4,500</h3>
+            <p>OrCam MyEye: $4,500+. Envision Glasses: $1,899–$3,499. AURIGA already does the spatial features
+               better, and costs $0.</p>
+            <p>As we close the read-my-world gap, the feature delta narrows while the price delta stays infinite.</p>
+            <div class="wedge-tag">// EVERYTHING ORCAM DOES — ON THE PHONE YOU ALREADY OWN.</div>
+        </div>
+    </div>
+
+    <!-- Competitor matrix -->
+    <div class="matrix-wrap" role="region" aria-labelledby="matrix-title">
+        <div class="matrix-header-bar" id="matrix-title">⬡ Capability Matrix — Auriga vs. The Field</div>
+        <table class="comp-matrix" aria-describedby="matrix-title">
+            <thead>
+                <tr>
+                    <th scope="col" style="text-align:left;">Capability</th>
+                    <th scope="col" class="us">AURIGA</th>
+                    <th scope="col">Seeing AI</th>
+                    <th scope="col">Lookout</th>
+                    <th scope="col">Be My Eyes</th>
+                    <th scope="col">Envision</th>
+                    <th scope="col">OrCam</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="feat">Real-time obstacle avoidance (3-column scan)</td>
+                    <td class="us yes">✓</td>
+                    <td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td>
+                </tr>
+                <tr>
+                    <td class="feat">Distance &amp; bearing readouts (TruePath™)</td>
+                    <td class="us yes">✓</td>
+                    <td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td>
+                </tr>
+                <tr>
+                    <td class="feat">SkyShield overhead detection</td>
+                    <td class="us yes">✓</td>
+                    <td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td>
+                </tr>
+                <tr>
+                    <td class="feat">Per-device hardware profiling (HFOV, pitch)</td>
+                    <td class="us yes">✓</td>
+                    <td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td>
+                </tr>
+                <tr>
+                    <td class="feat">Community calibration library</td>
+                    <td class="us yes">✓</td>
+                    <td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td>
+                </tr>
+                <tr>
+                    <td class="feat">OCR / document reader</td>
+                    <td class="us yes">✓</td>
+                    <td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td>
+                </tr>
+                <tr>
+                    <td class="feat">Target object locator</td>
+                    <td class="us part">◐ shipping</td>
+                    <td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="yes">✓</td><td class="no">—</td>
+                </tr>
+                <tr>
+                    <td class="feat">Scene description</td>
+                    <td class="us part">◐ planned</td>
+                    <td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td>
+                </tr>
+                <tr>
+                    <td class="feat">Currency &amp; barcode recognition</td>
+                    <td class="us part">◐ planned</td>
+                    <td class="yes">✓</td><td class="yes">✓</td><td class="no">—</td><td class="yes">✓</td><td class="yes">✓</td>
+                </tr>
+                <tr>
+                    <td class="feat">100% on-device (zero cloud)</td>
+                    <td class="us yes">✓</td>
+                    <td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="part">partial</td>
+                </tr>
+                <tr>
+                    <td class="feat">Open source</td>
+                    <td class="us yes">✓</td>
+                    <td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td><td class="no">—</td>
+                </tr>
+                <tr>
+                    <td class="feat">Price</td>
+                    <td class="us yes">$0</td>
+                    <td class="yes">Free</td>
+                    <td class="yes">Free</td>
+                    <td class="yes">Free</td>
+                    <td class="no">$1.9k–3.5k</td>
+                    <td class="no">$4,500+</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Roadmap rail -->
+    <div class="matrix-header-bar" style="max-width:1100px;width:100%;border:1px solid rgba(0,87,255,0.3);border-bottom:none;">⬡ Build Roadmap — Closing the Read-My-World Gap</div>
+    <div class="roadmap-rail" style="border:1px solid rgba(0,87,255,0.3);border-top:none;padding:20px;background:rgba(0,10,30,0.6);">
+        <div class="phase-card now">
+            <div class="phase-tag">Phase 1 · NOW</div>
+            <h4>Fix &amp; Ship</h4>
+            <ul>
+                <li>Native YOLOv8n locator</li>
+                <li>OCR Reader polish</li>
+            </ul>
+        </div>
+        <div class="phase-card">
+            <div class="phase-tag">Phase 2 · 2–4 wks</div>
+            <h4>Table Stakes</h4>
+            <ul>
+                <li>PaddleOCR + Piper TTS</li>
+                <li>EPUB / PDF reader</li>
+                <li>Currency &amp; barcode</li>
+                <li>Template scene description</li>
+            </ul>
+        </div>
+        <div class="phase-card">
+            <div class="phase-tag">Phase 3 · 2–3 mo</div>
+            <h4>Build Moats</h4>
+            <ul>
+                <li>Vosk voice commands</li>
+                <li>"Hey AURIGA" wake word</li>
+                <li>OsmAnd pedestrian nav</li>
+                <li>Optional Moondream 2</li>
+                <li>5+ Piper languages</li>
+            </ul>
+        </div>
+        <div class="phase-card">
+            <div class="phase-tag">Phase 4 · 3+ mo</div>
+            <h4>Distribution</h4>
+            <ul>
+                <li>Play Store accessibility</li>
+                <li>NFB / RNIB partnerships</li>
+                <li>VA &amp; voc-rehab channel</li>
+                <li>Bookshare / NLS BARD</li>
+            </ul>
+        </div>
+        <div class="phase-card">
+            <div class="phase-tag">Phase 5 · 6+ mo</div>
+            <h4>Hardware</h4>
+            <ul>
+                <li>WeWALK BLE cane</li>
+                <li>Ray-Ban Meta / Xreal</li>
+                <li>Be My Eyes B2B fallback</li>
+            </ul>
+        </div>
+    </div>
+
+    <p class="position-callout">
+        <strong>Bottom line:</strong> the only free, offline, integrated vision-assistance suite — doing things
+        OrCam charges <strong>$4,500</strong> for, on the phone you already own.
+    </p>
+
+    <button class="cta-btn" onclick="showSection('navi')" style="margin-top:20px;">SEE THE NAVI HUD</button>
 </section>
 
 <!-- ══════════════════════════════════════
