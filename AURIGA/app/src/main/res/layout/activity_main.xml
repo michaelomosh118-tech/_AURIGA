@@ -175,45 +175,21 @@
                 android:text="azimuth · GhostAnchor™" />
         </LinearLayout>
 
-        <!-- 7. BOTTOM HUD: SIGNATURE + READ BUTTON -->
-        <RelativeLayout
-            android:id="@+id/bottom_bar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:background="@drawable/hud_bottom_bar_bg"
-            android:padding="20dp">
+        <!-- Ghost views: Java code references these IDs; kept 0dp/gone so layout is clean -->
+        <Button
+            android:id="@+id/reader_launch"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone"
+            android:text="READ"
+            android:contentDescription="Launch DrakoVoice Reader" />
 
-            <!-- reader_launch kept invisible so Java code can reference it -->
-            <Button
-                android:id="@+id/reader_launch"
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:visibility="gone"
-                android:text="READ"
-                android:contentDescription="Launch DrakoVoice Reader" />
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
-                android:gravity="center"
-                android:orientation="vertical">
-
-                <TextView
-                    style="@style/HUDLabelSmall"
-                    android:layout_gravity="center_horizontal"
-                    android:text="Object Signature" />
-
-                <TextView
-                    android:id="@+id/object_signature"
-                    style="@style/HUDReadoutMedium"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="4dp"
-                    android:text="SCANNING..." />
-            </LinearLayout>
-
-        </RelativeLayout>
+        <TextView
+            android:id="@+id/object_signature"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone"
+            android:text="" />
 
         <!-- 8. DIAGNOSTIC OVERLAY -->
         <TextView

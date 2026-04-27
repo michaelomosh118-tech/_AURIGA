@@ -1165,9 +1165,12 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     }
 
     private void updateHUD(float dist, float bearing, String sig) {
-        distanceText.setText(String.format("%.1f", dist) + "m");
-        bearingText.setText(String.format("%.0f", Math.abs(bearing)) + "° " + (bearing < 0 ? "LEFT" : "RIGHT"));
-        signatureText.setText(sig);
+        if (distanceText != null)
+            distanceText.setText(String.format("%.1f", dist) + "m");
+        if (bearingText != null)
+            bearingText.setText(String.format("%.0f", Math.abs(bearing)) + "° " + (bearing < 0 ? "LEFT" : "RIGHT"));
+        if (signatureText != null)
+            signatureText.setText(sig);
     }
 
     private void updateCalibrationUI(ColorSquareDetector.DetectionResult result) {

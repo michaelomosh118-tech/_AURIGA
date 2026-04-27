@@ -45,7 +45,7 @@
             android:exported="false"
             android:screenOrientation="portrait"
             android:configChanges="orientation|screenSize"
-            android:theme="@style/AurigaHUDTheme" />
+            android:theme="@style/AurigaDocTheme" />
 
         <!-- Hamburger-drawer destinations (0.4e). Both are presentational
              and read from the package metadata; no permissions required. -->
