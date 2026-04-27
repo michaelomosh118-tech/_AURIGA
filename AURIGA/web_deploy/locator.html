@@ -212,6 +212,46 @@
     .readout-value.alert { color: var(--alert-red); text-shadow: 0 0 10px var(--alert-red); }
     .readout.right { text-align: right; }
 
+    /* ── Focus-mode pill (under the topbar) ──────────────── */
+    .focus-pill {
+      position: absolute;
+      top: 78px; left: 50%; transform: translateX(-50%);
+      z-index: 9;
+      display: none;
+      align-items: center; gap: 10px;
+      padding: 8px 14px 8px 16px;
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid var(--auriga-cyan);
+      border-radius: 999px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--auriga-cyan);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 14px rgba(0, 240, 255, 0.25);
+      max-width: calc(100% - 44px);
+    }
+    .focus-pill.show { display: inline-flex; }
+    .focus-pill button {
+      appearance: none;
+      background: var(--auriga-cyan);
+      color: var(--space-black);
+      border: none;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: bold;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      min-height: 28px;
+    }
+    .focus-pill button:hover { background: rgba(0, 240, 255, 0.85); }
+    @media (max-width: 520px) {
+      .focus-pill { top: 70px; font-size: 10px; }
+    }
+
     /* ── Target-acquired banner (centre top) ─────────────── */
     .target-banner {
       position: absolute;
@@ -409,6 +449,11 @@
       </div>
     </div>
 
+    <div class="focus-pill" id="focusPill" aria-live="polite">
+      <span id="focusPillText">FOCUS</span>
+      <button type="button" id="focusExitBtn" aria-label="Exit focus mode">EXIT</button>
+    </div>
+
     <div class="target-banner" id="targetBanner" aria-live="polite">Target acquired</div>
 
     <section class="sheet" id="controls">
@@ -458,6 +503,9 @@
       const banner     = document.getElementById('targetBanner');
       const speakBtn   = document.getElementById('speakBtn');
       const clearBtn   = document.getElementById('clearBtn');
+      const focusPill  = document.getElementById('focusPill');
+      const focusPillText = document.getElementById('focusPillText');
+      const focusExitBtn  = document.getElementById('focusExitBtn');
       const ctx        = overlay.getContext('2d');
 
       // Distance estimation: empirical reference height (in pixels at 1m).
@@ -486,6 +534,47 @@
       // Throttled per-class persistence of last sighting.
       const lastPersistAt = new Map();
 
+      // ── Focus mode ─────────────────────────────────────────
+      // When the user opens the locator with `?focus=<name>`, we
+      // override the active-target set for this session only — the
+      // stored target list is never mutated. Tap EXIT to drop the
+      // override and fall back to the persisted active set.
+      let focusName = null;
+
+      function readFocusFromUrl() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const f = (params.get('focus') || '').trim();
+          if (!f) return null;
+          // Only accept focus targets that exist in the user's saved list,
+          // so a stale link can't override the filter to something unrelated.
+          if (!Store.has(f)) return null;
+          return f;
+        } catch (_) { return null; }
+      }
+
+      function applyFocusUI() {
+        if (focusName) {
+          focusPillText.textContent = 'FOCUS: ' + focusName.toUpperCase();
+          focusPill.classList.add('show');
+        } else {
+          focusPill.classList.remove('show');
+        }
+      }
+
+      function exitFocus() {
+        if (!focusName) return;
+        focusName = null;
+        // Strip the query param so refresh / back doesn't re-enter focus.
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('focus');
+          window.history.replaceState({}, '', url.toString());
+        } catch (_) {}
+        applyFocusUI();
+        refreshActiveTargetsView();
+      }
+
       // ── UI build ───────────────────────────────────────────
       function setState(t) { stateEl.textContent = t; }
       function showProgress(msg) { progress.textContent = msg; progress.classList.add('show'); }
@@ -507,6 +596,29 @@
 
       function refreshActiveTargetsView() {
         const targets = Store.load();
+
+        // If focus mode is on AND that focus target still exists in the
+        // store, narrow detection to just that one. Otherwise use the
+        // full saved set. Drop the focus quietly if its target was
+        // removed since the link was opened.
+        if (focusName && !targets.some(function (t) { return t.name === focusName; })) {
+          focusName = null;
+          applyFocusUI();
+        }
+
+        if (focusName) {
+          activeNameSet = new Set([focusName]);
+          activeEl.classList.remove('none');
+          const ft = targets.find(function (t) { return t.name === focusName; });
+          activeEl.textContent = focusName + ' (focus)';
+          if (ft && ft.lastSeenAt) {
+            lastSeenEl.textContent = 'Last seen ' + fmtRelative(ft.lastSeenAt);
+          } else {
+            lastSeenEl.textContent = 'No sightings yet';
+          }
+          return;
+        }
+
         activeNameSet = new Set(targets.map(function (t) { return t.name; }));
 
         if (targets.length === 0) {
@@ -756,8 +868,12 @@
       // ── Init ───────────────────────────────────────────────
       async function init() {
         loadVoicePref();
+        focusName = readFocusFromUrl();
+        applyFocusUI();
         refreshActiveTargetsView();
         applyVoiceState();
+
+        focusExitBtn.addEventListener('click', exitFocus);
 
         // Re-read targets when the user comes back from the targets page.
         document.addEventListener('visibilitychange', function () {

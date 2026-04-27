@@ -1,6 +1,6 @@
 // Bump the cache name when the asset list or shell HTML changes so old
 // clients pick up the new bundle on their next page load.
-const CACHE_NAME = 'drakosanctis-v6';
+const CACHE_NAME = 'drakosanctis-v7';
 
 // Local app-shell pages we always want available offline. The fetch
 // handler also opportunistically caches every other GET response so

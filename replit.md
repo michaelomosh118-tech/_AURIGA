@@ -70,6 +70,20 @@ The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and 
 - Service worker registers automatically on load (PWA).
 
 ## Recent Changes
+- **Locator targets — inline notes editor + per-target focus deep-link**:
+  Each card on `locator-targets.html` now shows three round actions:
+  amber `⨁` (Focus), cyan `✎` (Edit notes), red `×` (Delete). The edit
+  button swaps the description block for an inline textarea with
+  Save/Cancel; Save calls `Store.update(name, {description})` and
+  re-renders, Esc cancels, ⌘/Ctrl-Enter saves. The focus button is a
+  link to `locator.html?focus=<name>`. On the locator page, a new
+  `readFocusFromUrl()` helper parses that param at init, validates the
+  target still exists in the store, and overrides `activeNameSet` to
+  just that one class for the session — the persisted target list is
+  never mutated. A cyan FOCUS pill appears under the topbar with an
+  EXIT button that strips the URL param via `history.replaceState` and
+  falls back to the full active set. SW cache bumped to v7.
+
 - **Object Locator UX overhaul (web → APK via WebView)**: The locator
   now models targets as rich objects (`{name, description, lastSeenAt,
   lastBearing, lastDistance}`) instead of bare class-name strings, with

@@ -177,15 +177,62 @@
       appearance: none;
       width: 36px; height: 36px;
       border-radius: 999px;
-      background: rgba(255, 59, 48, 0.08);
-      border: 1px solid rgba(255, 59, 48, 0.3);
-      color: var(--alert-red);
+      background: rgba(0, 240, 255, 0.06);
+      border: 1px solid var(--glass-stroke);
+      color: var(--auriga-cyan);
       cursor: pointer;
       display: inline-flex; align-items: center; justify-content: center;
-      font-size: 18px; line-height: 1;
+      font-size: 16px; line-height: 1;
       transition: background 0.12s ease;
+      text-decoration: none;
+      font-family: var(--mono);
     }
-    .icon-btn:hover { background: rgba(255, 59, 48, 0.18); }
+    .icon-btn:hover { background: rgba(0, 240, 255, 0.16); }
+    .icon-btn.amber {
+      background: rgba(255, 179, 0, 0.08);
+      border-color: rgba(255, 179, 0, 0.4);
+      color: var(--warning-amber);
+    }
+    .icon-btn.amber:hover { background: rgba(255, 179, 0, 0.18); }
+    .icon-btn.danger {
+      background: rgba(255, 59, 48, 0.08);
+      border-color: rgba(255, 59, 48, 0.3);
+      color: var(--alert-red);
+      font-size: 18px;
+    }
+    .icon-btn.danger:hover { background: rgba(255, 59, 48, 0.18); }
+
+    /* ── Inline notes editor ─────────────────────────────── */
+    .edit-form {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 10px;
+      background: rgba(0, 87, 255, 0.06);
+      border: 1px solid rgba(0, 87, 255, 0.25);
+      border-radius: 10px;
+    }
+    .edit-form textarea {
+      appearance: none;
+      background: rgba(5, 10, 24, 0.6);
+      border: 1px solid var(--glass-stroke);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--hud-text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.92rem;
+      min-height: 72px; width: 100%;
+      resize: vertical;
+    }
+    .edit-form textarea:focus {
+      outline: none;
+      border-color: var(--auriga-cyan);
+      box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.18);
+    }
+    .edit-form-actions {
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+    .edit-form-actions .btn {
+      padding: 8px 14px; min-height: 36px; font-size: 11px;
+    }
 
     .empty-state {
       text-align: center;
@@ -478,9 +525,11 @@
         targets.forEach(function (t) {
           const item = document.createElement('article');
           item.className = 'target-item';
+          item.dataset.name = t.name;
 
           const seen = fmtRelative(t.lastSeenAt);
           const where = fmtLocation(t);
+          const focusHref = 'locator.html?focus=' + encodeURIComponent(t.name);
 
           item.innerHTML = ''
             + '<div class="target-item-head">'
@@ -488,12 +537,20 @@
             +     '<div class="target-name">' + escapeHtml(t.name) + '</div>'
             +   '</div>'
             +   '<div class="target-actions">'
-            +     '<button type="button" class="icon-btn" data-action="delete" '
+            +     '<a class="icon-btn amber" href="' + focusHref + '" '
+            +       'title="Open the live locator focused only on this target" '
+            +       'aria-label="Focus the live locator on ' + escapeHtml(t.name) + '">⨁</a>'
+            +     '<button type="button" class="icon-btn" data-action="edit" '
+            +       'title="Edit mission notes" '
+            +       'aria-label="Edit notes for ' + escapeHtml(t.name) + '">✎</button>'
+            +     '<button type="button" class="icon-btn danger" data-action="delete" '
             +       'aria-label="Remove ' + escapeHtml(t.name) + ' from active targets">&times;</button>'
             +   '</div>'
             + '</div>'
-            + '<div class="target-desc' + (t.description ? '' : ' empty') + '">'
-            +   (t.description ? escapeHtml(t.description) : 'No mission notes.')
+            + '<div class="target-desc-slot">'
+            +   '<div class="target-desc' + (t.description ? '' : ' empty') + '">'
+            +     (t.description ? escapeHtml(t.description) : 'No mission notes.')
+            +   '</div>'
             + '</div>'
             + '<div class="target-meta">'
             +   '<span>Last seen <strong class="' + (seen ? '' : 'never') + '">'
@@ -506,7 +563,46 @@
             Store.remove(t.name);
             renderList();
           });
+          item.querySelector('[data-action="edit"]').addEventListener('click', function () {
+            openInlineEditor(item, t);
+          });
           listEl.appendChild(item);
+        });
+      }
+
+      // Replace the description block of a target card with an inline
+      // textarea + Save/Cancel. Save persists via Store.update();
+      // Cancel restores the original description without re-rendering
+      // the rest of the list (cheaper, and keeps scroll position).
+      function openInlineEditor(itemEl, target) {
+        const slot = itemEl.querySelector('.target-desc-slot');
+        if (!slot || itemEl.querySelector('.edit-form')) return;
+        slot.innerHTML = ''
+          + '<div class="edit-form">'
+          +   '<textarea aria-label="Mission notes for ' + escapeHtml(target.name) + '"></textarea>'
+          +   '<div class="edit-form-actions">'
+          +     '<button type="button" class="btn" data-action="cancel">CANCEL</button>'
+          +     '<button type="button" class="btn primary" data-action="save">SAVE</button>'
+          +   '</div>'
+          + '</div>';
+        const ta = slot.querySelector('textarea');
+        ta.value = target.description || '';
+        ta.focus();
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+
+        slot.querySelector('[data-action="cancel"]').addEventListener('click', function () {
+          renderList();
+        });
+        slot.querySelector('[data-action="save"]').addEventListener('click', function () {
+          Store.update(target.name, { description: ta.value });
+          renderList();
+        });
+        ta.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') { e.preventDefault(); renderList(); }
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+            Store.update(target.name, { description: ta.value });
+            renderList();
+          }
         });
       }
 
