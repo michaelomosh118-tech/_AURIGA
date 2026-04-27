@@ -637,6 +637,7 @@
 
                 <!-- Haptic Feedback toggle row -->
                 <LinearLayout
+                    android:id="@+id/nav_haptic_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
@@ -647,7 +648,10 @@
                     android:paddingBottom="10dp"
                     android:minHeight="52dp"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Toggle vibration feedback">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -676,12 +680,16 @@
                         android:checked="true"
                         android:textOn=""
                         android:textOff=""
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:duplicateParentState="true"
                         app:showText="false"
-                        android:contentDescription="Toggle vibration feedback" />
+                        android:importantForAccessibility="no" />
                 </LinearLayout>
 
                 <!-- Voice Feedback toggle row -->
                 <LinearLayout
+                    android:id="@+id/nav_voice_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
@@ -692,7 +700,10 @@
                     android:paddingBottom="10dp"
                     android:minHeight="52dp"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Toggle voice feedback">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -721,8 +732,11 @@
                         android:checked="true"
                         android:textOn=""
                         android:textOff=""
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:duplicateParentState="true"
                         app:showText="false"
-                        android:contentDescription="Toggle voice feedback" />
+                        android:importantForAccessibility="no" />
                 </LinearLayout>
 
                 <!-- Quiet Hours row -->
@@ -824,6 +838,7 @@
 
                 <!-- Pin DIAG to HUD — switch row, ACTIVE by default -->
                 <LinearLayout
+                    android:id="@+id/nav_pin_diag_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
@@ -834,7 +849,10 @@
                     android:paddingBottom="10dp"
                     android:minHeight="52dp"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical">
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Pin the DIAG toggle to the HUD top bar">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -863,8 +881,11 @@
                         android:checked="true"
                         android:textOn=""
                         android:textOff=""
+                        android:clickable="false"
+                        android:focusable="false"
+                        android:duplicateParentState="true"
                         app:showText="false"
-                        android:contentDescription="Pin the DIAG toggle to the HUD top bar" />
+                        android:importantForAccessibility="no" />
                 </LinearLayout>
 
                 <!-- ── SECTION: SUPPORT ── -->

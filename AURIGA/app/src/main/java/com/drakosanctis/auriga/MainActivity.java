@@ -385,10 +385,25 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             hapticSwitch.setOnCheckedChangeListener((btn, checked) -> {
                 hapticEnabled = checked;
                 prefs.edit().putBoolean(PREF_HAPTIC, checked).apply();
+                if (haptic != null) {
+                    if (checked) {
+                        haptic.pulse(1.0f);
+                    } else {
+                        haptic.stop();
+                    }
+                }
                 Toast.makeText(this,
                         checked ? "Haptic feedback ON" : "Haptic feedback OFF",
                         Toast.LENGTH_SHORT).show();
             });
+        }
+        // Make the entire row a click target so tapping the label also toggles
+        // the switch (the switch thumb is too small a target, especially for
+        // visually-impaired users).
+        View hapticRow = findViewById(R.id.nav_haptic_row);
+        if (hapticRow != null && hapticSwitch != null) {
+            final SwitchCompat sw = hapticSwitch;
+            hapticRow.setOnClickListener(v -> sw.toggle());
         }
 
         SwitchCompat voiceSwitch = findViewById(R.id.nav_voice_toggle);
@@ -401,6 +416,11 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
                         checked ? "Voice feedback ON" : "Voice feedback OFF",
                         Toast.LENGTH_SHORT).show();
             });
+        }
+        View voiceRow = findViewById(R.id.nav_voice_row);
+        if (voiceRow != null && voiceSwitch != null) {
+            final SwitchCompat sw = voiceSwitch;
+            voiceRow.setOnClickListener(v -> sw.toggle());
         }
 
         View navQuietHours = findViewById(R.id.nav_quiet_hours);
@@ -429,6 +449,11 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
                 prefs.edit().putBoolean(PREF_PIN_DIAG, checked).apply();
                 applyDiagPinVisibility();
             });
+        }
+        View pinDiagRow = findViewById(R.id.nav_pin_diag_row);
+        if (pinDiagRow != null && pinSwitch != null) {
+            final SwitchCompat sw = pinSwitch;
+            pinDiagRow.setOnClickListener(v -> sw.toggle());
         }
 
         // ── SUPPORT ───────────────────────────────────────────────────
