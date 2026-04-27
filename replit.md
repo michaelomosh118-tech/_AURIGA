@@ -70,6 +70,31 @@ The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and 
 - Service worker registers automatically on load (PWA).
 
 ## Recent Changes
+- **Native rich hamburger drawer restored on top of `LocatorWebActivity`**:
+  The APK now wraps the WebView HUD in the same `DrawerLayout` chrome
+  the legacy native HUD used. `activity_locator_web.xml` was rebuilt
+  with a `DrawerLayout` root: main content = WebView + fallback +
+  floating `≡` MENU pill (top-start, `diag_toggle_bg`); side panel =
+  the rich Auriga drawer (NAVIGATE: HUD / Reader / Targets / About;
+  SETUP: 10-Point Calibration Walk amber row + Send Feedback with
+  the same calibration-walk-completed gate hint MainActivity uses;
+  SUPPORT: Help & Tips + Support Centre; CONTRIBUTE: Submit Calibration
+  + SDK Interest). Toggle/diagnostics rows that only apply to the
+  native camera HUD (haptic, voice, quiet hours, DIAG overlay,
+  pin-DIAG, system/engine status console) were left out so the drawer
+  matches what the WebView HUD can actually surface. `LocatorWebActivity`
+  imports `DrawerLayout` + `Gravity`, wires every row through a local
+  `safeStart(Class, label)` helper that toasts on failure, closes the
+  drawer first on Back, and falls back to `webView.canGoBack()` before
+  exiting. The website's PWA drawer is suppressed inside the WebView
+  by injecting a `<style id="auriga-native-shell-hide-web-nav">…</style>`
+  block from `WebViewClient.onPageFinished` on every page load
+  (locator → targets → locator stays clean), hiding `#navToggle`,
+  `.nav-toggle`, `.nav-drawer`, `#navLinks`, `.nav-scrim`, `#navScrim`
+  so only the native pill is ever visible. No web/PWA changes —
+  `nav-drawer.js`, the SW cache (`drakosanctis-v8`), and the public
+  site stay exactly as they were.
+
 - **Reverted website hamburger to its original 3-item Tools section**:
   The earlier overhaul added a `TARGETS` link to the website's
   `nav-drawer.js`, but that drawer is shared with the public PWA where

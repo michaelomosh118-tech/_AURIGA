@@ -1,10 +1,13 @@
 package com.drakosanctis.auriga;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -14,12 +17,14 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import android.app.Activity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 /**
  * LocatorWebActivity hosts the same Object Locator experience that the
@@ -29,22 +34,49 @@ import androidx.core.content.ContextCompat;
  * so the in-app HUD looks and behaves identically to the live website,
  * even offline once TF.js + COCO-SSD have been cached on first launch.
  *
- * The activity wires up the two pieces of glue WebView needs to drive a
- * real-time camera + voice readout page:
+ * The activity wires up three pieces of glue WebView needs to drive a
+ * real-time camera + voice readout page hosted inside a native shell:
  *   1. Camera permission: WebChromeClient.onPermissionRequest is bridged
  *      through the standard runtime permission flow.
  *   2. Audio readout: SpeechSynthesis works out-of-the-box in modern
  *      Android System WebView; we just enable JS, DOM storage and media
  *      autoplay so the page can wire it up the same way the web build
  *      does.
+ *   3. Native hamburger drawer: the activity hosts a {@link DrawerLayout}
+ *      that surfaces the same rich Auriga drawer the legacy native HUD
+ *      used (Calibration Walk, Send Feedback, Help, Support, Contribute,
+ *      Object Targets, About, etc.). The website's own PWA drawer is
+ *      hidden inside the WebView via injected CSS so the user never sees
+ *      two competing menus.
  */
 public class LocatorWebActivity extends Activity {
 
     private static final int CAMERA_PERMISSION_REQUEST = 1701;
     private static final String LOCATOR_URL = "file:///android_asset/web/locator.html";
 
+    /**
+     * Injected on every page the WebView finishes loading. Hides the
+     * website's PWA hamburger + drawer + scrim so the only menu the
+     * user can pull up is the native one rendered by this activity.
+     * Kept as a single &lt;style&gt; tag with a stable id so re-injection
+     * on each load is idempotent.
+     */
+    private static final String HIDE_WEB_NAV_CSS_JS =
+            "(function(){"
+          + "  var id='auriga-native-shell-hide-web-nav';"
+          + "  if (document.getElementById(id)) return;"
+          + "  var s=document.createElement('style');"
+          + "  s.id=id;"
+          + "  s.textContent="
+          + "    '#navToggle,.nav-toggle,.nav-drawer,#navLinks,'"
+          + "  + '.nav-scrim,#navScrim{display:none !important;}'"
+          + "  + 'body.nav-open{overflow:auto !important;}';"
+          + "  (document.head||document.documentElement).appendChild(s);"
+          + "})();";
+
     private WebView webView;
     private TextView fallback;
+    private DrawerLayout drawerLayout;
     private PermissionRequest pendingPermissionRequest;
 
     @Override
@@ -56,7 +88,9 @@ public class LocatorWebActivity extends Activity {
 
         webView = findViewById(R.id.locator_webview);
         fallback = findViewById(R.id.locator_fallback);
+        drawerLayout = findViewById(R.id.drawer_layout);
 
+        wireDrawer();
         configureWebView();
         // Pre-request the camera so the WebView can grant the page's
         // getUserMedia call without an extra round-trip.
@@ -67,6 +101,143 @@ public class LocatorWebActivity extends Activity {
                     CAMERA_PERMISSION_REQUEST);
         }
         webView.loadUrl(LOCATOR_URL);
+    }
+
+    /**
+     * Wire the native hamburger drawer that wraps the WebView. Each row
+     * either dismisses the drawer (if it points back to the HUD) or
+     * launches the matching standalone activity. All launches go through
+     * {@link #safeStart(Class, String)} so a missing or crashing target
+     * surfaces as a Toast instead of crashing the host activity.
+     */
+    private void wireDrawer() {
+        Button menuBtn = findViewById(R.id.menu_toggle);
+        if (menuBtn != null && drawerLayout != null) {
+            menuBtn.setOnClickListener(v -> {
+                if (drawerLayout.isDrawerOpen(Gravity.START)) {
+                    drawerLayout.closeDrawer(Gravity.START);
+                } else {
+                    drawerLayout.openDrawer(Gravity.START);
+                }
+            });
+        }
+
+        // ── NAVIGATE ──────────────────────────────────────────────
+        View navHome = findViewById(R.id.nav_home);
+        if (navHome != null) {
+            navHome.setOnClickListener(v -> closeDrawer());
+        }
+
+        View navReader = findViewById(R.id.nav_reader);
+        if (navReader != null) {
+            navReader.setOnClickListener(v -> {
+                closeDrawer();
+                safeStart(ReaderActivity.class, "Reader");
+            });
+        }
+
+        View navTargets = findViewById(R.id.nav_targets);
+        if (navTargets != null) {
+            navTargets.setOnClickListener(v -> {
+                closeDrawer();
+                safeStart(TargetsActivity.class, "Object Targets");
+            });
+        }
+
+        View navAbout = findViewById(R.id.nav_about);
+        if (navAbout != null) {
+            navAbout.setOnClickListener(v -> {
+                closeDrawer();
+                safeStart(AboutActivity.class, "About");
+            });
+        }
+
+        // ── SETUP ─────────────────────────────────────────────────
+        View navCalibrate = findViewById(R.id.nav_calibrate);
+        if (navCalibrate != null) {
+            navCalibrate.setOnClickListener(v -> {
+                closeDrawer();
+                safeStart(CalibrationWalkActivity.class, "Calibration walk");
+            });
+        }
+
+        View navFeedback = findViewById(R.id.nav_feedback);
+        TextView feedbackHint = findViewById(R.id.nav_feedback_hint);
+        if (navFeedback != null) {
+            navFeedback.setOnClickListener(v -> {
+                closeDrawer();
+                safeStart(FeedbackActivity.class, "Feedback");
+            });
+        }
+        refreshFeedbackGate(navFeedback, feedbackHint);
+
+        // ── SUPPORT ───────────────────────────────────────────────
+        View navHelp = findViewById(R.id.nav_help);
+        if (navHelp != null) {
+            navHelp.setOnClickListener(v -> {
+                closeDrawer();
+                safeStart(HelpActivity.class, "Help");
+            });
+        }
+
+        View navSupport = findViewById(R.id.nav_support);
+        if (navSupport != null) {
+            navSupport.setOnClickListener(v -> {
+                closeDrawer();
+                safeStart(SupportActivity.class, "Support");
+            });
+        }
+
+        // ── CONTRIBUTE ────────────────────────────────────────────
+        View navContributeCalibration = findViewById(R.id.nav_contribute_calibration);
+        if (navContributeCalibration != null) {
+            navContributeCalibration.setOnClickListener(v -> {
+                closeDrawer();
+                safeStart(ContributeActivity.class, "Contribute");
+            });
+        }
+
+        View navContributeSdk = findViewById(R.id.nav_contribute_sdk);
+        if (navContributeSdk != null) {
+            navContributeSdk.setOnClickListener(v -> {
+                closeDrawer();
+                safeStart(ContributeActivity.class, "Contribute");
+            });
+        }
+    }
+
+    private void closeDrawer() {
+        if (drawerLayout != null && drawerLayout.isDrawerOpen(Gravity.START)) {
+            drawerLayout.closeDrawer(Gravity.START);
+        }
+    }
+
+    /**
+     * Mirror MainActivity's gating: if the user hasn't completed the
+     * 10-point calibration walk yet, dim the Feedback row and surface
+     * the amber hint. The row stays tappable so a tap still reaches
+     * FeedbackActivity, which itself enforces the gate properly.
+     */
+    private void refreshFeedbackGate(View feedbackRow, TextView hint) {
+        try {
+            SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE);
+            boolean walkDone = prefs.getBoolean(
+                    CalibrationWalkActivity.PREF_WALK_DONE, false);
+            if (hint != null) hint.setVisibility(walkDone ? View.GONE : View.VISIBLE);
+            if (feedbackRow != null) feedbackRow.setAlpha(walkDone ? 1f : 0.55f);
+        } catch (Throwable t) {
+            // Non-fatal — the row stays tappable either way.
+        }
+    }
+
+    private void safeStart(Class<?> target, String label) {
+        try {
+            startActivity(new Intent(this, target));
+        } catch (Throwable t) {
+            Toast.makeText(this,
+                    label + " unavailable: " + t.getMessage(),
+                    Toast.LENGTH_LONG).show();
+        }
     }
 
     private void configureWebView() {
@@ -89,6 +260,11 @@ public class LocatorWebActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 fallback.setVisibility(View.GONE);
+                // Suppress the website's PWA drawer so the user only
+                // ever sees the native one this activity hosts. Re-run
+                // on every page load so cross-page navigation inside
+                // the WebView (locator → targets → locator) stays clean.
+                view.evaluateJavascript(HIDE_WEB_NAV_CSS_JS, null);
             }
         });
 
@@ -156,6 +332,10 @@ public class LocatorWebActivity extends Activity {
     protected void onResume() {
         super.onResume();
         if (webView != null) webView.onResume();
+        // Re-evaluate the feedback gate in case the user just finished
+        // the calibration walk in another activity.
+        refreshFeedbackGate(findViewById(R.id.nav_feedback),
+                findViewById(R.id.nav_feedback_hint));
     }
 
     @Override
@@ -175,12 +355,36 @@ public class LocatorWebActivity extends Activity {
         super.onDestroy();
     }
 
+    /**
+     * Close the drawer first, then let the WebView handle in-page
+     * navigation, then fall back to default activity finish.
+     */
+    @Override
+    public void onBackPressed() {
+        if (drawerLayout != null && drawerLayout.isDrawerOpen(Gravity.START)) {
+            drawerLayout.closeDrawer(Gravity.START);
+            return;
+        }
+        if (webView != null && webView.canGoBack()) {
+            webView.goBack();
+            return;
+        }
+        super.onBackPressed();
+    }
+
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK
-                && webView != null && webView.canGoBack()) {
-            webView.goBack();
-            return true;
+        // Keep the legacy KEYCODE_BACK path so hardware back keys on
+        // older devices behave the same as the gesture / system back.
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (drawerLayout != null && drawerLayout.isDrawerOpen(Gravity.START)) {
+                drawerLayout.closeDrawer(Gravity.START);
+                return true;
+            }
+            if (webView != null && webView.canGoBack()) {
+                webView.goBack();
+                return true;
+            }
         }
         return super.onKeyDown(keyCode, event);
     }
