@@ -17,12 +17,19 @@ function info(msg) {
   console.log(`\x1b[36m[deploy]\x1b[0m ${msg}`);
 }
 
+const DEFAULT_SITE_ID = 'dbaf6dae-f025-4c5a-8210-7e06b872e75a';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 if (!process.env.NETLIFY_AUTH_TOKEN) {
   fail('NETLIFY_AUTH_TOKEN is not set. Add it in Replit Secrets.');
 }
-if (!process.env.NETLIFY_SITE_ID) {
-  fail('NETLIFY_SITE_ID is not set. Add it in Replit Secrets.');
+
+let siteId = process.env.NETLIFY_SITE_ID;
+if (!siteId || !UUID_RE.test(siteId)) {
+  info(`NETLIFY_SITE_ID is missing or not a UUID; falling back to bundled default.`);
+  siteId = DEFAULT_SITE_ID;
 }
+
 if (!fs.existsSync(SITE_DIR)) {
   fail(`Site directory not found: ${SITE_DIR}`);
 }
@@ -32,7 +39,7 @@ const NETLIFY_BIN = path.join(__dirname, '..', 'node_modules', '.bin', 'netlify'
 const args = [
   'deploy',
   '--dir', SITE_DIR,
-  '--site', process.env.NETLIFY_SITE_ID,
+  '--site', siteId,
   '--auth', process.env.NETLIFY_AUTH_TOKEN,
 ];
 
