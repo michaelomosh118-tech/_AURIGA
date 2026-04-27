@@ -155,6 +155,15 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
+    // Phase 1 (native YOLOv8n locator): the TFLite model is memory-
+    // mapped at runtime via FileChannel.map(), which only works if
+    // the asset is stored UNcompressed inside the APK. Without this,
+    // AAPT compresses *.tflite during packaging and the runtime
+    // mmap fails with "MappedByteBuffer is not a valid model file".
+    androidResources {
+        noCompress.add('tflite')
+    }
+
     // Bundle the public web preview (AURIGA/web_deploy) into the APK as
     // assets so LocatorWebActivity can load file:///android_asset/web/locator.html
     // and render the same HUD the live website serves. We stage the
@@ -269,6 +278,20 @@ dependencies {
     // / Food / Place / Plant) runs fully offline. Powers the Object
     // Targets picker that filters which detections trigger haptic + voice.
     implementation 'com.google.mlkit:object-detection:17.0.2'
+
+    // ── Phase 1: native YOLOv8n Object Locator ───────────────────
+    // TFLite runtime + helper library. Powers LocatorActivity, which
+    // replaces the WebView locator with a fully on-device 80-class
+    // detector (COCO). Model file ships in app/src/main/assets/ at
+    // build time -- see assets/MODEL_README.md for the source. No
+    // Play Services dependency, no cloud.
+    implementation 'org.tensorflow:tensorflow-lite:2.14.0'
+    implementation 'org.tensorflow:tensorflow-lite-support:0.4.4'
+
+    // ComponentActivity -- LocatorActivity extends this so CameraX
+    // gets a real Lifecycle owner and unbinds the analyser when the
+    // activity is destroyed.
+    implementation 'androidx.activity:activity:1.8.2'
 
     // Redundant 'org.json:json' removed as it's built into Android
     testImplementation 'junit:junit:4.13.2'

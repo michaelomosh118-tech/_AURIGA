@@ -28,6 +28,12 @@ Thumbs.db
 # caused by signature mismatch between successive builds.
 !AURIGA/keystore/debug.keystore
 
+# Phase 1 native YOLOv8n locator: the TFLite model is large (~6-12 MB)
+# and not source-controlled. CI / local builds drop it into
+# AURIGA/app/src/main/assets/ before assembling the APK -- see
+# AURIGA/app/src/main/assets/MODEL_README.md for provenance.
+*.tflite
+
 # Logs
 *.log
 node_modules
