@@ -81,6 +81,59 @@
       z-index: 3;
     }
 
+    /* ── HUD frame: L-bracket corners + centre reticle ───── */
+    .hud-frame {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      z-index: 4;
+    }
+    .corner {
+      position: absolute;
+      width: 36px; height: 36px;
+      border-color: var(--auriga-cyan);
+      border-style: solid;
+      border-width: 0;
+      filter: drop-shadow(0 0 6px rgba(0, 240, 255, 0.6));
+    }
+    .corner.tl { top: 86px; left: 18px;   border-top-width: 2px;    border-left-width: 2px;  }
+    .corner.tr { top: 86px; right: 18px;  border-top-width: 2px;    border-right-width: 2px; }
+    .corner.bl { bottom: 220px; left: 18px;  border-bottom-width: 2px; border-left-width: 2px;  }
+    .corner.br { bottom: 220px; right: 18px; border-bottom-width: 2px; border-right-width: 2px; }
+    @media (max-width: 520px) {
+      .corner.bl, .corner.br { bottom: 240px; }
+    }
+    .reticle {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 92px; height: 92px;
+      transform: translate(-50%, -50%);
+      border: 1px solid rgba(0, 240, 255, 0.5);
+      border-radius: 999px;
+      filter: drop-shadow(0 0 6px rgba(0, 240, 255, 0.45));
+    }
+    .reticle::before, .reticle::after {
+      content: '';
+      position: absolute;
+      background: rgba(0, 240, 255, 0.55);
+    }
+    .reticle::before {
+      top: 50%; left: -10px; right: -10px;
+      height: 1px; transform: translateY(-50%);
+    }
+    .reticle::after {
+      left: 50%; top: -10px; bottom: -10px;
+      width: 1px; transform: translateX(-50%);
+    }
+    .reticle-dot {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--auriga-cyan);
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 10px var(--auriga-cyan);
+    }
+
     /* ── Top bar ─────────────────────────────────────────── */
     .topbar {
       position: absolute; top: 0; left: 0; right: 0;
@@ -89,9 +142,7 @@
       background: linear-gradient(to bottom, rgba(5,10,24,0.85), transparent);
       z-index: 10;
     }
-    .brand {
-      display: flex; flex-direction: column; line-height: 1.1;
-    }
+    .brand { display: flex; flex-direction: column; line-height: 1.1; }
     .brand-eyebrow {
       font-family: var(--mono);
       color: var(--muted);
@@ -161,6 +212,28 @@
     .readout-value.alert { color: var(--alert-red); text-shadow: 0 0 10px var(--alert-red); }
     .readout.right { text-align: right; }
 
+    /* ── Target-acquired banner (centre top) ─────────────── */
+    .target-banner {
+      position: absolute;
+      top: 158px; left: 50%; transform: translateX(-50%);
+      z-index: 9;
+      padding: 8px 16px;
+      background: rgba(255, 179, 0, 0.18);
+      border: 1px solid var(--warning-amber);
+      border-radius: 999px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--warning-amber);
+      text-shadow: 0 0 6px rgba(255, 179, 0, 0.4);
+      display: none;
+      max-width: calc(100% - 44px);
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+    .target-banner.show { display: block; }
+
     /* ── Bottom sheet ────────────────────────────────────── */
     .sheet {
       position: absolute; left: 0; right: 0; bottom: 0;
@@ -182,38 +255,39 @@
       font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em;
       color: var(--muted); text-transform: uppercase;
     }
-    .target-card-head .target-count {
-      color: var(--warning-amber);
-    }
+    .target-card-head .target-count { color: var(--warning-amber); }
     .target-active {
       font-family: 'Orbitron'; font-size: 1rem;
       color: var(--auriga-cyan);
       text-transform: uppercase; letter-spacing: 2px;
     }
     .target-active.none { color: var(--muted); }
-    .target-chips {
-      display: flex; flex-wrap: wrap; gap: 6px;
-      max-height: 110px; overflow-y: auto;
+    .target-summary {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px;
     }
-    .target-chip {
+    .target-summary-text { flex: 1; min-width: 0; }
+    .target-summary-text small {
+      display: block;
+      font-family: var(--mono); font-size: 10px; letter-spacing: 0.14em;
+      color: var(--muted); text-transform: uppercase;
+      margin-top: 4px;
+    }
+    .icon-add {
       appearance: none;
-      background: rgba(0, 87, 255, 0.06);
-      border: 1px solid rgba(0, 87, 255, 0.3);
-      color: var(--hud-text);
-      padding: 6px 12px;
+      width: 44px; height: 44px;
       border-radius: 999px;
-      font-family: var(--mono); font-size: 11px;
-      letter-spacing: 0.08em; text-transform: uppercase;
-      cursor: pointer; min-height: 32px;
-      transition: all 0.12s ease;
-    }
-    .target-chip:hover { background: rgba(0, 240, 255, 0.12); }
-    .target-chip.on {
       background: var(--auriga-cyan);
       color: var(--space-black);
-      border-color: var(--auriga-cyan);
-      font-weight: bold;
+      border: none;
+      font-size: 22px; font-weight: 700;
+      cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.45);
+      flex-shrink: 0;
+      text-decoration: none;
     }
+    .icon-add:hover { background: rgba(0, 240, 255, 0.85); }
 
     .controls {
       display: flex; align-items: center; justify-content: center;
@@ -234,6 +308,8 @@
       min-height: 44px;
       transition: transform 0.12s ease, background 0.12s ease, color 0.12s ease;
       backdrop-filter: blur(10px);
+      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 8px;
     }
     .btn:hover { transform: translateY(-1px); background: rgba(0, 240, 255, 0.12); }
     .btn[aria-pressed="true"], .btn.active {
@@ -268,16 +344,21 @@
     .fallback p { color: var(--muted); max-width: 480px; }
     body.no-camera .fallback { display: flex; }
     body.no-camera video { display: none; }
+    body.no-camera .hud-frame, body.no-camera .target-banner { display: none; }
 
     @media (max-width: 520px) {
       .brand-name { font-size: 14px; }
       .readouts { top: 72px; }
       .readout { min-width: 90px; padding: 8px 12px; }
       .readout-value { font-size: 1.1rem; }
+      .target-banner { top: 146px; }
     }
   </style>
   <link rel="stylesheet" href="nav-drawer.css">
   <script defer src="nav-drawer.js"></script>
+  <!-- Load synchronously (no defer) so window.AurigaLocatorStore is
+       available to the inline IIFE that runs at the bottom of <body>. -->
+  <script src="locator-store.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#controls">Skip to locator controls</a>
@@ -286,6 +367,15 @@
     <video id="cam" autoplay playsinline muted aria-hidden="true"></video>
     <canvas id="overlay" aria-hidden="true"></canvas>
     <div class="scanline" aria-hidden="true"></div>
+
+    <!-- L-bracket corners + centre reticle (HUD chrome). -->
+    <div class="hud-frame" aria-hidden="true">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+      <div class="reticle"><div class="reticle-dot"></div></div>
+    </div>
 
     <header class="topbar">
       <div class="brand">
@@ -319,18 +409,26 @@
       </div>
     </div>
 
+    <div class="target-banner" id="targetBanner" aria-live="polite">Target acquired</div>
+
     <section class="sheet" id="controls">
       <div class="target-card">
         <div class="target-card-head">
           <span>Active Target</span>
           <span class="target-count" id="targetCount">0 detected</span>
         </div>
-        <div class="target-active none" id="activeTarget">No target selected — tap a chip below</div>
-        <div class="target-chips" id="targetChips" aria-label="Pick targets to track"></div>
+        <div class="target-summary">
+          <div class="target-summary-text">
+            <div class="target-active none" id="activeTarget">No targets — tap + to add one</div>
+            <small id="lastSeen">Watching all classes</small>
+          </div>
+          <a class="icon-add" href="locator-targets.html" id="addBtn"
+             aria-label="Manage targets">+</a>
+        </div>
       </div>
       <div class="controls">
         <button class="btn" id="speakBtn" aria-pressed="true" aria-label="Mute or un-mute voice readout">VOICE ON</button>
-        <button class="btn" id="allBtn" aria-label="Track all object classes">ALL</button>
+        <a class="btn" href="locator-targets.html" aria-label="Open targets manager">TARGETS</a>
         <button class="btn" id="clearBtn" aria-label="Clear all targets">CLEAR</button>
       </div>
     </section>
@@ -347,6 +445,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
   <script>
     (function () {
+      const Store      = window.AurigaLocatorStore;
       const stateEl    = document.getElementById('state');
       const progress   = document.getElementById('progress');
       const video      = document.getElementById('cam');
@@ -355,27 +454,11 @@
       const bearEl     = document.getElementById('bearing');
       const targetCount= document.getElementById('targetCount');
       const activeEl   = document.getElementById('activeTarget');
-      const chipsEl    = document.getElementById('targetChips');
+      const lastSeenEl = document.getElementById('lastSeen');
+      const banner     = document.getElementById('targetBanner');
       const speakBtn   = document.getElementById('speakBtn');
-      const allBtn     = document.getElementById('allBtn');
       const clearBtn   = document.getElementById('clearBtn');
       const ctx        = overlay.getContext('2d');
-
-      // The 80 COCO classes the bundled COCO-SSD model recognises.
-      // Same set as the attached Object-Locator reference.
-      const COCO_CLASSES = [
-        'person','bicycle','car','motorcycle','airplane','bus','train','truck','boat',
-        'traffic light','fire hydrant','stop sign','parking meter','bench',
-        'bird','cat','dog','horse','sheep','cow','elephant','bear','zebra','giraffe',
-        'backpack','umbrella','handbag','tie','suitcase',
-        'frisbee','skis','snowboard','sports ball','kite','baseball bat','baseball glove','skateboard','surfboard','tennis racket',
-        'bottle','wine glass','cup','fork','knife','spoon','bowl',
-        'banana','apple','sandwich','orange','broccoli','carrot','hot dog','pizza','donut','cake',
-        'chair','couch','potted plant','bed','dining table','toilet',
-        'tv','laptop','mouse','remote','keyboard','cell phone',
-        'microwave','oven','toaster','sink','refrigerator',
-        'book','clock','vase','scissors','teddy bear','hair drier','toothbrush'
-      ];
 
       // Distance estimation: empirical reference height (in pixels at 1m).
       // Same model as the attached Object-Locator project: distance grows
@@ -385,67 +468,67 @@
       const FOV_DEGREES = 60;
       // Confidence threshold below which we drop a detection.
       const MIN_SCORE = 0.55;
+      // Throttle store writes — we don't need to persist every detection
+      // frame, that would thrash localStorage on slower devices.
+      const SIGHTING_PERSIST_MS = 1500;
 
-      const STORAGE_KEY = 'auriga-locator-targets';
-      const VOICE_KEY   = 'auriga-locator-voice';
+      const VOICE_KEY = 'auriga-locator-voice';
 
       let model = null;
       let running = false;
       let speakOn = true;
       let lastSpoken = 0;
       let lastSpokenLabel = '';
-      let targets = new Set();
       let muteGuardTimer = null;
 
-      // ── Persistence ────────────────────────────────────────
-      function loadTargets() {
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) {
-            const arr = JSON.parse(raw);
-            if (Array.isArray(arr)) targets = new Set(arr);
-          }
-        } catch (_) {}
-      }
-      function saveTargets() {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(targets)));
-        } catch (_) {}
-      }
+      // Cached lookup of active-target names for fast filter checks.
+      let activeNameSet = new Set();
+      // Throttled per-class persistence of last sighting.
+      const lastPersistAt = new Map();
 
       // ── UI build ───────────────────────────────────────────
       function setState(t) { stateEl.textContent = t; }
       function showProgress(msg) { progress.textContent = msg; progress.classList.add('show'); }
       function hideProgress() { progress.classList.remove('show'); }
 
-      function renderChips() {
-        chipsEl.innerHTML = '';
-        COCO_CLASSES.forEach(cls => {
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'target-chip' + (targets.has(cls) ? ' on' : '');
-          b.textContent = cls;
-          b.setAttribute('aria-pressed', targets.has(cls) ? 'true' : 'false');
-          b.addEventListener('click', () => {
-            if (targets.has(cls)) targets.delete(cls); else targets.add(cls);
-            saveTargets();
-            renderChips();
-            renderActive();
-          });
-          chipsEl.appendChild(b);
-        });
+      function fmtRelative(ms) {
+        if (!Number.isFinite(ms) || ms <= 0) return null;
+        const diff = Date.now() - ms;
+        if (diff < 0) return 'just now';
+        const s = Math.floor(diff / 1000);
+        if (s < 60) return s + 's ago';
+        const m = Math.floor(s / 60);
+        if (m < 60) return m + 'm ago';
+        const h = Math.floor(m / 60);
+        if (h < 24) return h + 'h ago';
+        const d = Math.floor(h / 24);
+        return d + 'd ago';
       }
-      function renderActive() {
-        if (targets.size === 0) {
+
+      function refreshActiveTargetsView() {
+        const targets = Store.load();
+        activeNameSet = new Set(targets.map(function (t) { return t.name; }));
+
+        if (targets.length === 0) {
           activeEl.classList.add('none');
-          activeEl.textContent = 'No target selected — tap a chip below';
-        } else if (targets.size === COCO_CLASSES.length) {
-          activeEl.classList.remove('none');
-          activeEl.textContent = 'All classes';
+          activeEl.textContent = 'No targets — tap + to add one';
+          lastSeenEl.textContent = 'Watching all classes';
+          return;
+        }
+
+        activeEl.classList.remove('none');
+        const names = targets.map(function (t) { return t.name; });
+        activeEl.textContent = names.slice(0, 6).join(', ')
+          + (names.length > 6 ? ' +' + (names.length - 6) : '');
+
+        // Show the freshest sighting timestamp across the active targets.
+        const freshest = targets.reduce(function (best, t) {
+          return (t.lastSeenAt && t.lastSeenAt > (best ? best.lastSeenAt : 0)) ? t : best;
+        }, null);
+        if (freshest && freshest.lastSeenAt) {
+          lastSeenEl.textContent = freshest.name + ' last seen ' + fmtRelative(freshest.lastSeenAt);
         } else {
-          activeEl.classList.remove('none');
-          activeEl.textContent = Array.from(targets).slice(0, 6).join(', ')
-            + (targets.size > 6 ? ' +' + (targets.size - 6) : '');
+          lastSeenEl.textContent = 'No sightings yet';
         }
       }
 
@@ -473,8 +556,6 @@
       }
 
       function resizeOverlay() {
-        // Match the overlay canvas to the video's CSS box so the
-        // bounding boxes line up with what the user sees.
         const r = video.getBoundingClientRect();
         overlay.width  = r.width;
         overlay.height = r.height;
@@ -485,7 +566,6 @@
       async function loadModel() {
         showProgress('Loading detection model…');
         setState('LOADING MODEL');
-        // Use the lite model so first load is fast and stays cached.
         model = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
         hideProgress();
       }
@@ -496,7 +576,6 @@
         const vh = video.videoHeight || 1;
         const cw = overlay.width;
         const ch = overlay.height;
-        // Account for object-fit:cover on the video element.
         const scale = Math.max(cw / vw, ch / vh);
         const dispW = vw * scale;
         const dispH = vh * scale;
@@ -505,10 +584,11 @@
 
         ctx.clearRect(0, 0, cw, ch);
 
-        const filtered = predictions.filter(p => {
+        const watchAll = activeNameSet.size === 0;
+        const filtered = predictions.filter(function (p) {
           if (p.score < MIN_SCORE) return false;
-          if (targets.size === 0) return true;        // show everything when nothing picked
-          return targets.has(p.class);
+          if (watchAll) return true;
+          return activeNameSet.has(p.class);
         });
 
         targetCount.textContent = filtered.length + ' detected';
@@ -517,13 +597,12 @@
         // a target — that's the one we show distance/bearing for.
         let primary = null;
         let bestArea = 0;
-        filtered.forEach(p => {
+        filtered.forEach(function (p) {
           const a = p.bbox[2] * p.bbox[3];
-          const isTarget = targets.size === 0 || targets.has(p.class);
-          if (isTarget && a > bestArea) { bestArea = a; primary = p; }
+          if (a > bestArea) { bestArea = a; primary = p; }
         });
 
-        filtered.forEach(p => {
+        filtered.forEach(function (p) {
           const [x, y, w, h] = p.bbox;
           const sx = offX + x * scale;
           const sy = offY + y * scale;
@@ -568,11 +647,33 @@
             : Math.abs(bearing).toFixed(0) + '° ' + (bearing < 0 ? 'L' : 'R');
           bearEl.textContent = bearStr;
 
+          // Persist the sighting if this prediction matches a tracked target.
+          // Throttled so we don't write to localStorage on every frame.
+          if (!watchAll && activeNameSet.has(primary.class)) {
+            const now = Date.now();
+            const lastWrote = lastPersistAt.get(primary.class) || 0;
+            if (now - lastWrote > SIGHTING_PERSIST_MS) {
+              Store.touch(primary.class, bearing, distance);
+              lastPersistAt.set(primary.class, now);
+              // Refresh the sheet's "last seen" caption — cheap, reads from disk.
+              refreshActiveTargetsView();
+            }
+          }
+
+          // Banner: only when we're locked onto a tracked target.
+          if (!watchAll && activeNameSet.has(primary.class)) {
+            banner.textContent = '⨁ ' + primary.class.toUpperCase() + ' acquired';
+            banner.classList.add('show');
+          } else {
+            banner.classList.remove('show');
+          }
+
           maybeSpeak(primary.class, distStr, bearStr);
         } else {
           distEl.textContent = '—';
           bearEl.textContent = '—';
           distEl.classList.remove('alert');
+          banner.classList.remove('show');
         }
       }
 
@@ -614,7 +715,7 @@
           }
           if (muteGuardTimer) clearInterval(muteGuardTimer);
           let guardTicks = 0;
-          muteGuardTimer = setInterval(() => {
+          muteGuardTimer = setInterval(function () {
             if (!('speechSynthesis' in window)) return;
             try { window.speechSynthesis.cancel(); } catch (_) {}
             guardTicks++;
@@ -649,33 +750,37 @@
           console.warn('detect error', e);
         }
         // ~2 detections per second is a good battery/responsiveness mix.
-        setTimeout(() => requestAnimationFrame(loop), 500);
+        setTimeout(function () { requestAnimationFrame(loop); }, 500);
       }
 
       // ── Init ───────────────────────────────────────────────
       async function init() {
-        loadTargets();
         loadVoicePref();
-        renderChips();
-        renderActive();
+        refreshActiveTargetsView();
         applyVoiceState();
+
+        // Re-read targets when the user comes back from the targets page.
+        document.addEventListener('visibilitychange', function () {
+          if (!document.hidden) refreshActiveTargetsView();
+        });
+        window.addEventListener('focus', refreshActiveTargetsView);
+        window.addEventListener('storage', function (e) {
+          if (e.key === Store.STORAGE_KEY) refreshActiveTargetsView();
+        });
 
         // Use both 'click' and 'touchend' so the toggle is responsive
         // on touch devices even if a parent intercepts click bubbling.
-        const toggleVoice = (e) => {
+        const toggleVoice = function (e) {
           if (e) { e.preventDefault(); e.stopPropagation(); }
           speakOn = !speakOn;
           applyVoiceState();
         };
         speakBtn.addEventListener('click', toggleVoice);
 
-        allBtn.addEventListener('click', () => {
-          targets = new Set(COCO_CLASSES);
-          saveTargets(); renderChips(); renderActive();
-        });
-        clearBtn.addEventListener('click', () => {
-          targets = new Set();
-          saveTargets(); renderChips(); renderActive();
+        clearBtn.addEventListener('click', function () {
+          if (Store.load().length === 0) return;
+          Store.save([]);
+          refreshActiveTargetsView();
           if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         });
 
@@ -687,7 +792,7 @@
         loop();
       }
 
-      init().catch(e => {
+      init().catch(function (e) {
         console.error(e);
         setState('ERROR');
         showProgress('Initialisation error: ' + (e.message || e));
@@ -695,7 +800,7 @@
 
       // PWA service worker (matches the rest of the deployed site).
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').catch(() => {});
+        navigator.serviceWorker.register('sw.js').catch(function () {});
       }
     })();
   </script>

@@ -70,6 +70,42 @@ The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and 
 - Service worker registers automatically on load (PWA).
 
 ## Recent Changes
+- **Object Locator UX overhaul (web → APK via WebView)**: The locator
+  now models targets as rich objects (`{name, description, lastSeenAt,
+  lastBearing, lastDistance}`) instead of bare class-name strings, with
+  transparent migration from the old chip-only storage. Three files
+  changed in `AURIGA/web_deploy/`:
+  - **New `locator-store.js`** — single source of truth for the targets
+    list (key `auriga-locator-targets`). Exposes `load/save/add/remove/
+    update/touch/names/has` plus the frozen 80-class `COCO_CLASSES`
+    list. `touch(name, bearing, distance)` records a sighting (timestamp
+    + last location) the locator calls every ~1.5 s while a tracked
+    target is the primary detection.
+  - **New `locator-targets.html`** — dedicated targets management page.
+    Search-as-you-type over all 80 COCO classes, "Add Target" dialog
+    with mission-notes textarea, list of active targets showing name,
+    description, last-seen relative time, and last location (distance +
+    bearing). Already-tracked classes appear disabled in the picker so
+    you can't double-add. `CLEAR ALL` confirms before wiping.
+  - **Rewritten `locator.html`** — keeps the proven TF.js + COCO-SSD
+    detection engine and the muted-voice hardening, but replaces the
+    chip grid with an L-bracket corner frame, a centre reticle/cross-
+    hair, an amber "⨁ <CLASS> acquired" banner that lights up when a
+    tracked target is locked, and a compact summary card with a "+"
+    FAB linking to the targets page. The bottom controls are now
+    VOICE / TARGETS / CLEAR. Sightings are persisted via
+    `Store.touch()` and re-read on `visibilitychange`/`focus`/cross-tab
+    `storage` events so the "last seen" caption stays fresh when the
+    user returns from the targets page.
+  - `nav-drawer.js` Tools section gains a `TARGETS` link between
+    `OBJECT LOCATOR` and `DRAKOVOICE READER`.
+  - `sw.js` cache bumped to `drakosanctis-v6`; pre-caches the new
+    `locator-targets.html` shell and `locator-store.js` module.
+  Because `AURIGA/app/build.gradle`'s `copyWebDeployToAssets` task
+  mirrors `web_deploy/` into the APK's WebView assets every build, the
+  Android `LocatorWebActivity` automatically picks up the same UX —
+  no Java changes needed.
+
 - **APK becomes a web replica + locator mute hardening**: The Android
   app now ships with a new `LocatorWebActivity` (Java) that hosts a
   `WebView` loading the bundled `web_deploy/locator.html`, so the

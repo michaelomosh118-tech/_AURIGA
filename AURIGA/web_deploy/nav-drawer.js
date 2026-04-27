@@ -47,6 +47,7 @@
             items: [
                 { text: 'CALIBRATION LIBRARY', href: 'calibration-library.html' },
                 { text: 'OBJECT LOCATOR',      href: 'locator.html' },
+                { text: 'TARGETS',             href: 'locator-targets.html' },
                 { text: 'DRAKOVOICE READER',   href: 'reader.html' }
             ]
         },
