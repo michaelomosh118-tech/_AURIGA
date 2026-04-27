@@ -70,6 +70,24 @@ The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and 
 - Service worker registers automatically on load (PWA).
 
 ## Recent Changes
+- **In-drawer VOICE / HAPTIC mute toggles for the WebView HUD**:
+  Two new tappable rows under SETUP let the user instantly mute or
+  un-mute the Object Locator's voice readout and detection vibrations
+  when the HUD becomes disruptive. State is persisted to
+  `MainActivity.PREFS_NAME` under `locator_web_voice_enabled` and
+  `locator_web_haptic_enabled` (default ON), restored on every
+  `LocatorWebActivity.onCreate`, and pushed live into the WebView via
+  `evaluateJavascript`. The injection (`buildMutePatchJs`) is
+  idempotent: on first run it stashes the original
+  `speechSynthesis.speak` and `navigator.vibrate` references, then
+  swaps in wrappers that gate on `window.__aurigaVoiceEnabled` /
+  `window.__aurigaHapticEnabled`. Subsequent runs (every toggle, every
+  `onPageFinished`) just refresh the two flags. Muting voice also
+  fires `speechSynthesis.cancel()` so any utterance already in flight
+  stops immediately. Sub-labels read "ON · tap to mute" / "MUTED · tap
+  to enable" and a Toast confirms each toggle. Zero web/PWA changes —
+  the patches live entirely on the native shell.
+
 - **Native rich hamburger drawer restored on top of `LocatorWebActivity`**:
   The APK now wraps the WebView HUD in the same `DrawerLayout` chrome
   the legacy native HUD used. `activity_locator_web.xml` was rebuilt

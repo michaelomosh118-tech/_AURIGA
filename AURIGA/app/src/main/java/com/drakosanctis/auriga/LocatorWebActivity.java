@@ -55,6 +55,14 @@ public class LocatorWebActivity extends Activity {
     private static final String LOCATOR_URL = "file:///android_asset/web/locator.html";
 
     /**
+     * Persisted mute states. Stored in {@link MainActivity#PREFS_NAME}
+     * so the user's choice survives across launches and across the
+     * native HUD ↔ web HUD boundary.
+     */
+    private static final String PREF_LOCATOR_VOICE = "locator_web_voice_enabled";
+    private static final String PREF_LOCATOR_HAPTIC = "locator_web_haptic_enabled";
+
+    /**
      * Injected on every page the WebView finishes loading. Hides the
      * website's PWA hamburger + drawer + scrim so the only menu the
      * user can pull up is the native one rendered by this activity.
@@ -77,6 +85,10 @@ public class LocatorWebActivity extends Activity {
     private WebView webView;
     private TextView fallback;
     private DrawerLayout drawerLayout;
+    private TextView voiceSub;
+    private TextView hapticSub;
+    private boolean voiceEnabled = true;
+    private boolean hapticEnabled = true;
     private PermissionRequest pendingPermissionRequest;
 
     @Override
@@ -89,6 +101,10 @@ public class LocatorWebActivity extends Activity {
         webView = findViewById(R.id.locator_webview);
         fallback = findViewById(R.id.locator_fallback);
         drawerLayout = findViewById(R.id.drawer_layout);
+
+        SharedPreferences prefs = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE);
+        voiceEnabled = prefs.getBoolean(PREF_LOCATOR_VOICE, true);
+        hapticEnabled = prefs.getBoolean(PREF_LOCATOR_HAPTIC, true);
 
         wireDrawer();
         configureWebView();
@@ -171,6 +187,41 @@ public class LocatorWebActivity extends Activity {
         }
         refreshFeedbackGate(navFeedback, feedbackHint);
 
+        // Voice + haptic mute toggles. They update SharedPreferences and
+        // immediately push the new state into the WebView so the change
+        // takes effect mid-session, without closing the drawer (the user
+        // is likely toggling these because the HUD just got disruptive).
+        View navVoice = findViewById(R.id.nav_voice_locator);
+        voiceSub = findViewById(R.id.nav_voice_locator_sub);
+        if (navVoice != null) {
+            navVoice.setOnClickListener(v -> {
+                voiceEnabled = !voiceEnabled;
+                getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE)
+                        .edit().putBoolean(PREF_LOCATOR_VOICE, voiceEnabled).apply();
+                refreshMuteLabels();
+                applyMuteStateToWebView();
+                Toast.makeText(this,
+                        voiceEnabled ? "Voice ON" : "Voice MUTED",
+                        Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        View navHaptic = findViewById(R.id.nav_haptic_locator);
+        hapticSub = findViewById(R.id.nav_haptic_locator_sub);
+        if (navHaptic != null) {
+            navHaptic.setOnClickListener(v -> {
+                hapticEnabled = !hapticEnabled;
+                getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE)
+                        .edit().putBoolean(PREF_LOCATOR_HAPTIC, hapticEnabled).apply();
+                refreshMuteLabels();
+                applyMuteStateToWebView();
+                Toast.makeText(this,
+                        hapticEnabled ? "Haptic ON" : "Haptic MUTED",
+                        Toast.LENGTH_SHORT).show();
+            });
+        }
+        refreshMuteLabels();
+
         // ── SUPPORT ───────────────────────────────────────────────
         View navHelp = findViewById(R.id.nav_help);
         if (navHelp != null) {
@@ -240,6 +291,69 @@ public class LocatorWebActivity extends Activity {
         }
     }
 
+    /** Update the VOICE / HAPTIC sub-labels to reflect the current mute state. */
+    private void refreshMuteLabels() {
+        if (voiceSub != null) {
+            voiceSub.setText(voiceEnabled ? "ON · tap to mute" : "MUTED · tap to enable");
+        }
+        if (hapticSub != null) {
+            hapticSub.setText(hapticEnabled ? "ON · tap to mute" : "MUTED · tap to enable");
+        }
+    }
+
+    /**
+     * Build the JS snippet that monkey-patches {@code SpeechSynthesis.speak}
+     * and {@code navigator.vibrate} inside the WebView. The patch is
+     * idempotent: it stashes the original implementations on first run
+     * and only swaps the wrapper functions on subsequent runs, so calling
+     * it on every page load (and on every toggle) is safe.
+     *
+     * When voice is muted the wrapper also calls {@code speechSynthesis.cancel()}
+     * so any utterance already in flight stops immediately — matching what
+     * the user expects when they tap MUTE because the HUD just got noisy.
+     */
+    private String buildMutePatchJs() {
+        return "(function(){"
+             + "  if (!window.__aurigaShellPatched) {"
+             + "    window.__aurigaShellPatched = true;"
+             + "    try {"
+             + "      window.__aurigaOrigSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);"
+             + "    } catch(e) { window.__aurigaOrigSpeak = function(){}; }"
+             + "    window.__aurigaOrigVibrate = (navigator.vibrate)"
+             + "      ? navigator.vibrate.bind(navigator)"
+             + "      : function(){return false;};"
+             + "    window.speechSynthesis.speak = function(u) {"
+             + "      if (window.__aurigaVoiceEnabled) return window.__aurigaOrigSpeak(u);"
+             + "      try { window.speechSynthesis.cancel(); } catch(e){}"
+             + "      return undefined;"
+             + "    };"
+             + "    navigator.vibrate = function(p) {"
+             + "      if (window.__aurigaHapticEnabled) return window.__aurigaOrigVibrate(p);"
+             + "      return false;"
+             + "    };"
+             + "  }"
+             + "  window.__aurigaVoiceEnabled = " + (voiceEnabled ? "true" : "false") + ";"
+             + "  window.__aurigaHapticEnabled = " + (hapticEnabled ? "true" : "false") + ";"
+             + "  if (!window.__aurigaVoiceEnabled) {"
+             + "    try { window.speechSynthesis.cancel(); } catch(e){}"
+             + "  }"
+             + "})();";
+    }
+
+    /**
+     * Push the current mute state into the live WebView. Safe to call
+     * before the page has finished loading — {@link #buildMutePatchJs()}
+     * is idempotent and {@code onPageFinished} re-applies it anyway.
+     */
+    private void applyMuteStateToWebView() {
+        if (webView == null) return;
+        try {
+            webView.evaluateJavascript(buildMutePatchJs(), null);
+        } catch (Throwable t) {
+            // Non-fatal — onPageFinished will re-apply on the next load.
+        }
+    }
+
     private void configureWebView() {
         WebSettings s = webView.getSettings();
         s.setJavaScriptEnabled(true);
@@ -265,6 +379,10 @@ public class LocatorWebActivity extends Activity {
                 // on every page load so cross-page navigation inside
                 // the WebView (locator → targets → locator) stays clean.
                 view.evaluateJavascript(HIDE_WEB_NAV_CSS_JS, null);
+                // Re-apply the voice + haptic mute state, since each
+                // navigation hands us a fresh document with the original
+                // SpeechSynthesis + navigator.vibrate implementations.
+                view.evaluateJavascript(buildMutePatchJs(), null);
             }
         });
 

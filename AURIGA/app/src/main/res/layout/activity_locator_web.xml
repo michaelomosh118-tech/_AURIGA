@@ -411,6 +411,75 @@
                     android:visibility="gone"
                     android:text="@string/drawer_setup_feedback_gate" />
 
+                <!-- Voice mute toggle — flips a JS-side flag the activity
+                     injects so the WebView's SpeechSynthesis goes silent
+                     without the website itself needing any changes. -->
+                <LinearLayout
+                    android:id="@+id/nav_voice_locator"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/drawer_item_bg"
+                    android:orientation="vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Mute or un-mute the Object Locator voice readout">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="VOICE FEEDBACK"
+                        android:textSize="14sp"
+                        android:textColor="@color/hud_text"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.04" />
+
+                    <TextView
+                        android:id="@+id/nav_voice_locator_sub"
+                        style="@style/DrawerItemSub"
+                        android:text="ON · tap to mute" />
+                </LinearLayout>
+
+                <!-- Haptic mute toggle — same idea but patches
+                     navigator.vibrate so detection pulses go silent. -->
+                <LinearLayout
+                    android:id="@+id/nav_haptic_locator"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/drawer_item_bg"
+                    android:orientation="vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Mute or un-mute the Object Locator haptic pulses">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="HAPTIC FEEDBACK"
+                        android:textSize="14sp"
+                        android:textColor="@color/hud_text"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.04" />
+
+                    <TextView
+                        android:id="@+id/nav_haptic_locator_sub"
+                        style="@style/DrawerItemSub"
+                        android:text="ON · tap to mute" />
+                </LinearLayout>
+
                 <!-- ── SECTION: SUPPORT ── -->
                 <LinearLayout
                     android:layout_width="match_parent"
