@@ -29,6 +29,8 @@
     <string name="drawer_nav_reader_sub">Point &amp; read printed text aloud — ML Kit OCR</string>
     <string name="drawer_nav_about">◉  About</string>
     <string name="drawer_nav_about_sub">Version info, licenses &amp; DrakoSanctis mission</string>
+    <string name="drawer_nav_targets">◎  Object Targets</string>
+    <string name="drawer_nav_targets_sub">Pick what triggers haptic + voice — offline ML Kit</string>
     <string name="drawer_setup_calibrate">⬡  10-Point Calibration Walk</string>
     <string name="drawer_setup_calibrate_sub">Calibrate distance accuracy to sub-20 cm precision</string>
     <string name="drawer_setup_feedback">✉  Send Feedback</string>

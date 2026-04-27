@@ -38,6 +38,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Object Targets picker (Phase 1 of Object Locator on APK).
+             Lets the user pick which ML Kit detection categories should
+             trigger haptic + DrakoVoice feedback on the live HUD. Runs
+             fully offline via the bundled object-detection model. -->
+        <activity
+            android:name=".TargetsActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/AurigaDocTheme" />
+
         <!-- DrakoVoice Reader: OrCam-style page reader. Uses on-device
              ML Kit text recognition + TextToSpeech; works fully offline. -->
         <activity

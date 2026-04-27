@@ -208,6 +208,12 @@ dependencies {
     // matches the rest of Auriga's "works without a network" stance.
     implementation 'com.google.mlkit:text-recognition:16.0.0'
 
+    // Google ML Kit on-device Object Detection. Bundled default model so
+    // generic object detection + classification (Fashion good / Home good
+    // / Food / Place / Plant) runs fully offline. Powers the Object
+    // Targets picker that filters which detections trigger haptic + voice.
+    implementation 'com.google.mlkit:object-detection:17.0.2'
+
     // Redundant 'org.json:json' removed as it's built into Android
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'

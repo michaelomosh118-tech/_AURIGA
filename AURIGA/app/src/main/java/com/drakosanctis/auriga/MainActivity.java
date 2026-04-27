@@ -1,6 +1,7 @@
 package com.drakosanctis.auriga;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -16,6 +17,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.Manifest;
 
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.objects.DetectedObject;
+import com.google.mlkit.vision.objects.ObjectDetection;
+import com.google.mlkit.vision.objects.ObjectDetector;
+import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions;
+
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 
@@ -27,9 +34,12 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * MainActivity: The "Orchestrator" of the Auriga Ecosystem.
@@ -90,6 +100,31 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     private volatile boolean voiceEnabled  = true;
     private int quietStart = 22;
     private int quietEnd   = 7;
+
+    // --- Object Targets gate (Phase 1 of Object Locator on APK) ---
+    // ML Kit's bundled object detector runs on a sampled cadence inside
+    // the main render loop and updates `lastDetectionMatched` whenever
+    // a frame contains an object whose primary label is in
+    // `activeTargets`. Haptic + voice readouts are then gated through
+    // `isTargetGateOpen()`. When the user keeps the default ANY OBJECT
+    // selection the gate is always open, preserving pre-Targets behaviour.
+    private ObjectDetector objectDetector;
+    private final AtomicBoolean detectionInFlight = new AtomicBoolean(false);
+    private volatile Set<String> activeTargets =
+            new LinkedHashSet<>(java.util.Collections.singletonList(TargetStore.CATEGORY_ANY));
+    private volatile boolean lastDetectionMatched = false;
+    private volatile long lastDetectionAtMs = 0L;
+    private volatile String lastMatchedLabel = "";
+    // Throttle: don't enqueue a new detection if the previous one was
+    // submitted less than DETECT_INTERVAL_MS ago. ~3 fps is plenty for
+    // the haptic/voice gate and keeps GPU/CPU headroom for the
+    // existing 60 fps triangulation pipeline.
+    private static final long DETECT_INTERVAL_MS = 350L;
+    private volatile long lastDetectionSubmitAtMs = 0L;
+    // The match is considered "live" for this many ms after a successful
+    // detection. Beyond that the gate closes again (so the user doesn't
+    // get phantom buzzes seconds after the target left the frame).
+    private static final long DETECTION_FRESH_MS = 1500L;
     static final String PREFS_NAME = "auriga_prefs";
     private static final String PREF_PIN_DIAG   = "pin_diag_to_hud";
     private static final String PREF_HAPTIC      = "haptic_enabled";
@@ -186,6 +221,24 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         initStep("sonar",              () -> sonar = new SonarManager());
         initStep("haptic",             () -> haptic = new HapticManager(this));
         initStep("camera",             () -> camera = new CameraService(this));
+
+        // ML Kit object detector for the Object Targets gate. Bundled
+        // model + STREAM_MODE keeps it real-time and fully offline.
+        // Multi-object + classification let us match against the
+        // user-picked categories from TargetStore. Failure is non-fatal:
+        // the gate stays open (default ANY OBJECT) and the HUD keeps
+        // working exactly as it did before this layer was added.
+        initStep("objectDetector", () -> {
+            ObjectDetectorOptions opts = new ObjectDetectorOptions.Builder()
+                    .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
+                    .enableMultipleObjects()
+                    .enableClassification()
+                    .build();
+            objectDetector = ObjectDetection.getClient(opts);
+        });
+        // Hydrate the active target set from disk so the gate starts in
+        // sync with whatever the user picked in a previous session.
+        initStep("targetStore", () -> activeTargets = TargetStore.read(this));
 
         // Variant styling reads calibrationManager.getState(), so must run
         // AFTER the engine-layer block above. Previously this ran before the
@@ -349,6 +402,24 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             navReader.setOnClickListener(v -> {
                 if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
                 launchReader();
+            });
+        }
+
+        // Object Targets: opens the picker that controls which
+        // ML Kit detections trigger haptic + DrakoVoice on the HUD.
+        // We reload `activeTargets` from disk in onResume so the gate
+        // updates the moment the user returns from the picker.
+        View navTargets = findViewById(R.id.nav_targets);
+        if (navTargets != null) {
+            navTargets.setOnClickListener(v -> {
+                if (drawerLayout != null) drawerLayout.closeDrawer(Gravity.START);
+                try {
+                    startActivity(new Intent(this, TargetsActivity.class));
+                } catch (Throwable t) {
+                    Log.e(TAG, "Could not launch TargetsActivity", t);
+                    Toast.makeText(this, "Object Targets unavailable",
+                            Toast.LENGTH_SHORT).show();
+                }
             });
         }
 
@@ -838,6 +909,14 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
                         runOnUiThread(() -> updateCalibrationUI(res));
                     } else {
                         // --- NAVIGATION MODE ---
+                        // Submit a sampled copy of this frame to the ML
+                        // Kit Object Targets gate. The detector throttles
+                        // its own submissions so this is safe to call on
+                        // every frame -- it returns immediately when the
+                        // throttle is engaged. Runs asynchronously; the
+                        // existing triangulation pipeline does not block
+                        // on its result.
+                        runObjectDetectionAsync(frame);
                         processNavigationFrame(frame);
                     }
                     
@@ -1004,12 +1083,29 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
                         1, groundRes.bearingDeg, frameConf, shiftMag);
                 updateHUD(dist, bearing, groundRes.signature);
                 if (sonar != null)  sonar.updateSpatialData(dist, bearing, groundRes.signature);
-                if (haptic != null && hapticEnabled) haptic.pulse(dist);
+
+                // Object Targets gate: when the user has narrowed the
+                // selection beyond ANY OBJECT, only fire haptic + voice
+                // if the ML Kit detector recently saw a matching class.
+                // Default ANY OBJECT keeps the legacy "buzz on every
+                // close obstacle" behaviour intact.
+                final boolean gateOpen = isTargetGateOpen();
+
+                if (haptic != null && hapticEnabled && gateOpen) haptic.pulse(dist);
 
                 // Voice announcement logic (debounced; suppressed during quiet hours)
                 if (voice != null && voiceEnabled && !isQuietHours()
-                        && dist < 1.0f && frameConf > 0.5f) {
-                    voice.speak(groundRes.signature, dist, bearing);
+                        && dist < 1.0f && frameConf > 0.5f && gateOpen) {
+                    // When a specific target was matched, prefix the
+                    // signature with the matched ML Kit label so the
+                    // user knows WHY the announcement fired.
+                    String sig = groundRes.signature;
+                    String matched = lastMatchedLabel;
+                    if (matched != null && !matched.isEmpty()
+                            && !activeTargets.contains(TargetStore.CATEGORY_ANY)) {
+                        sig = matched + " " + (sig == null ? "" : sig);
+                    }
+                    voice.speak(sig, dist, bearing);
                 }
             }
 
@@ -1231,6 +1327,24 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     public void onSurfaceTextureUpdated(SurfaceTexture surface) { }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        // Refresh from disk every time the user comes back from the
+        // Targets picker (or any other activity). Cheap: a single
+        // SharedPreferences read.
+        try {
+            activeTargets = TargetStore.read(this);
+            // Returning from a different screen invalidates the previous
+            // detection; close the gate so we wait for a fresh frame
+            // before buzzing again.
+            lastDetectionMatched = false;
+            lastDetectionAtMs = 0L;
+        } catch (Throwable t) {
+            Log.w(TAG, "TargetStore reload failed; keeping previous selection", t);
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         // Any of these can be null if their initStep failed; onDestroy must
@@ -1242,5 +1356,117 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         // -> Context) if we don't unregister. HardwareHAL.stopPitchSensor()
         // is idempotent and null-guards internally.
         if (hal != null) hal.stopPitchSensor();
+        // ML Kit detector holds a native handle; close to release it.
+        if (objectDetector != null) {
+            try { objectDetector.close(); } catch (Throwable ignored) {}
+        }
+    }
+
+    /**
+     * True if the current Object Targets selection should let haptic +
+     * voice fire for this frame. Three cases:
+     *
+     *   1. ANY OBJECT wildcard selected -> always open (matches the
+     *      pre-Targets behaviour so existing users see no regression).
+     *   2. Specific categories selected AND a recent detection's
+     *      primary label matched one of them (within DETECTION_FRESH_MS).
+     *   3. Anything else -> closed.
+     *
+     * Called from the UI thread inside processNavigationFrame.
+     */
+    private boolean isTargetGateOpen() {
+        Set<String> sel = activeTargets;
+        if (sel == null || sel.isEmpty() || sel.contains(TargetStore.CATEGORY_ANY)) {
+            return true;
+        }
+        if (!lastDetectionMatched) return false;
+        return (System.currentTimeMillis() - lastDetectionAtMs) <= DETECTION_FRESH_MS;
+    }
+
+    /**
+     * Submit a frame to the ML Kit object detector at the throttled
+     * cadence defined by DETECT_INTERVAL_MS. Updates lastDetectionMatched
+     * + lastMatchedLabel on the success callback. Failures are silent
+     * (the gate simply stays in its previous state) so the HUD never
+     * blocks on detector errors.
+     *
+     * Note: ML Kit's STREAM_MODE expects monotonically arriving frames;
+     * we drop new submissions while one is in flight via
+     * detectionInFlight. The bitmap is consumed only by the detector --
+     * we explicitly do NOT recycle it because the rest of the pipeline
+     * still owns the original frame.
+     */
+    private void runObjectDetectionAsync(Bitmap frame) {
+        if (objectDetector == null || frame == null) return;
+        long now = System.currentTimeMillis();
+        if (now - lastDetectionSubmitAtMs < DETECT_INTERVAL_MS) return;
+        if (!detectionInFlight.compareAndSet(false, true)) return;
+        lastDetectionSubmitAtMs = now;
+
+        // Snapshot the current selection so the success callback can
+        // compare without re-reading the volatile (and so a picker
+        // change mid-flight doesn't race the gate update).
+        final Set<String> sel = activeTargets;
+        // ML Kit needs an ARGB_8888 bitmap; TextureView.getBitmap
+        // already produces that format. Rotation 0 because the
+        // TextureView itself is already oriented for the user.
+        final InputImage image;
+        try {
+            image = InputImage.fromBitmap(frame, 0);
+        } catch (Throwable t) {
+            detectionInFlight.set(false);
+            return;
+        }
+
+        objectDetector.process(image)
+                .addOnSuccessListener(results -> {
+                    boolean matched = false;
+                    String matchedLabel = "";
+                    if (results != null) {
+                        for (DetectedObject obj : results) {
+                            if (obj == null) continue;
+                            String label = primaryLabel(obj);
+                            if (TargetStore.matches(sel, label)) {
+                                matched = true;
+                                matchedLabel = label == null ? "" : label;
+                                break;
+                            }
+                        }
+                    }
+                    lastDetectionMatched = matched;
+                    if (matched) {
+                        lastDetectionAtMs = System.currentTimeMillis();
+                        lastMatchedLabel = matchedLabel;
+                    }
+                    detectionInFlight.set(false);
+                })
+                .addOnFailureListener(e -> {
+                    // Don't change gate state on transient failures --
+                    // a single dropped frame should not silence haptics
+                    // mid-walk. Just clear the in-flight flag so the
+                    // next sample can be submitted.
+                    detectionInFlight.set(false);
+                });
+    }
+
+    /**
+     * Returns the highest-confidence label text for a detected object,
+     * or null if the detector produced no labels for it (which happens
+     * for novel / out-of-vocabulary objects when classification is
+     * enabled). Null label is treated by TargetStore.matches as a
+     * non-match unless ANY OBJECT is selected.
+     */
+    private String primaryLabel(DetectedObject obj) {
+        if (obj == null) return null;
+        List<DetectedObject.Label> labels = obj.getLabels();
+        if (labels == null || labels.isEmpty()) return null;
+        DetectedObject.Label best = null;
+        for (DetectedObject.Label l : labels) {
+            if (l == null) continue;
+            if (best == null || l.getConfidence() > best.getConfidence()) {
+                best = l;
+            }
+        }
+        return best == null ? null : best.getText();
     }
 }

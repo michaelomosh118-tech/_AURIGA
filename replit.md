@@ -108,6 +108,51 @@ The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and 
   sentinel overrides: brand name, tagline, engine label, sys status, HUD sub, reader sub,
   calibrate sub, feedback sub, diag overlay sub, both contribute-row subs.
 
+- **Object Locator (Web)**: New `AURIGA/web_deploy/locator.html` — runs
+  TensorFlow.js + COCO-SSD lite fully in-browser (cached offline by `sw.js`
+  v3) for real on-device object detection. Draws bounding boxes over the
+  live camera feed, reports real distance (m/cm) from box height and
+  bearing (°L/°R) from horizontal offset, voices the primary detection,
+  and ships a chip-grid TARGETS picker exposing all 80 COCO classes
+  persisted to `localStorage` under `auriga-locator-targets`. Linked from
+  the Tools section of the hamburger drawer. The home-page NAVI HUD
+  (`index.html`) also exposes a "▶ GO LIVE" button that swaps in the
+  same detector and replaces the previous `Math.random` distance/bearing
+  with measured values.
+- **Object Targets (APK)**: New `TargetsActivity` + `activity_targets.xml`
+  + `target_chip_bg.xml` / `target_chip_selected_bg.xml` give the Android
+  app the same picker concept. Categories use the 5 labels emitted by
+  Google ML Kit's bundled object-detection classifier (Fashion good,
+  Home good, Food, Place, Plant) so what the user picks is exactly what
+  gets matched at runtime. `TargetStore.java` persists the selection as
+  CSV under SharedPreferences key `auriga_targets` inside `auriga_prefs`,
+  with an `_any_` wildcard sentinel that means "match every detection"
+  (the default for new installs, preserving pre-Targets behaviour).
+  `MainActivity` initialises an `ObjectDetector` (STREAM_MODE,
+  multi-objects, classification), submits a throttled detection on every
+  frame (350 ms cadence), and gates the existing haptic + DrakoVoice
+  triggers in `processNavigationFrame` through `isTargetGateOpen()` --
+  so when the user narrows beyond ANY OBJECT, the HUD only buzzes /
+  speaks for the categories they picked. The matched label is prefixed
+  to the spoken signature so the user knows why an announcement fired.
+  New drawer row `nav_targets` (between Reader and About) launches the
+  picker; `onResume` reloads `activeTargets` from disk so changes apply
+  immediately on return. Dependency added: `com.google.mlkit:object-detection:17.0.2`
+  (bundled, fully offline). `TargetsActivity` registered in `AndroidManifest.xml`.
+- **DrakoVoice Reader OCR fix (Web + APK)**: Web `reader.html` now crops
+  to the on-screen reticle (≈72vw × 38vh capped at 540×320), 2× upscales
+  the crop, applies grayscale + contrast stretch (`preprocessForOcr`),
+  and runs Tesseract with PSM 6 + 300 DPI hint + `preserve_interword_spaces=1`.
+  Image uploads receive the same preprocessing. APK `ReaderActivity`
+  already used the bundled offline ML Kit Latin recognizer
+  (`com.google.mlkit:text-recognition:16.0.0`); confirmed it ships the
+  model inside the APK and runs without Play Services / network.
+- **Service worker v3 (`AURIGA/web_deploy/sw.js`)**: Bumped cache name,
+  pre-caches the reader / locator / calibration / feedback shells and
+  the new nav-drawer asset, and opportunistically caches every
+  successful GET (so heavy CDN bundles like TF.js / COCO-SSD /
+  Tesseract.js work fully offline on the second visit).
+
 - **Netlify Function (`AURIGA/netlify/functions/submit-feedback.js`)**:
   Accepts the JSON payload, validates length, logs a one-line summary
   to Netlify function logs, and optionally fan-outs to a generic webhook
