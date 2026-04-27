@@ -28,6 +28,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * MainActivity: The "Orchestrator" of the Auriga Ecosystem.
@@ -787,14 +789,21 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
                     final Bitmap[] frameHolder = new Bitmap[1];
                     final int bmW = activeBitmapW;
                     final int bmH = activeBitmapH;
+                    final CountDownLatch latch = new CountDownLatch(1);
                     runOnUiThread(() -> {
-                        if (textureView.isAvailable()) {
-                            frameHolder[0] = textureView.getBitmap(bmW, bmH);
+                        try {
+                            if (textureView.isAvailable()) {
+                                frameHolder[0] = textureView.getBitmap(bmW, bmH);
+                            }
+                        } finally {
+                            latch.countDown();
                         }
                     });
 
-                    // Wait for bitmap (simple sync for now)
-                    try { Thread.sleep(16); } catch (InterruptedException e) { }
+                    // Block until the UI thread has captured the frame (up to 100 ms).
+                    // This replaces the old sleep(16) race where frameHolder[0] was
+                    // read before the UI thread had a chance to write it.
+                    try { latch.await(100, TimeUnit.MILLISECONDS); } catch (InterruptedException e) { }
                     Bitmap frame = frameHolder[0];
                     if (frame == null) continue;
 

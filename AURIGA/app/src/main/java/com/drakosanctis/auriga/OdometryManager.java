@@ -24,11 +24,11 @@ public class OdometryManager {
 
     // --- Low-pass state per column for distance ---
     private static final int COLS = 3;
-    private static final float BASE_ALPHA = 0.2f;      // steady-state weight
-    private static final float FAST_ALPHA = 0.5f;      // when reading jumped
+    private static final float BASE_ALPHA = 0.35f;      // steady-state weight (was 0.2 — too sluggish)
+    private static final float FAST_ALPHA = 0.70f;      // when reading jumped (was 0.5)
     private static final float SIGMA_TRIGGER = 2.5f;   // stddev multiples to trigger FAST
     private static final float VAR_ALPHA = 0.1f;       // how fast variance updates
-    private static final float MAX_SHIFT_TRUSTED = 8.0f; // px/frame before we freeze update
+    private static final float MAX_SHIFT_TRUSTED = 25.0f; // px/frame before we freeze (was 8 — froze on normal walking)
 
     private final float[] smoothedDistances = {0.0f, 0.0f, 0.0f};
     private final float[] distanceVariances = {1.0f, 1.0f, 1.0f};
@@ -62,8 +62,9 @@ public class OdometryManager {
     public float smoothDistance(int column, float newDistance, float confidence, float shiftMag) {
         if (column < 0 || column >= COLS) return newDistance;
 
-        // Reject bad-confidence frames.
-        if (confidence < 0.3f && distanceInit[column]) {
+        // Reject very low-confidence frames — threshold lowered from 0.3 to 0.15
+        // so moderate-contrast scenes still contribute to the smoother.
+        if (confidence < 0.15f && distanceInit[column]) {
             return smoothedDistances[column];
         }
         // Freeze while camera is panning hard.
@@ -87,9 +88,9 @@ public class OdometryManager {
         float sigma = (float) Math.sqrt(distanceVariances[column]);
 
         float alpha = (Math.abs(delta) > SIGMA_TRIGGER * sigma) ? FAST_ALPHA : BASE_ALPHA;
-        // Confidence also modulates alpha: a barely-above-threshold
-        // detection gets reduced weight even when trusted.
-        alpha *= Math.max(0.3f, confidence);
+        // Confidence modulates alpha but floor raised to 0.5 (was 0.3) so
+        // accepted frames always contribute at least half of BASE_ALPHA weight.
+        alpha *= Math.max(0.5f, confidence);
 
         smoothedDistances[column] =
                 alpha * newDistance + (1f - alpha) * smoothedDistances[column];
@@ -112,7 +113,7 @@ public class OdometryManager {
     public float smoothBearing(int column, float newBearingDeg, float confidence, float shiftMag) {
         if (column < 0 || column >= COLS) return newBearingDeg;
 
-        if (confidence < 0.3f && bearingInit[column]) {
+        if (confidence < 0.15f && bearingInit[column]) {
             return smoothedBearings[column];
         }
         if (shiftMag > MAX_SHIFT_TRUSTED && bearingInit[column]) {
@@ -133,7 +134,7 @@ public class OdometryManager {
         float sigma = (float) Math.sqrt(bearingVariances[column]);
 
         float alpha = (Math.abs(delta) > SIGMA_TRIGGER * sigma) ? FAST_ALPHA : BASE_ALPHA;
-        alpha *= Math.max(0.3f, confidence);
+        alpha *= Math.max(0.5f, confidence);
 
         smoothedBearings[column] =
                 alpha * newBearingDeg + (1f - alpha) * smoothedBearings[column];

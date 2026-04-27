@@ -92,7 +92,7 @@ public class ImageProcessor {
         
         // Scan up from bottom for ground obstacle (TruePath™)
         int lastBrightness = -1;
-        int sensitivity = 40;
+        int sensitivity = 22; // was 40 — lowered to detect edges in average indoor scenes
         // Confidence proxy: how sharply the ground→obstacle brightness
         // edge crossed the sensitivity threshold. A contrast of exactly
         // `sensitivity` maps to 0, a saturated 255-step edge maps to 1.

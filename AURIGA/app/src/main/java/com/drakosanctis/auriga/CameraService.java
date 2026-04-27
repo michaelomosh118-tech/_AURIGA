@@ -76,7 +76,10 @@ public class CameraService {
     private void createPreviewSession() {
         if (cameraDevice == null || surfaceTexture == null) return;
 
-        surfaceTexture.setDefaultBufferSize(640, 480);
+        // Do NOT force 640×480 here — let the camera use its natural
+        // preview resolution so the TextureView shows a sharp, undistorted
+        // image. The main loop downsamples via textureView.getBitmap(w,h)
+        // before processing, so the pipeline still runs at 640-wide.
         previewSurface = new Surface(surfaceTexture);
 
         try {
@@ -100,7 +103,17 @@ public class CameraService {
         try {
             CaptureRequest.Builder builder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             builder.addTarget(previewSurface);
-            
+
+            // Continuous autofocus so the preview stays sharp while walking.
+            builder.set(CaptureRequest.CONTROL_AF_MODE,
+                    CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO);
+
+            // Auto-exposure and auto-white-balance for natural colours.
+            builder.set(CaptureRequest.CONTROL_AE_MODE,
+                    CaptureRequest.CONTROL_AE_MODE_ON);
+            builder.set(CaptureRequest.CONTROL_AWB_MODE,
+                    CaptureRequest.CONTROL_AWB_MODE_AUTO);
+
             // Flashlight logic (DrakoSanctis auto-flashlight)
             if (isFlashOn) {
                 builder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_TORCH);
