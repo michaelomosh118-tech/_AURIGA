@@ -34,6 +34,31 @@ The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and 
 - Service worker registers automatically on load (PWA).
 
 ## Recent Changes
+- **APK becomes a web replica + locator mute hardening**: The Android
+  app now ships with a new `LocatorWebActivity` (Java) that hosts a
+  `WebView` loading the bundled `web_deploy/locator.html`, so the
+  in-app HUD is byte-for-byte the same surface the public PWA serves.
+  A new Gradle task `copyWebDeployToAssets` in `AURIGA/app/build.gradle`
+  stages `AURIGA/web_deploy` into `build/generated/web_assets/web/`
+  and is wired into every variant's `mergeAssets` step, with `sw.js`
+  and `data/` excluded (the WebView loads over `file://` so the SW
+  never registers, and the calibration JSON is unused by the locator).
+  Camera permission is brokered through `WebChromeClient.onPermissionRequest`
+  so `getUserMedia` works without per-page prompts. The launcher
+  intent-filter moved from `MainActivity` to `LocatorWebActivity` in
+  `AURIGA/app/src/main/AndroidManifest.xml`; the legacy native HUD
+  (ML Kit + native DrakoVoice) stays installed for diagnostics but is
+  no longer the default screen.
+  In `AURIGA/web_deploy/locator.html` the VOICE ON/OFF mute button now
+  reliably silences the speech readout on Android Chrome and the
+  System WebView: a new `applyVoiceState()` helper persists the
+  preference under `localStorage['auriga-locator-voice']`, runs a
+  10-tick / 1-second cancel guard (`speechSynthesis.cancel()` every
+  100 ms) right after muting, and `maybeSpeak()` defensively
+  re-cancels on every detection frame while muted to defeat the known
+  WebView bug where a single `.cancel()` does not stop a long
+  in-flight utterance. Service-worker cache bumped to
+  `drakosanctis-v4` so existing PWA clients pick up the fix.
 - **Mobile app HUD redesign (AurigaNavi)**: Updated `AURIGA/app/src/main/res/`
   with an extended palette (`colors.xml`), glassmorphism card style
   (`hud_glass_card.xml`), gradient top/bottom bars

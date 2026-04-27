@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Web-replica HUD (LocatorWebActivity). Two layers:
+      • WebView fills the screen and renders the bundled
+        web_deploy/locator.html so the in-app HUD is byte-for-byte
+        the same surface as the public web preview.
+      • A TextView fallback sits above it on the deep-space brand
+        background, surfaced when the page can't load (no camera
+        permission, system WebView disabled, etc.) so the user is
+        never staring at a blank black screen.
+-->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/deep_space"
+    android:fitsSystemWindows="true">
+
+    <WebView
+        android:id="@+id/locator_webview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <TextView
+        android:id="@+id/locator_fallback"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:padding="24dp"
+        android:textColor="@color/auriga_cyan"
+        android:textSize="16sp"
+        android:visibility="gone"
+        android:text="Loading Object Locator…" />
+
+</FrameLayout>

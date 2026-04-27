@@ -329,7 +329,7 @@
         <div class="target-chips" id="targetChips" aria-label="Pick targets to track"></div>
       </div>
       <div class="controls">
-        <button class="btn" id="speakBtn" aria-pressed="true" aria-label="Toggle voice readout">VOICE ON</button>
+        <button class="btn" id="speakBtn" aria-pressed="true" aria-label="Mute or un-mute voice readout">VOICE ON</button>
         <button class="btn" id="allBtn" aria-label="Track all object classes">ALL</button>
         <button class="btn" id="clearBtn" aria-label="Clear all targets">CLEAR</button>
       </div>
@@ -387,6 +387,7 @@
       const MIN_SCORE = 0.55;
 
       const STORAGE_KEY = 'auriga-locator-targets';
+      const VOICE_KEY   = 'auriga-locator-voice';
 
       let model = null;
       let running = false;
@@ -394,6 +395,7 @@
       let lastSpoken = 0;
       let lastSpokenLabel = '';
       let targets = new Set();
+      let muteGuardTimer = null;
 
       // ── Persistence ────────────────────────────────────────
       function loadTargets() {
@@ -575,7 +577,16 @@
       }
 
       function maybeSpeak(label, distStr, bearStr) {
-        if (!speakOn) return;
+        if (!speakOn) {
+          // Defensive: if speech is in flight when the user mutes,
+          // some Android WebView / mobile Chrome builds keep the
+          // current utterance going even after .cancel(). Re-cancel
+          // every detection frame while muted so audio stops fast.
+          if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+          }
+          return;
+        }
         if (!('speechSynthesis' in window)) return;
         const now = Date.now();
         // Speak when the target changes, or every 3.5s for the same target.
@@ -586,6 +597,44 @@
         u.rate = 1.05; u.pitch = 0.95; u.volume = 1.0;
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(u);
+      }
+
+      // ── Mute helpers ───────────────────────────────────────
+      function applyVoiceState() {
+        speakBtn.textContent = speakOn ? 'VOICE ON' : 'VOICE OFF';
+        speakBtn.setAttribute('aria-pressed', String(speakOn));
+        speakBtn.classList.toggle('active', speakOn);
+        if (!speakOn) {
+          // Hard-stop any in-flight or queued utterance immediately,
+          // and keep cancelling for ~1s to defeat the Android WebView
+          // bug where a single .cancel() does not stop a long-running
+          // utterance that was already handed to the TTS engine.
+          if ('speechSynthesis' in window) {
+            try { window.speechSynthesis.cancel(); } catch (_) {}
+          }
+          if (muteGuardTimer) clearInterval(muteGuardTimer);
+          let guardTicks = 0;
+          muteGuardTimer = setInterval(() => {
+            if (!('speechSynthesis' in window)) return;
+            try { window.speechSynthesis.cancel(); } catch (_) {}
+            guardTicks++;
+            if (guardTicks > 10 || speakOn) {
+              clearInterval(muteGuardTimer);
+              muteGuardTimer = null;
+            }
+          }, 100);
+        } else if (muteGuardTimer) {
+          clearInterval(muteGuardTimer);
+          muteGuardTimer = null;
+        }
+        try { localStorage.setItem(VOICE_KEY, speakOn ? '1' : '0'); } catch (_) {}
+      }
+      function loadVoicePref() {
+        try {
+          const raw = localStorage.getItem(VOICE_KEY);
+          if (raw === '0') speakOn = false;
+          else if (raw === '1') speakOn = true;
+        } catch (_) {}
       }
 
       // ── Detect loop ────────────────────────────────────────
@@ -606,17 +655,19 @@
       // ── Init ───────────────────────────────────────────────
       async function init() {
         loadTargets();
+        loadVoicePref();
         renderChips();
         renderActive();
+        applyVoiceState();
 
-        speakBtn.addEventListener('click', () => {
+        // Use both 'click' and 'touchend' so the toggle is responsive
+        // on touch devices even if a parent intercepts click bubbling.
+        const toggleVoice = (e) => {
+          if (e) { e.preventDefault(); e.stopPropagation(); }
           speakOn = !speakOn;
-          speakBtn.textContent = speakOn ? 'VOICE ON' : 'VOICE OFF';
-          speakBtn.setAttribute('aria-pressed', String(speakOn));
-          speakBtn.classList.toggle('active', speakOn);
-          if (!speakOn && 'speechSynthesis' in window) window.speechSynthesis.cancel();
-        });
-        speakBtn.classList.add('active');
+          applyVoiceState();
+        };
+        speakBtn.addEventListener('click', toggleVoice);
 
         allBtn.addEventListener('click', () => {
           targets = new Set(COCO_CLASSES);

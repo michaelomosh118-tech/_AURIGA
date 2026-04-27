@@ -25,18 +25,33 @@
         android:fullBackupContent="false"
         android:enableOnBackInvokedCallback="true">
 
-        <!-- Main Orchestrator Activity -->
+        <!--
+            Launcher: Web-replica Object Locator HUD. Loads the same
+            web_deploy/locator.html the public PWA serves, bundled into
+            the APK as assets so the in-app HUD is byte-for-byte identical
+            to the web preview (and works offline once cached).
+        -->
         <activity
-            android:name=".MainActivity"
+            android:name=".LocatorWebActivity"
             android:exported="true"
             android:screenOrientation="portrait"
-            android:configChanges="orientation|screenSize"
+            android:configChanges="orientation|screenSize|keyboardHidden"
             android:theme="@style/AurigaHUDTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Legacy native HUD (ML Kit + native DrakoVoice). Still available
+             for diagnostics and in-house testing; reachable by intent but
+             no longer the launcher activity. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/AurigaHUDTheme" />
 
         <!-- Object Targets picker (Phase 1 of Object Locator on APK).
              Lets the user pick which ML Kit detection categories should

@@ -154,6 +154,46 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    // Bundle the public web preview (AURIGA/web_deploy) into the APK as
+    // assets so LocatorWebActivity can load file:///android_asset/web/locator.html
+    // and render the same HUD the live website serves. We stage the
+    // copy under build/generated/web_assets/web/* and add the parent dir
+    // as an asset source set, instead of writing into src/main/assets,
+    // so the working tree stays clean and the copy is re-run whenever
+    // web_deploy changes.
+    sourceSets {
+        main {
+            assets.srcDirs += [layout.buildDirectory.dir('generated/web_assets').get().asFile]
+        }
+    }
+}
+
+def webDeployDir   = rootProject.file('web_deploy')
+def webAssetsStage = layout.buildDirectory.dir('generated/web_assets/web')
+
+tasks.register('copyWebDeployToAssets', Copy) {
+    description = 'Copies AURIGA/web_deploy into the APK assets so LocatorWebActivity can render the live web HUD.'
+    group       = 'build'
+    from(webDeployDir) {
+        // The on-device WebView never registers a service worker (it is
+        // loaded over file://), and the heavy data/ JSON datasets are
+        // calibration artifacts that the locator page does not consume.
+        // Skip them to keep the APK small.
+        exclude 'sw.js'
+        exclude 'data/**'
+    }
+    into(webAssetsStage)
+    // Re-run when the web bundle changes so an edit on the web side is
+    // automatically picked up by the next APK build.
+    inputs.dir(webDeployDir)
+    outputs.dir(webAssetsStage)
+}
+
+// Make every variant's asset-merge step depend on the copy task so the
+// staged web bundle is in place before AAPT packages assets.
+android.applicationVariants.all { variant ->
+    variant.mergeAssetsProvider.configure { dependsOn 'copyWebDeployToAssets' }
 }
 
 dependencies {
