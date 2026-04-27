@@ -1,0 +1,86 @@
+Skip to content
+michaelomosh118-tech
+_AURIGA
+Repository navigation
+Code
+Issues
+Pull requests
+1
+ (1)
+Agents
+Actions
+Projects
+Security and quality
+Insights
+Settings
+AURIGA Professional Build Engine
+Add ability to focus on specific targets and edit notes #76
+All jobs
+Run details
+Annotations
+1 error and 1 warning
+build (navi, release)
+failed 6 minutes ago in 1m 13s
+Search logs
+2s
+1s
+2s
+1s
+0s
+0s
+1m 5s
+> Task :app:stripNaviReleaseDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libimage_processing_util_jni.so, libmlkit_google_ocr_pipeline.so, libmlkitcommonpipeline.so.
+
+> Task :app:processNaviReleaseManifestForPackage
+> Task :app:mergeExtDexNaviRelease
+> Task :app:mergeNaviReleaseShaders FROM-CACHE
+> Task :app:compileNaviReleaseShaders NO-SOURCE
+> Task :app:extractNaviReleaseNativeSymbolTables
+> Task :app:copyWebDeployToAssets
+> Task :app:mergeNaviReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:generateNaviReleaseAssets UP-TO-DATE
+> Task :app:mergeNaviReleaseAssets
+> Task :app:processNaviReleaseJavaRes NO-SOURCE
+> Task :app:compressNaviReleaseAssets
+> Task :app:collectNaviReleaseDependencies
+> Task :app:processNaviReleaseResources
+> Task :app:sdkNaviReleaseDependencyData
+> Task :app:mergeNaviReleaseJavaResource
+Note: Some input files use or override a deprecated API.
+
+Note: Recompile with -Xlint:deprecation for details.
+> Task :app:compileNaviReleaseJavaWithJavac
+
+
+> Task :app:generateNaviReleaseLintVitalReportModel FAILED
+32 actionable tasks: 28 executed, 4 from cache
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+A problem was found with the configuration of task ':app:generateNaviReleaseLintVitalReportModel' (type 'LintModelWriterTask').
+  - Gradle detected a problem with the following location: '/home/runner/work/_AURIGA/_AURIGA/AURIGA/app/build/generated/web_assets'.
+    
+    Reason: Task ':app:generateNaviReleaseLintVitalReportModel' uses this output of task ':app:copyWebDeployToAssets' without declaring an explicit or implicit dependency. This can lead to incorrect results being produced, depending on what order the tasks are executed.
+    
+    Possible solutions:
+      1. Declare task ':app:copyWebDeployToAssets' as an input of ':app:generateNaviReleaseLintVitalReportModel'.
+      2. Declare an explicit dependency on ':app:copyWebDeployToAssets' from ':app:generateNaviReleaseLintVitalReportModel' using Task#dependsOn.
+      3. Declare an explicit dependency on ':app:copyWebDeployToAssets' from ':app:generateNaviReleaseLintVitalReportModel' using Task#mustRunAfter.
+    
+    For more information, please refer to https://docs.gradle.org/8.5/userguide/validation_problems.html#implicit_dependency in the Gradle documentation.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1m 4s
+Error: Process completed with exit code 1.
+0s
+0s
+0s
+0s
+0s
+0s

@@ -70,6 +70,19 @@ The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and 
 - Service worker registers automatically on load (PWA).
 
 ## Recent Changes
+- **Release APK build fix — Gradle 8.5 implicit-dependency validation**:
+  AGP's release lint pipeline (`generate<Variant>LintVitalReportModel`,
+  `lintVital*`, `lintAnalyze*`) scans the merged asset source-sets,
+  which include `build/generated/web_assets` written by our
+  `copyWebDeployToAssets` task. Wiring only `mergeAssetsProvider` was
+  enough for debug builds but Gradle 8.5 fails release builds with an
+  "implicit dependency" error. `AURIGA/app/build.gradle` now adds a
+  `tasks.configureEach { ... }` block that declares
+  `dependsOn 'copyWebDeployToAssets'` on every task whose name starts
+  with `lint` or matches `generate*Lint*`, so the staged web bundle is
+  always in place before lint reads it. Debug + release variants of
+  navi/garden/spirit flavours all build cleanly.
+
 - **Locator targets — inline notes editor + per-target focus deep-link**:
   Each card on `locator-targets.html` now shows three round actions:
   amber `⨁` (Focus), cyan `✎` (Edit notes), red `×` (Delete). The edit

@@ -196,6 +196,22 @@ android.applicationVariants.all { variant ->
     variant.mergeAssetsProvider.configure { dependsOn 'copyWebDeployToAssets' }
 }
 
+// AGP's lint pipeline (both the regular `lint*` tasks and the
+// release-only `lintVital*` / `generate*LintVitalReportModel` tasks)
+// scans the merged asset source-sets, which now include our staged
+// `build/generated/web_assets` directory. Without an explicit
+// dependency Gradle 8.5 fails release builds with an
+// "implicit dependency" validation error. Wire the copy task as a
+// hard dependency of every lint-related task so the staged web
+// bundle is always in place before lint reads it.
+tasks.configureEach {
+    def n = name
+    if (n.startsWith('lint')
+            || (n.startsWith('generate') && n.contains('Lint'))) {
+        dependsOn 'copyWebDeployToAssets'
+    }
+}
+
 dependencies {
     // Align all transitive Kotlin stdlib artifacts to 1.8.22.
     //
