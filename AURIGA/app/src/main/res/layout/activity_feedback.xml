@@ -93,6 +93,14 @@
                     android:text="Distance / bearing accuracy" />
 
                 <RadioButton
+                    android:id="@+id/fb_cat_support"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="44dp"
+                    android:textColor="@color/hud_text"
+                    android:text="Need help" />
+
+                <RadioButton
                     android:id="@+id/fb_cat_idea"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -127,8 +135,9 @@
                 android:textSize="15sp" />
 
             <TextView
+                android:id="@+id/fb_email_label"
                 style="@style/DocH2"
-                android:text="Reply-to email (optional)" />
+                android:text="Reply-to email (required)" />
 
             <EditText
                 android:id="@+id/fb_email"

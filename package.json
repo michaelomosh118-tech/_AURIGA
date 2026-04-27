@@ -8,6 +8,9 @@
     "deploy": "node scripts/deploy-netlify.js",
     "deploy:draft": "node scripts/deploy-netlify.js --draft"
   },
+  "dependencies": {
+    "nodemailer": "^6.10.1"
+  },
   "devDependencies": {
     "netlify-cli": "^17.36.2"
   }

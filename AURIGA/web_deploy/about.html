@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#05060A" />
+  <title>About · DrakoSanctis Auriga</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <style>
+    :root {
+      --deep-space: #05060A;
+      --auriga-cyan: #00F0FF;
+      --hud-text: #FFFFFF;
+      --muted: #7AA3C8;
+      --warning: #FFB300;
+      --glass-bg: rgba(0, 240, 255, 0.06);
+      --glass-stroke: rgba(0, 240, 255, 0.20);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      background: var(--deep-space);
+      color: var(--hud-text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    a { color: var(--auriga-cyan); text-decoration: none; }
+    a:hover, a:focus { text-decoration: underline; }
+    header.topbar {
+      position: sticky; top: 0; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 22px;
+      background: rgba(5, 6, 10, 0.92);
+      border-bottom: 1px solid var(--glass-stroke);
+      backdrop-filter: blur(8px);
+    }
+    .brand-eyebrow {
+      display: block; font-size: 11px; letter-spacing: 0.18em;
+      color: var(--auriga-cyan); text-transform: uppercase;
+    }
+    .brand-name { display: block; font-size: 18px; font-weight: 600; letter-spacing: 0.04em; }
+    main { max-width: 760px; margin: 0 auto; padding: 28px 22px 80px; }
+    h1 {
+      font-size: 32px; color: var(--auriga-cyan);
+      text-shadow: 0 0 14px rgba(0, 240, 255, 0.45);
+      margin: 0 0 8px; letter-spacing: 0.04em;
+    }
+    .lede { color: var(--muted); margin: 0 0 28px; line-height: 1.6; }
+    .card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-stroke);
+      border-radius: 14px;
+      padding: 22px;
+      margin: 0 0 18px;
+    }
+    .card h2 {
+      margin: 0 0 6px; color: var(--auriga-cyan);
+      font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+      font-weight: 700;
+    }
+    .card p { line-height: 1.65; color: #CDE7F2; margin: 8px 0; }
+    .contact-grid {
+      display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 12px;
+    }
+    @media (min-width: 600px) { .contact-grid { grid-template-columns: 1fr 1fr; } }
+    .contact-tile {
+      padding: 16px;
+      border: 1px solid var(--glass-stroke);
+      background: rgba(0, 0, 0, 0.30);
+      border-radius: 12px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .contact-tile .role {
+      font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--auriga-cyan);
+    }
+    .contact-tile .name { font-size: 16px; font-weight: 600; }
+    .contact-tile a.action {
+      display: inline-block; margin-top: 6px;
+      padding: 10px 14px; min-height: 44px; line-height: 24px;
+      border-radius: 999px;
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid var(--auriga-cyan);
+      font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase;
+      text-align: center;
+    }
+    .contact-tile .addr {
+      font-family: 'Consolas', 'Menlo', monospace;
+      font-size: 12px; color: var(--muted);
+      word-break: break-all;
+    }
+    .build-stamp {
+      margin-top: 18px; padding: 14px 16px;
+      background: rgba(0, 0, 0, 0.30);
+      border: 1px dashed var(--glass-stroke);
+      border-radius: 10px;
+      font-family: 'Consolas', 'Menlo', monospace;
+      font-size: 12px; color: var(--muted);
+      line-height: 1.7;
+    }
+    .back-link {
+      display: inline-block; margin-bottom: 18px;
+      padding: 8px 14px;
+      border: 1px solid var(--glass-stroke);
+      border-radius: 999px;
+      font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase;
+    }
+    @media (max-width: 600px) {
+      h1 { font-size: 26px; }
+      main { padding: 22px 16px 80px; }
+    }
+  </style>
+  <link rel="stylesheet" href="nav-drawer.css">
+  <script defer src="nav-drawer.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <span class="brand-eyebrow">DrakoSanctis // Auriga</span>
+      <span class="brand-name">About</span>
+    </div>
+    <button type="button" class="nav-toggle" id="navToggle"
+            aria-expanded="false" aria-controls="navLinks"
+            aria-label="Open navigation menu">
+      <span class="hamburger-icon" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </span>
+      MENU
+    </button>
+  </header>
+
+  <main>
+    <a class="back-link" href="index.html">← Back to home</a>
+    <h1>About Auriga</h1>
+    <p class="lede">
+      Auriga is a vision-assistance ecosystem from DrakoSanctis — an
+      Android app and progressive web app that pair on-device computer
+      vision with audio-first navigation. It is built and maintained by
+      a one-person team and ships as a single, dependency-light bundle
+      so it keeps working in places the cloud doesn't reach.
+    </p>
+
+    <section class="card">
+      <h2>Project mission</h2>
+      <p>
+        See beyond sight. Auriga turns a phone's camera, sensors and
+        speech into a calm spatial guide — for low-vision users, for
+        people navigating unfamiliar rooms, and for anyone who wants
+        the world narrated rather than displayed.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Contact</h2>
+      <p>
+        Feedback, bug reports and ideas all funnel through the in-app
+        <a href="feedback.html">Send Feedback</a> form — that route gives
+        you a ticket reference, an automatic email confirmation, and the
+        fastest reply. The addresses below are for direct correspondence
+        when the form isn't appropriate (partnerships, press, accessibility
+        organisations, etc.).
+      </p>
+      <div class="contact-grid">
+        <div class="contact-tile">
+          <span class="role">Project</span>
+          <span class="name">DrakoSanctis · Auriga</span>
+          <span class="addr" id="projectAddr"></span>
+          <a class="action" id="projectMail" href="#">Email the project</a>
+        </div>
+        <div class="contact-tile">
+          <span class="role">Maintainer</span>
+          <span class="name">Michael Omondi</span>
+          <span class="addr" id="personalAddr"></span>
+          <a class="action" id="personalMail" href="#">Email Michael</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>How submissions are handled</h2>
+      <p>
+        Every submission is delivered to the project Gmail and mirrored
+        to the project's GitHub Issues tracker as the long-term ledger.
+        If you provide a reply-to email, an automatic acknowledgement
+        with your ticket ID is sent to you within seconds — quote that
+        ID in any future correspondence and we can pick the thread up
+        instantly.
+      </p>
+      <p>
+        Bug and "Need help" submissions require a reply-to email so we
+        can actually reach you with a fix. Ideas and general feedback
+        don't.
+      </p>
+    </section>
+
+    <div class="build-stamp" id="buildStamp">Build stamp loading…</div>
+  </main>
+
+  <script>
+    // Light obfuscation: assemble the addresses at runtime so naive
+    // scrapers don't pull them straight off the page source.
+    const PROJECT_USER = 'drakosanctis';
+    const PERSONAL_USER = 'oluochmichael975';
+    const PROVIDER = 'gmail.com';
+    const project = PROJECT_USER + '@' + PROVIDER;
+    const personal = PERSONAL_USER + '@' + PROVIDER;
+
+    const projectAddr = document.getElementById('projectAddr');
+    const personalAddr = document.getElementById('personalAddr');
+    const projectMail = document.getElementById('projectMail');
+    const personalMail = document.getElementById('personalMail');
+    projectAddr.textContent = project;
+    personalAddr.textContent = personal;
+    projectMail.href  = 'mailto:' + project  + '?subject=' + encodeURIComponent('[AURIGA] Hello');
+    personalMail.href = 'mailto:' + personal + '?subject=' + encodeURIComponent('[AURIGA] Hello, Michael');
+
+    // Build stamp from document.lastModified (good enough for static deploys)
+    document.getElementById('buildStamp').textContent =
+      'Build:    web · ' + (document.lastModified || 'unknown') + '\n' +
+      'Engine:   PWA shell · service worker v5\n' +
+      '© DrakoSanctis · See Beyond Sight';
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

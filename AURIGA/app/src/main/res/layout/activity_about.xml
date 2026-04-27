@@ -94,6 +94,57 @@
 
             <TextView
                 style="@style/DocH2"
+                android:text="Contact" />
+
+            <TextView
+                style="@style/DocBody"
+                android:text="Feedback, bugs and ideas all funnel through the in-app Send Feedback form — you'll get a ticket reference and an email confirmation. The addresses below are for direct correspondence." />
+
+            <Button
+                android:id="@+id/about_mail_project"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:minHeight="52dp"
+                android:background="@drawable/diag_toggle_bg"
+                android:text="EMAIL THE PROJECT"
+                android:textColor="@color/diag_toggle_text"
+                android:letterSpacing="0.16"
+                android:textAllCaps="true" />
+
+            <TextView
+                android:id="@+id/about_addr_project"
+                style="@style/DocBody"
+                android:layout_marginTop="4dp"
+                android:fontFamily="monospace"
+                android:textSize="12sp"
+                android:textColor="@color/muted_label"
+                android:text="" />
+
+            <Button
+                android:id="@+id/about_mail_personal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:minHeight="52dp"
+                android:background="@drawable/diag_toggle_bg"
+                android:text="EMAIL MICHAEL (MAINTAINER)"
+                android:textColor="@color/diag_toggle_text"
+                android:letterSpacing="0.16"
+                android:textAllCaps="true" />
+
+            <TextView
+                android:id="@+id/about_addr_personal"
+                style="@style/DocBody"
+                android:layout_marginTop="4dp"
+                android:fontFamily="monospace"
+                android:textSize="12sp"
+                android:textColor="@color/muted_label"
+                android:text="" />
+
+            <TextView
+                style="@style/DocH2"
+                android:layout_marginTop="20dp"
                 android:text="Build" />
 
             <TextView

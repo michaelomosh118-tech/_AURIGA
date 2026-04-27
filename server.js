@@ -3,6 +3,12 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
+// We re-use the exact Netlify Function handler so dev (Replit) and
+// production (Netlify) run identical code. Anything you change in
+// AURIGA/netlify/functions/submit-feedback.js is immediately picked
+// up by `npm start` here too — single source of truth.
+const feedbackFn = require('./AURIGA/netlify/functions/submit-feedback.js');
+
 const PORT = process.env.PORT || 5000;
 const STATIC_DIR = path.join(__dirname, 'AURIGA', 'web_deploy');
 
@@ -30,102 +36,23 @@ function collectBody(req) {
   });
 }
 
+// Adapter: reshape a Node http req into the Netlify-Function event
+// envelope, invoke the shared handler, and pipe its response back.
 async function handleFeedback(req, res) {
-  const cors = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-
-  if (req.method === 'OPTIONS') {
-    res.writeHead(204, cors);
-    res.end();
-    return;
-  }
-
-  if (req.method !== 'POST') {
-    res.writeHead(405, cors);
-    res.end('Method Not Allowed');
-    return;
-  }
-
-  let payload;
   try {
     const body = await collectBody(req);
-    payload = JSON.parse(body || '{}');
-  } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json', ...cors });
-    res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
-    return;
+    const result = await feedbackFn.handler({
+      httpMethod: req.method,
+      headers: req.headers,
+      body,
+    });
+    res.writeHead(result.statusCode || 200, result.headers || {});
+    res.end(result.body || '');
+  } catch (err) {
+    console.error('[server] feedback handler crashed', err);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: false, error: 'internal' }));
   }
-
-  const message = (payload.message || '').trim();
-  if (!message || message.length < 5) {
-    res.writeHead(422, { 'Content-Type': 'application/json', ...cors });
-    res.end(JSON.stringify({ ok: false, error: 'message too short' }));
-    return;
-  }
-  if (message.length > 8000) {
-    res.writeHead(422, { 'Content-Type': 'application/json', ...cors });
-    res.end(JSON.stringify({ ok: false, error: 'message too long' }));
-    return;
-  }
-
-  const summary = [
-    `cat=${payload.category || 'other'}`,
-    `prod=${payload.product || '?'}`,
-    `ver=${payload.version || '?'}`,
-    `dev=${(payload.device || '?').replace(/\s+/g, '_')}`,
-    `email=${payload.email || ''}`,
-    `msg=${(payload.message || '').slice(0, 400).replace(/\s+/g, ' ')}`,
-  ].join(' | ');
-
-  console.log('[auriga-feedback]', summary);
-
-  let webhookOk = null;
-  const webhook = process.env.FEEDBACK_FORWARD_WEBHOOK;
-  if (webhook) {
-    try {
-      const r = await fetch(webhook, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: summary, payload }),
-      });
-      webhookOk = r.ok;
-    } catch (e) {
-      console.warn('[auriga-feedback] webhook failed', e && e.message);
-      webhookOk = false;
-    }
-  }
-
-  let ghOk = null;
-  const ghRepo = process.env.FEEDBACK_GITHUB_REPO;
-  const ghToken = process.env.FEEDBACK_GITHUB_TOKEN;
-  if (ghRepo && ghToken) {
-    try {
-      const title = `[${payload.category || 'feedback'}] ${message.slice(0, 60).replace(/\s+/g, ' ')}…`;
-      const r = await fetch(`https://api.github.com/repos/${ghRepo}/issues`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${ghToken}`,
-          'Accept': 'application/vnd.github+json',
-          'User-Agent': 'auriga-feedback-fn',
-          'X-GitHub-Api-Version': '2022-11-28',
-        },
-        body: JSON.stringify({
-          title,
-          labels: ['user-feedback', `cat:${payload.category || 'other'}`],
-        }),
-      });
-      ghOk = r.ok;
-    } catch (e) {
-      console.warn('[auriga-feedback] github threw', e && e.message);
-      ghOk = false;
-    }
-  }
-
-  res.writeHead(200, { 'Content-Type': 'application/json', ...cors });
-  res.end(JSON.stringify({ ok: true, received: true, forwarded: { webhook: webhookOk, github: ghOk } }));
 }
 
 const server = http.createServer(async (req, res) => {

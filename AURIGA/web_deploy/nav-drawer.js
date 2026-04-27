@@ -53,7 +53,8 @@
         {
             label: 'Other',
             items: [
-                { text: 'FEEDBACK', href: 'feedback.html' }
+                { text: 'FEEDBACK', href: 'feedback.html' },
+                { text: 'ABOUT',    href: 'about.html' }
             ]
         }
     ];

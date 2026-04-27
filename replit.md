@@ -30,7 +30,43 @@ The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and 
   automatically.
 
 ## Notes
-- The feedback endpoint (`/.netlify/functions/submit-feedback`) is handled server-side by `server.js`. It supports optional env vars: `FEEDBACK_FORWARD_WEBHOOK` (generic webhook), `FEEDBACK_GITHUB_REPO` + `FEEDBACK_GITHUB_TOKEN` (auto-file GitHub issues).
+- The feedback endpoint (`/.netlify/functions/submit-feedback`) is the
+  single source of truth for all comms (web AND APK). `server.js`
+  re-exports the Netlify Function handler, so dev (Replit) and prod
+  (Netlify) run identical code.
+- Pipeline per submission: validate → mint ticket ID `AUR-<CAT>-<XXXX>`
+  → notification email to project Gmail (Reply-To: user's email)
+  → auto-acknowledgement reply to user → mirror to GitHub Issue
+  → optional generic webhook. Each sink is best-effort; the request
+  succeeds if any sink succeeds.
+- Required Netlify env vars: `GMAIL_USER`, `GMAIL_APP_PASSWORD`.
+- Optional Netlify env vars: `GMAIL_FROM_NAME`,
+  `FEEDBACK_GITHUB_REPO`, `FEEDBACK_GITHUB_TOKEN`,
+  `FEEDBACK_FORWARD_WEBHOOK`.
+- Bug + "Need help" categories require a reply-to email. Idea + Other
+  accept anonymous submissions but warn that no ticket reference will
+  be sent.
+- Web client persists failed submissions to IndexedDB (db
+  `auriga-feedback-queue`, store `pending`) and replays them on the
+  `online` event. Service worker `sw.js` (cache `drakosanctis-v5`) also
+  registers a `sync` handler under tag `auriga-feedback-flush` so
+  browsers that support Background Sync drain the queue when the OS
+  reports the network is back, even with the tab closed.
+- APK client persists failed submissions to SharedPreferences (file
+  `auriga_feedback_queue`, key `pending_payloads`, cap 32) and flushes
+  them whenever the Send Feedback screen opens or a fresh submission
+  succeeds. Permanent (4xx) failures fall through to a mailto: composer
+  pointed at `BuildConfig.FEEDBACK_MAILTO` (default
+  `drakosanctis@gmail.com`).
+- About page (`about.html` web, `AboutActivity` APK) exposes both the
+  project Gmail (drakosanctis@gmail.com) and the maintainer's personal
+  Gmail (oluochmichael975@gmail.com — Michael Omondi). Addresses are
+  assembled at runtime from username + provider so they don't sit in
+  the source HTML/XML as raw scrape-bait.
+- CrashReportActivity SHARE button now pre-fills `EXTRA_EMAIL` with
+  the project Gmail and uses `[AURIGA · CRASH] <build>` as the subject
+  so picking Gmail/Outlook from the share sheet produces an
+  already-addressed draft.
 - Service worker registers automatically on load (PWA).
 
 ## Recent Changes

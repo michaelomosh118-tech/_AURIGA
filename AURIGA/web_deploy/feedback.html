@@ -138,6 +138,13 @@
       outline: 2px solid var(--auriga-cyan);
       outline-offset: 2px;
     }
+    .email-hint {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .email-hint.required { color: var(--warning); }
     .submit-row {
       display: flex;
       align-items: center;
@@ -173,6 +180,45 @@
     }
     .status.ok { color: #6EFAB6; }
     .status.err { color: var(--warning); }
+    .ticket-card {
+      margin-top: 18px;
+      padding: 16px 18px;
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid var(--auriga-cyan);
+      border-radius: 12px;
+      display: none;
+    }
+    .ticket-card.show { display: block; }
+    .ticket-card .label {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--auriga-cyan);
+    }
+    .ticket-card .id {
+      font-family: 'Consolas', 'Menlo', monospace;
+      font-size: 22px;
+      letter-spacing: 0.08em;
+      color: var(--hud-text);
+      margin: 4px 0 8px;
+    }
+    .ticket-card .help {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .queued-banner {
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: rgba(255, 179, 0, 0.12);
+      border: 1px solid var(--warning);
+      border-radius: 10px;
+      color: var(--warning);
+      font-size: 13px;
+      line-height: 1.5;
+      display: none;
+    }
+    .queued-banner.show { display: block; }
     .meta {
       margin-top: 22px;
       padding: 16px;
@@ -225,10 +271,13 @@
     <h1>Tell us what's working — and what isn't.</h1>
     <p class="lede">
       Bug reports, accuracy issues, ideas, kind words — they all help us
-      sharpen Auriga. Your message goes straight to the DrakoSanctis team.
-      We attach your browser profile automatically so we can reproduce
-      what you saw; nothing else leaves this page.
+      sharpen Auriga. Your message goes straight to the DrakoSanctis team
+      Gmail and you'll get a confirmation with a ticket ID. We attach
+      your browser profile automatically so we can reproduce what you saw;
+      nothing else leaves this page.
     </p>
+
+    <div class="queued-banner" id="queuedBanner" role="status" aria-live="polite"></div>
 
     <form id="feedbackForm" novalidate>
       <fieldset>
@@ -236,6 +285,7 @@
         <div class="radio-row" role="radiogroup" aria-label="Feedback category">
           <label><input type="radio" name="category" value="bug" checked> Bug or crash</label>
           <label><input type="radio" name="category" value="accuracy"> Accuracy issue</label>
+          <label><input type="radio" name="category" value="support"> Need help</label>
           <label><input type="radio" name="category" value="idea"> Feature idea</label>
           <label><input type="radio" name="category" value="other"> Other</label>
         </div>
@@ -247,9 +297,12 @@
         <textarea id="message" name="message" required minlength="5" maxlength="8000"
                   placeholder="What happened? What did you expect?"></textarea>
 
-        <label for="email">Reply-to email (optional)</label>
+        <label for="email">Reply-to email <span id="emailReqMark" style="color: var(--warning);">(required)</span></label>
         <input id="email" name="email" type="email" autocomplete="email"
                placeholder="you@example.com" />
+        <span class="email-hint required" id="emailHint">
+          We need this to send you a ticket reference and reply if we have questions.
+        </span>
       </fieldset>
 
       <fieldset>
@@ -261,43 +314,93 @@
         <button type="submit" class="submit" id="submitBtn">Submit Feedback</button>
         <span class="status" id="status" role="status" aria-live="polite"></span>
       </div>
+
+      <div class="ticket-card" id="ticketCard" aria-live="polite">
+        <div class="label">Your ticket reference</div>
+        <div class="id" id="ticketId">—</div>
+        <div class="help" id="ticketHelp"></div>
+      </div>
     </form>
   </main>
 
   <script>
     /*
-     * The web feedback page mirrors the Android FeedbackActivity:
+     * Web feedback intake. Mirrors the Android FeedbackActivity:
      *   POST JSON  →  /.netlify/functions/submit-feedback
      *   payload:   { message, email, category, product, version, device,
      *                profile, diagnostic, ts }
      *
-     * On any non-2xx (or network failure) we fall back to a mailto: so
-     * users always have a working escape hatch — same pattern as the
-     * Android FeedbackSubmitter.
+     * Resilience: if the network fails the submission is stored in
+     * IndexedDB and replayed on the next page load OR as soon as the
+     * browser reports `online`. If the Service Worker supports
+     * Background Sync we register a sync tag too, so the OS can flush
+     * the queue even when the tab is closed.
+     *
+     * Last-resort UX: a "open my email app instead" mailto link, so the
+     * user always has a working escape hatch.
      */
     const ENDPOINT = '/.netlify/functions/submit-feedback';
-    const MAILTO_FALLBACK = 'feedback@drakosanctis.local';
+    const PROJECT_MAILBOX = 'drakosanctis@gmail.com';
+    const REQUIRE_EMAIL_FOR = new Set(['bug', 'support']);
 
     const meta = collectMeta();
     document.getElementById('metaPreview').textContent = renderMeta(meta);
 
+    // ── Email-required label updates with category selection ───────
+    function updateEmailRequiredHint() {
+      const cat = (document.querySelector('input[name="category"]:checked') || {}).value || 'other';
+      const required = REQUIRE_EMAIL_FOR.has(cat);
+      const mark = document.getElementById('emailReqMark');
+      const hint = document.getElementById('emailHint');
+      const input = document.getElementById('email');
+      mark.style.display = required ? 'inline' : 'none';
+      mark.textContent = '(required)';
+      hint.classList.toggle('required', required);
+      hint.textContent = required
+        ? 'We need this to send you a ticket reference and reply if we have questions.'
+        : 'Optional — but if you leave it we can\'t reply or send you a ticket reference.';
+      if (required) input.setAttribute('required', 'required');
+      else input.removeAttribute('required');
+    }
+    document.querySelectorAll('input[name="category"]').forEach((r) => {
+      r.addEventListener('change', updateEmailRequiredHint);
+    });
+    updateEmailRequiredHint();
+
+    // ── Submit ─────────────────────────────────────────────────────
     document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = document.getElementById('submitBtn');
       const status = document.getElementById('status');
+      const ticketCard = document.getElementById('ticketCard');
       const messageEl = document.getElementById('message');
       const emailEl = document.getElementById('email');
       const message = (messageEl.value || '').trim();
+      const email = (emailEl.value || '').trim();
+      const category = (document.querySelector('input[name="category"]:checked') || {}).value || 'other';
+
       if (message.length < 5) {
         status.className = 'status err';
         status.textContent = 'Please describe the issue (at least a few words).';
         messageEl.focus();
         return;
       }
-      const category = (document.querySelector('input[name="category"]:checked') || {}).value || 'other';
+      if (REQUIRE_EMAIL_FOR.has(category) && !email) {
+        status.className = 'status err';
+        status.textContent = 'A reply-to email is required for ' + category + ' reports.';
+        emailEl.focus();
+        return;
+      }
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        status.className = 'status err';
+        status.textContent = 'That email address looks malformed — please double-check.';
+        emailEl.focus();
+        return;
+      }
+
       const payload = {
         message,
-        email: (emailEl.value || '').trim(),
+        email,
         category,
         ...meta,
         ts: Date.now(),
@@ -307,29 +410,55 @@
       btn.textContent = 'Sending…';
       status.className = 'status';
       status.textContent = '';
+      ticketCard.classList.remove('show');
 
-      try {
-        const res = await fetch(ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
+      const result = await trySend(payload);
+      if (result.ok) {
         status.className = 'status ok';
-        status.textContent = 'Thanks — feedback sent. We read every message.';
+        status.textContent = 'Thanks — feedback received.';
+        showTicket(result.ticketId, !!email);
         document.getElementById('feedbackForm').reset();
+        updateEmailRequiredHint();
         document.getElementById('metaPreview').textContent = renderMeta(meta);
-      } catch (err) {
+      } else if (result.queued) {
+        status.className = 'status';
+        status.textContent = 'Saved offline — we\'ll send it as soon as you\'re online.';
+        showQueuedBanner();
+      } else {
         status.className = 'status err';
         status.innerHTML =
-          'Couldn\u2019t reach the server. ' +
+          'Couldn\u2019t send right now. ' +
           '<a href="' + buildMailto(payload) + '">Open your email app instead</a> ' +
-          'to send the same message.';
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Submit Feedback';
+          'to send the same message to ' + PROJECT_MAILBOX + '.';
       }
+      btn.disabled = false;
+      btn.textContent = 'Submit Feedback';
     });
+
+    function showTicket(ticketId, hasEmail) {
+      const card = document.getElementById('ticketCard');
+      const help = document.getElementById('ticketHelp');
+      document.getElementById('ticketId').textContent = ticketId || '—';
+      help.textContent = hasEmail
+        ? 'A confirmation has been emailed to you. Quote this ID in any reply.'
+        : 'No reply email was provided, so save this ID — it\'s the only handle we have on this submission.';
+      card.classList.add('show');
+    }
+
+    function buildMailto(p) {
+      const subj = '[AURIGA · ' + (p.category || 'OTHER').toUpperCase() + '] ' + (p.message || '').slice(0, 60);
+      const body =
+        (p.message || '') + '\n\n' +
+        '— Auto-attached metadata —\n' +
+        'Product: ' + p.product + '\n' +
+        'Version: ' + p.version + '\n' +
+        'Device: ' + p.device + '\n' +
+        'Profile: ' + p.profile + '\n' +
+        'Diagnostic snapshot:\n' + p.diagnostic;
+      return 'mailto:' + PROJECT_MAILBOX +
+             '?subject=' + encodeURIComponent(subj) +
+             '&body=' + encodeURIComponent(body);
+    }
 
     function collectMeta() {
       return {
@@ -359,20 +488,128 @@
       ].join('\n');
     }
 
-    function buildMailto(p) {
-      const subj = 'AurigaNavi feedback — ' + (p.category || 'other');
-      const body =
-        (p.message || '') + '\n\n' +
-        '— Auto-attached metadata —\n' +
-        'Product: ' + p.product + '\n' +
-        'Version: ' + p.version + '\n' +
-        'Device: ' + p.device + '\n' +
-        'Profile: ' + p.profile + '\n' +
-        'Diagnostic snapshot:\n' + p.diagnostic;
-      return 'mailto:' + MAILTO_FALLBACK +
-             '?subject=' + encodeURIComponent(subj) +
-             '&body=' + encodeURIComponent(body);
+    // ────────────────────────────────────────────────────────────
+    // Offline queue (IndexedDB + retry on online + Background Sync)
+    // ────────────────────────────────────────────────────────────
+    const DB_NAME = 'auriga-feedback-queue';
+    const STORE = 'pending';
+
+    function openDb() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => {
+          req.result.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
     }
+    async function enqueue(payload) {
+      try {
+        const db = await openDb();
+        await new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE, 'readwrite');
+          tx.objectStore(STORE).add({ payload, queuedAt: Date.now() });
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+        if ('serviceWorker' in navigator && 'SyncManager' in window) {
+          try {
+            const reg = await navigator.serviceWorker.ready;
+            await reg.sync.register('auriga-feedback-flush');
+          } catch (e) { /* sync best-effort */ }
+        }
+        return true;
+      } catch (e) {
+        console.warn('[feedback] enqueue failed', e);
+        return false;
+      }
+    }
+    async function flushQueue() {
+      let db;
+      try { db = await openDb(); } catch (e) { return; }
+      const all = await new Promise((resolve) => {
+        const items = [];
+        const tx = db.transaction(STORE, 'readonly');
+        const cur = tx.objectStore(STORE).openCursor();
+        cur.onsuccess = () => {
+          const c = cur.result;
+          if (!c) return resolve(items);
+          items.push({ id: c.key, payload: c.value.payload });
+          c.continue();
+        };
+        cur.onerror = () => resolve(items);
+      });
+      if (!all.length) return;
+      let flushed = 0;
+      for (const item of all) {
+        try {
+          const res = await fetch(ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item.payload),
+          });
+          if (res.ok) {
+            await new Promise((resolve) => {
+              const tx = db.transaction(STORE, 'readwrite');
+              tx.objectStore(STORE).delete(item.id);
+              tx.oncomplete = resolve;
+              tx.onerror = resolve;
+            });
+            flushed++;
+          }
+        } catch (e) { /* keep in queue, try again later */ }
+      }
+      if (flushed > 0) {
+        const banner = document.getElementById('queuedBanner');
+        banner.textContent = flushed + ' queued submission' + (flushed === 1 ? '' : 's') + ' sent. Check your email for ticket IDs.';
+        banner.classList.add('show');
+        banner.style.color = '#6EFAB6';
+        banner.style.borderColor = '#6EFAB6';
+        banner.style.background = 'rgba(110, 250, 182, 0.10)';
+      }
+      const remaining = all.length - flushed;
+      if (remaining > 0) showQueuedBanner(remaining);
+    }
+    function showQueuedBanner(count) {
+      const banner = document.getElementById('queuedBanner');
+      banner.style.color = '';
+      banner.style.borderColor = '';
+      banner.style.background = '';
+      banner.textContent = (count
+        ? count + ' submission' + (count === 1 ? '' : 's') + ' waiting in the offline queue. '
+        : 'Your message is in the offline queue. ')
+        + 'It will be sent automatically when you\'re back online.';
+      banner.classList.add('show');
+    }
+    async function trySend(payload) {
+      try {
+        const res = await fetch(ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) {
+            // Validation / permanent failure — don't queue.
+            let body = {};
+            try { body = await res.json(); } catch (_) {}
+            return { ok: false, queued: false, error: body.error || ('HTTP ' + res.status) };
+          }
+          throw new Error('HTTP ' + res.status);
+        }
+        const body = await res.json();
+        return { ok: true, ticketId: body.ticketId, sinks: body.sinks };
+      } catch (err) {
+        // Network failure or 5xx → queue.
+        const queued = await enqueue(payload);
+        return { ok: false, queued };
+      }
+    }
+
+    // Try to flush whatever's pending whenever we come (back) online.
+    window.addEventListener('online', flushQueue);
+    if (navigator.onLine) flushQueue();
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(() => {});

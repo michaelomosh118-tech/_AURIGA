@@ -1,6 +1,6 @@
 // Bump the cache name when the asset list or shell HTML changes so old
 // clients pick up the new bundle on their next page load.
-const CACHE_NAME = 'drakosanctis-v4';
+const CACHE_NAME = 'drakosanctis-v5';
 
 // Local app-shell pages we always want available offline. The fetch
 // handler also opportunistically caches every other GET response so
@@ -12,6 +12,7 @@ const ASSETS_TO_CACHE = [
   './locator.html',
   './calibration-library.html',
   './feedback.html',
+  './about.html',
   './nav-drawer.css',
   './nav-drawer.js',
   './logo.png',
@@ -49,3 +50,65 @@ self.addEventListener('activate', (event) => {
       cacheNames.map((cache) => cache !== CACHE_NAME ? caches.delete(cache) : null)
     )).then(() => self.clients.claim())
   );
+});
+
+// ── Background Sync: replay queued feedback when the OS says we're online ──
+// The feedback page enqueues failed POSTs in IndexedDB (db `auriga-feedback-queue`,
+// store `pending`). On a `sync` event we drain that store the same way the
+// page does. Browsers without SyncManager (Safari/iOS) fall back to the
+// page's `online` event listener, so feedback still flushes — just only
+// while a tab is open.
+const QUEUE_DB = 'auriga-feedback-queue';
+const QUEUE_STORE = 'pending';
+const QUEUE_ENDPOINT = '/.netlify/functions/submit-feedback';
+
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'auriga-feedback-flush') {
+    event.waitUntil(flushFeedbackQueue());
+  }
+});
+
+function openQueueDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(QUEUE_DB, 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(QUEUE_STORE, { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function flushFeedbackQueue() {
+  let db;
+  try { db = await openQueueDb(); } catch (e) { return; }
+  const items = await new Promise((resolve) => {
+    const acc = [];
+    const tx = db.transaction(QUEUE_STORE, 'readonly');
+    const cur = tx.objectStore(QUEUE_STORE).openCursor();
+    cur.onsuccess = () => {
+      const c = cur.result;
+      if (!c) return resolve(acc);
+      acc.push({ id: c.key, payload: c.value.payload });
+      c.continue();
+    };
+    cur.onerror = () => resolve(acc);
+  });
+  for (const it of items) {
+    try {
+      const res = await fetch(QUEUE_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(it.payload),
+      });
+      if (res.ok) {
+        await new Promise((resolve) => {
+          const tx = db.transaction(QUEUE_STORE, 'readwrite');
+          tx.objectStore(QUEUE_STORE).delete(it.id);
+          tx.oncomplete = resolve;
+          tx.onerror = resolve;
+        });
+      }
+    } catch (e) { /* try again next sync */ }
+  }
+}

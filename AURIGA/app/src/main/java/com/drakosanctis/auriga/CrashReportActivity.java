@@ -169,10 +169,32 @@ public class CrashReportActivity extends Activity {
 
     private void share(String body, String path) {
         try {
+            // Build a "[AURIGA · CRASH] <build>" subject and pre-fill the
+            // recipient with the project Gmail (BuildConfig.FEEDBACK_MAILTO)
+            // so picking Gmail/Outlook from the share sheet produces an
+            // already-addressed draft. Other share targets (WhatsApp, Drive,
+            // etc.) just ignore EXTRA_EMAIL but still see the subject + text.
+            String buildLabel;
+            try {
+                android.content.pm.PackageInfo info =
+                        getPackageManager().getPackageInfo(getPackageName(), 0);
+                buildLabel = info.versionName + " (" + info.versionCode + ")";
+            } catch (Throwable t) {
+                buildLabel = "?";
+            }
+            String subject = "[AURIGA · CRASH] " + buildLabel;
+            String prefilledBody = body
+                    + "\n\n— Sent from the AurigaNavi crash viewer.\n"
+                    + "Build: " + buildLabel + "\n"
+                    + "Device: " + Build.MANUFACTURER + " " + Build.MODEL
+                    + " · Android " + Build.VERSION.RELEASE
+                    + " (API " + Build.VERSION.SDK_INT + ")\n";
+
             Intent send = new Intent(Intent.ACTION_SEND);
             send.setType("text/plain");
-            send.putExtra(Intent.EXTRA_SUBJECT, "Auriga crash report");
-            send.putExtra(Intent.EXTRA_TEXT, body);
+            send.putExtra(Intent.EXTRA_EMAIL, new String[] { BuildConfig.FEEDBACK_MAILTO });
+            send.putExtra(Intent.EXTRA_SUBJECT, subject);
+            send.putExtra(Intent.EXTRA_TEXT, prefilledBody);
             // If we have the file, also attach it via FileProvider for
             // recipients that prefer an attachment.
             if (path != null) {

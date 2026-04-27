@@ -34,7 +34,7 @@ android {
                 ?: 'https://drakosanctis-auriga.netlify.app/.netlify/functions/submit-feedback')
         def feedbackMailto = (project.findProperty('feedbackMailto')
                 ?: System.getenv('AURIGA_FEEDBACK_MAILTO')
-                ?: 'feedback@drakosanctis.local')
+                ?: 'drakosanctis@gmail.com')
         buildConfigField "String", "FEEDBACK_ENDPOINT", "\"" + feedbackEndpoint + "\""
         buildConfigField "String", "FEEDBACK_MAILTO", "\"" + feedbackMailto + "\""
     }
