@@ -2,12 +2,20 @@
 
 ## Overview
 Static landing/PWA site for the Auriga Ecosystem by DrakoSanctis. The published site is served from `AURIGA/web_deploy`, which contains:
-- `index.html` — main landing page
+- `index.html` — main landing page (sections: HOME, ECOSYSTEM, POSITION, NAVI, SENTINEL, AERO, INDUSTRIAL)
 - `calibration-library.html` — calibration library page
 - `manifest.json`, `sw.js`, `logo.png` — PWA assets
 - `data/` — JSON datasets used by the calibration pages
 
 The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and a marketing HTML (`AURIGA/DrakoSanctis_LandingPage.html`), but the public web product is the static site under `web_deploy`.
+
+## Strategy & Roadmap
+Living spec: `AURIGA/docs/SCALING_STRATEGY.md` (mirrored on the site as the **POSITION** section in `index.html`). Covers:
+- Current capability inventory and competitive matrix vs. Seeing AI, Lookout, Be My Eyes, Envision, OrCam.
+- Three strategic wedges: integrated stack · 100% on-device · free vs. $4,500.
+- 5-phase build roadmap (Phase 1 native YOLOv8n + OCR polish → Phase 5 hardware partnerships).
+
+The Android-native features in Phases 1–3 (PaddleOCR, Piper TTS, Vosk wake word, Moondream 2, OsmAnd) live in `AURIGA/app` and require the Android SDK/NDK toolchain — track them as separate work items, not in this Replit session.
 
 ## Replit Setup
 - Workflow `Start application` serves `AURIGA/web_deploy` via `node server.js` on `0.0.0.0:5000`.
