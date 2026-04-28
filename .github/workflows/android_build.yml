@@ -2,7 +2,18 @@ name: AURIGA Professional Build Engine
 
 on:
   push:
-    branches: [ "main", "master" ]
+    # Build on every push to the integration branches AND on every
+    # push to a feature branch. Without the feat/** entry, pushes
+    # to a `feat/...` branch only fire CI when an open PR against
+    # main exists, which silently skips builds when the developer
+    # is iterating without a PR yet (the exact failure mode that
+    # cost us a cycle on the AppCompat-theme fix).
+    branches:
+      - "main"
+      - "master"
+      - "feat/**"
+      - "fix/**"
+      - "chore/**"
   pull_request:
     branches: [ "main", "master" ]
   workflow_dispatch:
