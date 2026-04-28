@@ -90,7 +90,12 @@ jobs:
         echo "::group::Export yolov8n.pt → TFLite (640x640 fp32)"
         yolo export model=yolov8n.pt format=tflite imgsz=640
         echo "::endgroup::"
-        DEST="${{ steps.locate.outputs.project_root }}/app/src/main/assets/yolov8n_float32.tflite"
+        # IMPORTANT: this step's working-directory is runner.temp, so
+        # any relative path like "./AURIGA/..." would resolve under /tmp
+        # and silently land outside the repo. Use the absolute workspace
+        # path so the file ends up exactly where the verify step (and
+        # Gradle's asset packaging) looks for it.
+        DEST="${{ github.workspace }}/${{ steps.locate.outputs.project_root }}/app/src/main/assets/yolov8n_float32.tflite"
         mkdir -p "$(dirname "$DEST")"
         # Ultralytics writes to yolov8n_saved_model/<various>.tflite —
         # grab the float32 export specifically.
