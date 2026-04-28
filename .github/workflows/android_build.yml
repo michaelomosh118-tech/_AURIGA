@@ -52,6 +52,72 @@ jobs:
         echo "gradle_task=assemble${FLAVOR_CAP}${BUILD_TYPE_CAP}" >> "$GITHUB_OUTPUT"
         echo "apk_subdir=${FLAVOR}/${BUILD_TYPE}" >> "$GITHUB_OUTPUT"
 
+    # ── Phase 1: native YOLOv8n Object Locator ──────────────────────
+    # The TFLite model is gitignored (binary blob, ~12 MB) so CI must
+    # fetch it before assembling the APK. We export from Ultralytics on
+    # the runner, then cache the result so subsequent matrix cells (and
+    # subsequent workflow runs) skip the heavy `pip install ultralytics`
+    # step and pull the model straight from the actions cache.
+    #
+    # Cache key bump: change the trailing version (-v1 → -v2) to force
+    # a re-export, e.g. when upgrading to YOLOv9 or pinning to a newer
+    # Ultralytics release.
+    - name: Restore cached YOLOv8n TFLite model
+      id: yolo-cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.locate.outputs.project_root }}/app/src/main/assets/yolov8n_float32.tflite
+        key: yolov8n-tflite-fp32-v1
+
+    - name: Set up Python (cache miss only)
+      if: steps.yolo-cache.outputs.cache-hit != 'true'
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Export YOLOv8n model (cache miss only)
+      if: steps.yolo-cache.outputs.cache-hit != 'true'
+      working-directory: ${{ runner.temp }}
+      run: |
+        echo "::group::Install Ultralytics (pinning numpy<2 for TFLite export)"
+        # Ultralytics' TFLite exporter pulls in TensorFlow, whose Keras code
+        # still calls numpy._no_nep50_warning — a private API removed in
+        # numpy 2.x. Pin numpy to the 1.x line so the pip resolver picks
+        # compatible scipy/tensorflow wheels. Documented workaround:
+        # https://github.com/ultralytics/ultralytics/issues/13800
+        pip install --quiet --no-cache-dir "numpy<2" "ultralytics"
+        echo "::endgroup::"
+        echo "::group::Export yolov8n.pt → TFLite (640x640 fp32)"
+        yolo export model=yolov8n.pt format=tflite imgsz=640
+        echo "::endgroup::"
+        # IMPORTANT: this step's working-directory is runner.temp, so
+        # any relative path like "./AURIGA/..." would resolve under /tmp
+        # and silently land outside the repo. Use the absolute workspace
+        # path so the file ends up exactly where the verify step (and
+        # Gradle's asset packaging) looks for it.
+        DEST="${{ github.workspace }}/${{ steps.locate.outputs.project_root }}/app/src/main/assets/yolov8n_float32.tflite"
+        mkdir -p "$(dirname "$DEST")"
+        # Ultralytics writes to yolov8n_saved_model/<various>.tflite —
+        # grab the float32 export specifically.
+        SRC=$(find yolov8n_saved_model -name "yolov8n_float32.tflite" | head -n 1)
+        if [ -z "$SRC" ]; then
+          echo "::error::Ultralytics export did not produce yolov8n_float32.tflite"
+          ls -laR yolov8n_saved_model || true
+          exit 1
+        fi
+        cp "$SRC" "$DEST"
+        echo "Exported model copied to: $DEST"
+
+    - name: Verify YOLOv8n model is bundled
+      run: |
+        DEST="${{ steps.locate.outputs.project_root }}/app/src/main/assets/yolov8n_float32.tflite"
+        if [ ! -f "$DEST" ]; then
+          echo "::error::YOLO model missing at $DEST after fetch step"
+          exit 1
+        fi
+        SIZE=$(ls -l "$DEST" | awk '{print $5}')
+        echo "Bundled YOLO model: $DEST ($SIZE bytes)"
+
     - name: Build ${{ matrix.flavor }} ${{ matrix.buildType }} APK
       working-directory: ${{ steps.locate.outputs.project_root }}
       run: |

@@ -30,7 +30,8 @@
             label: 'Site',
             items: [
                 { text: 'HOME',      href: 'index.html' },
-                { text: 'ECOSYSTEM', href: 'index.html#ecosystem' }
+                { text: 'ECOSYSTEM', href: 'index.html#ecosystem' },
+                { text: 'POSITION',  href: 'index.html#position' }
             ]
         },
         {

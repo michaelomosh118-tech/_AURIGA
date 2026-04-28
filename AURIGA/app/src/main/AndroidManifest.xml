@@ -26,13 +26,14 @@
         android:enableOnBackInvokedCallback="true">
 
         <!--
-            Launcher: Web-replica Object Locator HUD. Loads the same
-            web_deploy/locator.html the public PWA serves, bundled into
-            the APK as assets so the in-app HUD is byte-for-byte identical
-            to the web preview (and works offline once cached).
+            Launcher: NATIVE YOLOv8n Object Locator HUD (Phase 1 of
+            the strategy doc). CameraX preview + on-device TFLite
+            inference + DrakoVoice readout, no WebView, no cloud.
+            Falls back to the legacy WebView locator if the bundled
+            yolov8n_*.tflite asset is missing.
         -->
         <activity
-            android:name=".LocatorWebActivity"
+            android:name=".LocatorActivity"
             android:exported="true"
             android:screenOrientation="portrait"
             android:configChanges="orientation|screenSize|keyboardHidden"
@@ -42,6 +43,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            Legacy web-replica Object Locator HUD. Still registered so
+            LocatorActivity's "model not bundled" panel can hand off
+            to it as a fallback. No longer the launcher activity.
+        -->
+        <activity
+            android:name=".LocatorWebActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:theme="@style/AurigaHUDTheme" />
 
         <!-- Legacy native HUD (ML Kit + native DrakoVoice). Still available
              for diagnostics and in-house testing; reachable by intent but

@@ -1,0 +1,68 @@
+Skip to content
+michaelomosh118-tech
+_AURIGA
+Repository navigation
+Code
+Issues
+Pull requests
+3
+ (3)
+Agents
+Actions
+Projects
+Security and quality
+Insights
+Settings
+Important update
+On April 24 we'll start using GitHub Copilot interaction data for AI model training unless you opt out. Review this update and manage your preferences in your GitHub account settings.
+Back to pull request #19
+Add native YOLO locator (Android + GitHub Actions) #85
+All jobs
+Run details
+Annotations
+1 error and 2 warnings
+build (navi, release)
+failed 14 hours ago in 1m 50s
+Search logs
+3s
+1s
+0s
+2s
+0s
+0s
+0s
+0s
+1m 38s
+      from tensorflow.python.keras.engine import training_arrays_v1
+    File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/tensorflow/python/keras/engine/training_arrays_v1.py", line 37, in <module>
+      from scipy.sparse import issparse  # pylint: disable=g-import-not-at-top
+    File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/scipy/sparse/__init__.py", line 300, in <module>
+      from ._base import *
+    File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/scipy/sparse/_base.py", line 5, in <module>
+      from ._sputils import (asmatrix, check_reshape_kwargs, check_shape,
+    File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/scipy/sparse/_sputils.py", line 10, in <module>
+      from scipy._lib._util import np_long, np_ulong
+    File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/scipy/_lib/_util.py", line 13, in <module>
+      from scipy._lib._array_api import array_namespace, is_numpy, xp_size
+    File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/scipy/_lib/_array_api.py", line 18, in <module>
+      from scipy._lib.array_api_compat import (
+    File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/scipy/_lib/array_api_compat/numpy/__init__.py", line 1, in <module>
+      from numpy import * # noqa: F403
+    File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/numpy/testing/__init__.py", line 11, in <module>
+      from ._private.utils import *
+    File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/numpy/testing/_private/utils.py", line 469, in <module>
+      @np._no_nep50_warning()
+    File "/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/numpy/__init__.py", line 414, in __getattr__
+      raise AttributeError("module {!r} has no attribute "
+  AttributeError: module 'numpy' has no attribute '_no_nep50_warning'
+  Error: Process completed with exit code 1.
+0s
+0s
+0s
+0s
+0s
+0s
+0s
+0s
+0s
+0s

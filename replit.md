@@ -2,12 +2,32 @@
 
 ## Overview
 Static landing/PWA site for the Auriga Ecosystem by DrakoSanctis. The published site is served from `AURIGA/web_deploy`, which contains:
-- `index.html` — main landing page
+- `index.html` — main landing page (sections: HOME, ECOSYSTEM, POSITION, NAVI, SENTINEL, AERO, INDUSTRIAL)
 - `calibration-library.html` — calibration library page
 - `manifest.json`, `sw.js`, `logo.png` — PWA assets
 - `data/` — JSON datasets used by the calibration pages
 
 The repository also contains an Android app skeleton (`AURIGA/app`, Gradle) and a marketing HTML (`AURIGA/DrakoSanctis_LandingPage.html`), but the public web product is the static site under `web_deploy`.
+
+## Strategy & Roadmap
+Living spec: `AURIGA/docs/SCALING_STRATEGY.md` (mirrored on the site as the **POSITION** section in `index.html`). Covers:
+- Current capability inventory and competitive matrix vs. Seeing AI, Lookout, Be My Eyes, Envision, OrCam.
+- Three strategic wedges: integrated stack · 100% on-device · free vs. $4,500.
+- 5-phase build roadmap (Phase 1 native YOLOv8n + OCR polish → Phase 5 hardware partnerships).
+
+The Android-native features in Phases 1–3 (PaddleOCR, Piper TTS, Vosk wake word, Moondream 2, OsmAnd) live in `AURIGA/app` and require the Android SDK/NDK toolchain — track them as separate work items, not in this Replit session.
+
+### Phase 1 progress: Native YOLOv8n Object Locator (LocatorActivity)
+The launcher activity has been swapped from the WebView wrapper (`LocatorWebActivity`) to a fully native CameraX + TFLite implementation in `LocatorActivity.java`. Pipeline:
+- `YoloDetector.java` loads `app/src/main/assets/yolov8n_float32.tflite` (or `yolov8n.tflite`), runs inference at ~3 fps via a single-thread `ImageAnalysis` executor, and returns post-NMS detections in normalised image coords.
+- `LocatorOverlayView.java` paints cyan bounding boxes + labels + a centre crosshair on top of the `PreviewView`; the in-frame "primary target" is highlighted amber.
+- `LocatorActivity` picks the detection closest to the centre that matches the user's `TargetStore` filter, speaks "{label}, {bearing}" via `TextToSpeech` (debounced), and pulses `HapticManager`.
+- The full drawer surface from `LocatorWebActivity` (Calibration Walk, Reader, Targets, About, Feedback, Help, Support, Contribute, voice/haptic mute) is preserved in `activity_locator.xml`, so users see no menu regression.
+- Graceful degradation: if no `.tflite` is bundled, `YoloDetector.tryCreate()` returns null and the activity shows a friendly "model not bundled" panel with a one-tap fallback to the legacy `LocatorWebActivity`.
+
+**Build prerequisite:** drop a YOLOv8n TFLite model into `AURIGA/app/src/main/assets/` before the first build — see `AURIGA/app/src/main/assets/MODEL_README.md` for export commands. `*.tflite` is gitignored so the binary blob never lands in the repo.
+
+New / changed files for this feature: `LocatorActivity.java`, `YoloDetector.java`, `LocatorOverlayView.java`, `Detection.java`, `res/layout/activity_locator.xml`, `assets/coco_labels.txt`, `assets/MODEL_README.md`, `app/build.gradle` (+ TFLite deps + `androidResources.noCompress 'tflite'`), `AndroidManifest.xml` (launcher swap), `.gitignore`.
 
 ## Replit Setup
 - Workflow `Start application` serves `AURIGA/web_deploy` via `node server.js` on `0.0.0.0:5000`.
