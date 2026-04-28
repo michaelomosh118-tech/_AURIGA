@@ -132,8 +132,13 @@ jobs:
         if: steps.yolo-cache.outputs.cache-hit != 'true'
         working-directory: ${{ runner.temp }}
         run: |
-          echo "::group::Install Ultralytics"
-          pip install --quiet --no-cache-dir ultralytics
+          echo "::group::Install Ultralytics (pinning numpy<2 for TFLite export)"
+          # Ultralytics' TFLite exporter pulls in TensorFlow, whose Keras
+          # code still calls numpy._no_nep50_warning — a private API
+          # removed in numpy 2.x. Pin numpy to the 1.x line so the pip
+          # resolver picks compatible scipy/tensorflow wheels. Documented
+          # workaround: https://github.com/ultralytics/ultralytics/issues/13800
+          pip install --quiet --no-cache-dir "numpy<2" "ultralytics"
           echo "::endgroup::"
           echo "::group::Export yolov8n.pt → TFLite (640x640 fp32)"
           yolo export model=yolov8n.pt format=tflite imgsz=640
