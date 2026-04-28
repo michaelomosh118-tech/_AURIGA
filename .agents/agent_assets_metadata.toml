@@ -1,0 +1,14 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "QYbeNHl1c_whrbP9mY_SL"
+uri = "file://attached_assets/briefs/AURIGA_Project_Brief.pdf"
+type = "pdf"
+title = "AURIGA — Phase 1 Project Brief"
+
+[[outputs]]
+id = "VgiaNPaGc7JNb-Bi-VoB5"
+uri = "file://attached_assets/briefs/AURIGA_House_Style.pdf"
+type = "pdf"
+title = "AURIGA — House Style Cheat Sheet"
