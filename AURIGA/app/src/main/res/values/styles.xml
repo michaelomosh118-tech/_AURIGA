@@ -1,8 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="AurigaHUDTheme" parent="android:Theme.NoTitleBar.Fullscreen">
+    <!--
+        AurigaHUDTheme: full-bleed surface used by every camera-driven HUD
+        (LocatorActivity, LocatorWebActivity, MainActivity).
+
+        Parent must be a Theme.AppCompat descendant. Android 15 (API 35)
+        tightened the launch-time theme resolution path so it now reads
+        AppCompat attributes (windowActionBar, colorAccent, …) during
+        performLaunchActivity, even for activities that extend plain
+        android.app.Activity. Inheriting from android:Theme.NoTitleBar.*
+        leaves those attributes undefined and crashes on launch with
+        "You need to use a Theme.AppCompat theme (or descendant) with
+        this activity." Theme.AppCompat.NoActionBar gives us those
+        attributes for free; the four explicit window items below
+        re-create the immersive fullscreen behaviour the previous
+        framework-only theme had.
+    -->
+    <style name="AurigaHUDTheme" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">@color/deep_space</item>
         <item name="android:textColor">@color/hud_text</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
     </style>
 
     <!--
@@ -109,12 +129,26 @@
         <item name="android:textColor">@color/emerald_green</item>
     </style>
 
-    <!-- Document/page surface for About + Help. Same indigo background as
-         the HUD so the activities feel like extensions of the app, not
-         system-default white sheets. -->
-    <style name="AurigaDocTheme" parent="android:Theme.NoTitleBar.Fullscreen">
+    <!--
+        AurigaDocTheme: document/page surface for the drawer destinations
+        (About, Help, Targets, Reader, CalibrationWalk, Feedback,
+        Support, Contribute). Same indigo background as the HUD so
+        the activities feel like extensions of the app, not system-
+        default white sheets.
+
+        Same Theme.AppCompat.NoActionBar reparenting as AurigaHUDTheme
+        above -- see that block's comment for the Android 15 launch-
+        time theme resolution rationale. The four explicit window
+        items keep the immersive fullscreen behaviour the previous
+        framework-only parent theme had.
+    -->
+    <style name="AurigaDocTheme" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">@color/deep_space</item>
         <item name="android:textColor">@color/hud_text</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
     </style>
 
     <style name="DocH1">
