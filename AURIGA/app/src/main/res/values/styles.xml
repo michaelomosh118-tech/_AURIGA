@@ -137,7 +137,7 @@
         default white sheets.
 
         Same Theme.AppCompat.NoActionBar reparenting as AurigaHUDTheme
-        above -- see that block's comment for the Android 15 launch-
+        above; see that block's comment for the Android 15 launch-
         time theme resolution rationale. The four explicit window
         items keep the immersive fullscreen behaviour the previous
         framework-only parent theme had.
