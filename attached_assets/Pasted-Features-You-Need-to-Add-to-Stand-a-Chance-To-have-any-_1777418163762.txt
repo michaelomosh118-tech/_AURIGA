@@ -1,0 +1,16 @@
+Features You Need to Add to Stand a Chance
+To have any realistic shot against Seeing AI, Lookout, Be My Eyes, OrCam, Envision, Supersense, Aira, WeWALK, and the rest (including indirect players like Apple/Google accessibility tools), you must close the massive feature gaps in the "read-my-world" category while doubling down on your spatial geometry strength. Prioritize ruthlessly — build the minimum viable competitive product for blind users in Kenya first.
+Must-Have Core Features (Phase 1 – 4–8 weeks, highest priority to ship a usable v1):
+
+Robust Target-Based Object Finding ("find my keys/mug/dog") — User selects classes from COCO or custom list; app highlights/narrates only matches with bearing + distance. This is the killer UX from the Object-Locator reference app and a clear differentiator.
+On-Device OCR / Text Reading — Instant sign/label/menu reading (PaddleOCR or ML Kit offline). Include guided framing ("move left", "hold steady").
+Basic Scene Description — Template-based first ("I see 2 people 1.5m ahead, a chair on right"), then optional lightweight on-device VLM (Moondream 2 or similar) for richer paragraphs on higher-end phones.
+Improved Distance/Bearing Stability — Fix jitter with better GhostAnchor + default profiles for popular Kenyan phones (your 100-phone library is a huge asset — make it the headline).
+DrakoVoice Enhancements — Natural TTS (Piper or better offline voices), multi-language support, proper debouncing/throttling, and announcement of signature + distance + bearing.
+
+Strongly Recommended Next Layer (Phase 2 – to match daily user needs):
+6. Document / Book Reading Mode — Camera capture or file import (EPUB/PDF) → OCR → continuous reading with controls (play/pause, speed, chapter nav).
+7. Currency & Barcode/Product Recognition — Offline currency classifier + ZXing + Open Food Facts mirror for product info.
+8. Face Recognition — Local "teach a face" for known people (InsightFace or ML Kit).
+9. Colour & Light Detection — Quick "what colour is this?" and "bright window on your left".
+10. Haptic + Audio Polish — Richer AuraTextures (different patterns/sounds per signature), proximity-scaled intensity, and SkyShield urgent alerts
