@@ -261,6 +261,13 @@ public class LocatorActivity extends ComponentActivity {
 
         ImageAnalysis analysis = new ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                // Force RGBA_8888 output so ImageProxy.toBitmap() returns
+                // a directly-usable ARGB bitmap. Without this, CameraX
+                // hands us YUV_420_888 and toBitmap() does an implicit
+                // chroma conversion every frame -- works, but slower
+                // and historically the source of subtle colour-channel
+                // bugs (red and blue swapped on certain Mali GPUs).
+                .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
                 .build();
         analysis.setAnalyzer(analysisExecutor, new YoloAnalyzer());
 

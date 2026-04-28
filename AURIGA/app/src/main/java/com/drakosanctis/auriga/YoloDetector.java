@@ -332,20 +332,28 @@ public final class YoloDetector implements AutoCloseable {
 
             if (bestScore < SCORE_THRESHOLD || bestClass < 0) continue;
 
-            // YOLO outputs cx,cy,w,h in 640-input space.
-            float left   = cx - w * 0.5f;
-            float top    = cy - h * 0.5f;
-            float right  = cx + w * 0.5f;
-            float bottom = cy + h * 0.5f;
+            // Ultralytics YOLOv8 TFLite exports emit cx,cy,w,h as
+            // NORMALISED [0,1] coordinates of the 640x640 input
+            // tensor -- NOT as raw 640-pixel values. Multiply by
+            // INPUT_SIZE to lift back into input pixel space so the
+            // letterbox-undo arithmetic below is in the right units.
+            // (This was a silent killer in the first cut: boxes were
+            // collapsing to a single pixel near the origin and the
+            // overlay looked permanently empty.)
+            float leftPx   = (cx - w * 0.5f) * INPUT_SIZE;
+            float topPx    = (cy - h * 0.5f) * INPUT_SIZE;
+            float rightPx  = (cx + w * 0.5f) * INPUT_SIZE;
+            float bottomPx = (cy + h * 0.5f) * INPUT_SIZE;
 
             // Undo letterbox: subtract pad, divide by scale, then
-            // normalise to original frame dims.
+            // normalise to original frame dims so the overlay can
+            // paint without knowing about our 640x640 letterbox.
             float origW = frame.getWidth();
             float origH = frame.getHeight();
-            float l = clamp((left   - padX) / scale / origW, 0f, 1f);
-            float t = clamp((top    - padY) / scale / origH, 0f, 1f);
-            float r = clamp((right  - padX) / scale / origW, 0f, 1f);
-            float b = clamp((bottom - padY) / scale / origH, 0f, 1f);
+            float l = clamp((leftPx   - padX) / scale / origW, 0f, 1f);
+            float t = clamp((topPx    - padY) / scale / origH, 0f, 1f);
+            float r = clamp((rightPx  - padX) / scale / origW, 0f, 1f);
+            float b = clamp((bottomPx - padY) / scale / origH, 0f, 1f);
             if (r <= l || b <= t) continue;
 
             String label = (bestClass < labels.size())

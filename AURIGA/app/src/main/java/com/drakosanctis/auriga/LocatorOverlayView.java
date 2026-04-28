@@ -54,7 +54,12 @@ public final class LocatorOverlayView extends View {
     public LocatorOverlayView(Context ctx) { this(ctx, null); }
     public LocatorOverlayView(Context ctx, AttributeSet attrs) {
         super(ctx, attrs);
-        setLayerType(LAYER_TYPE_HARDWARE, null);
+        // We deliberately do NOT call setLayerType(LAYER_TYPE_HARDWARE).
+        // Paint.setShadowLayer() is silently ignored on hardware-layer
+        // canvases for API < 28 and has been observed to throw on a
+        // handful of older Mali GPU drivers. The default layer type
+        // (HARDWARE on modern Android, SOFTWARE on older devices)
+        // already does the right thing for an overlay this lightweight.
 
         float density = getResources().getDisplayMetrics().density;
 
