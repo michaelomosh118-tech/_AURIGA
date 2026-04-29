@@ -298,6 +298,10 @@
   <!-- Shared hamburger nav drawer (used across every page on the site). -->
   <link rel="stylesheet" href="nav-drawer.css">
   <script defer src="nav-drawer.js"></script>
+  <!-- Loaded synchronously so the IIFE at the bottom of <body> can
+       reference window.AurigaAnnounce / window.AurigaFraming. -->
+  <script src="auriga-announce.js"></script>
+  <script src="auriga-framing.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#controls">Skip to reader controls</a>
@@ -382,6 +386,36 @@
       let speaking    = false;
       let ocrWorker   = null;
 
+      // Shared announcement engine (house style: <what> + <distance> + <bearing>).
+      // Used for SHORT utterances only — failures, framing guidance, and the
+      // OCR-result prefix. The long paragraph-by-paragraph reading still goes
+      // through the local speakUtterance() so we keep word-boundary highlighting.
+      const AA = window.AurigaAnnounce;
+      const cueSpeaker = AA ? new AA.Speaker({
+        synth: synth,
+        repeatMs: 4000,        // don't re-say the same hint within 4s
+        minGapMs: 400
+      }) : null;
+      function sayCue(text, key) {
+        if (!cueSpeaker || !text) return;
+        cueSpeaker.say(text, key);
+      }
+      function sayFailure(reason) {
+        if (!AA) return;
+        sayCue(AA.compose.failure(reason), 'failure:' + reason);
+      }
+      function sayGuidance(reason) {
+        if (!AA) return;
+        sayCue(AA.compose.guidance(reason), 'guidance:' + reason);
+      }
+
+      // Continuous frame-quality monitor — only spun up while AUTO mode is on
+      // (in single-shot mode we run a one-off check at capture time instead).
+      let framing = null;
+      let lastCaptureMetrics = null;     // remember edges/brightness at the last
+                                         // successful capture, so we can sanity
+                                         // check the OCR distance estimate.
+
       function setState(t) { stateEl.textContent = t; }
       function showProgress(msg) {
         progress.textContent = msg;
@@ -414,6 +448,8 @@
           console.warn('Camera unavailable, falling back to upload mode', e);
           document.body.classList.add('no-camera');
           setState('UPLOAD MODE');
+          // Brief: "the app says what's wrong, never goes silent."
+          sayFailure('no-camera');
         }
       }
       startCamera();
@@ -529,6 +565,51 @@
         cx.putImageData(img, 0, 0);
       }
 
+      // Estimate physical distance + bearing from Tesseract's word boxes.
+      //
+      // Distance: relies on a calibrated reference — at ~50 cm the median
+      // glyph height in our 2× upscaled crop is ~64 px. Distance scales
+      // inversely with apparent height (similar-triangles). It's an
+      // estimate, not a measurement, but it's accurate enough for the
+      // house-style prefix to be useful ("this looks like 30 cm" vs
+      // "this looks like 1 meter") which is what the user actually needs.
+      //
+      // Bearing: where the text centroid sits horizontally inside the
+      // crop, mapped to roughly ±15° of camera FOV. Most of the time this
+      // will be ~0° ("ahead") because the user has framed the text in the
+      // reticle, but it surfaces real off-centering when present.
+      //
+      // Kotlin port: ML Kit's TextRecognizer returns Text.Element with
+      // boundingBox — same calculation, swap data structures only.
+      const REF_HEIGHT_PX_AT_50CM = 64;   // glyph height in 2×-upscaled crop
+      function estimateOcrGeometry(data, canvasW, canvasH) {
+        const words = (data && data.words) || [];
+        if (!words.length) return { meters: null, degrees: 0 };
+        const heights = [];
+        let cxSum = 0, cxCount = 0;
+        for (let i = 0; i < words.length; i++) {
+          const b = words[i].bbox;
+          if (!b) continue;
+          const h = Math.max(0, b.y1 - b.y0);
+          if (h > 4) heights.push(h);
+          cxSum += (b.x0 + b.x1) / 2;
+          cxCount++;
+        }
+        if (!heights.length || !cxCount) return { meters: null, degrees: 0 };
+        heights.sort((a, b) => a - b);
+        const medianH = heights[Math.floor(heights.length / 2)];
+        const meters = (REF_HEIGHT_PX_AT_50CM / medianH) * 0.5;
+        const meanCx = cxSum / cxCount;
+        // Map crop horizontal to ±15° (text held in the reticle is
+        // already very close to the optical axis).
+        const offset01 = (meanCx - canvasW / 2) / (canvasW / 2);
+        const degrees = Math.max(-15, Math.min(15, offset01 * 15));
+        return {
+          meters:  Math.max(0.15, Math.min(2.0, meters)),
+          degrees: degrees
+        };
+      }
+
       async function runOcrFromCanvas() {
         try {
           setState('ANALYZING…');
@@ -539,11 +620,31 @@
           const text = (data && data.text || '').trim();
           if (!text) {
             setState('NO TEXT');
+            // Brief: every failure is announced, never silent. The
+            // visible card mirrors what the speaker will say so that
+            // sighted helpers can see the same hint.
+            sayFailure('no-text');
             renderText(['No text detected. Move closer or improve lighting, then capture again.'], true);
             return;
           }
+
           paragraphs = text.split(/\n\s*\n+/).map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
           if (!paragraphs.length) paragraphs = [text.replace(/\s+/g, ' ').trim()];
+
+          // House-style prefix on paragraph 0:
+          //   "Text, 50 centimeters, ahead: '<first paragraph>'."
+          // Subsequent paragraphs read plain. We embed the prefix into
+          // paragraphs[0] (rather than speaking it as a separate
+          // utterance) so the existing word-highlight machinery and the
+          // PLAY/PAUSE/AUTO controls keep working without special cases.
+          if (AA) {
+            const geom = estimateOcrGeometry(data, canvas.width, canvas.height);
+            lastCaptureMetrics = geom;
+            const meters  = geom.meters != null ? geom.meters : 0.5;
+            const degrees = geom.degrees;
+            paragraphs[0] = AA.compose.ocrFound('text', paragraphs[0], meters, degrees);
+          }
+
           currentPara = 0;
           renderText(paragraphs, false);
           setState('READING');
@@ -552,6 +653,7 @@
           hideProgress();
           setState('OCR ERROR');
           console.error(e);
+          sayFailure('ocr-failed');
           renderText(['OCR failed: ' + (e.message || e)], true);
         }
       }
@@ -674,15 +776,50 @@
         speakCurrent();
       }
 
+      // AUTO mode runs the framing module continuously. The capture
+      // only fires when (a) the framing monitor reports READY and
+      // (b) we're not currently mid-readout. While the user is moving
+      // or the lighting is bad, the speaker emits short guidance
+      // ("hold steady", "more light", "move closer") on a debounced
+      // schedule via cueSpeaker. This is the brief's "guided framing".
+      let autoCooldownUntil = 0;             // throttle: minimum 4s between captures
       function toggleAuto() {
         autoMode = !autoMode;
         autoBt.setAttribute('aria-pressed', String(autoMode));
         autoBt.classList.toggle('active', autoMode);
         if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+        if (framing) { framing.stop(); framing = null; }
+
         if (autoMode) {
           setState('AUTO');
-          captureAndRead();
-          autoTimer = setInterval(() => { if (!speaking) captureAndRead(); }, 6000);
+          if (document.body.classList.contains('no-camera') || !window.AurigaFraming) {
+            // No camera or no framing module → fall back to the original
+            // 6-second blind interval so AUTO still does *something*.
+            captureAndRead();
+            autoTimer = setInterval(() => { if (!speaking) captureAndRead(); }, 6000);
+            return;
+          }
+
+          framing = new window.AurigaFraming.Framing(video);
+          framing.onChange((state, reason) => {
+            // Don't speak guidance over the top of paragraph reading
+            // — the user wants the text, not "hold steady" mid-sentence.
+            if (speaking) return;
+            if (state === 'guide' && reason) sayGuidance(reason);
+          });
+          framing.start();
+
+          // Tick at 500ms: as soon as framing flips to READY (and we're
+          // not already speaking, and we're past the cooldown), capture.
+          autoTimer = setInterval(() => {
+            if (!autoMode || speaking) return;
+            if (Date.now() < autoCooldownUntil) return;
+            const m = framing.lastMetrics();
+            if (m && m.state === 'ready') {
+              autoCooldownUntil = Date.now() + 4000;
+              captureAndRead();
+            }
+          }, 500);
         } else {
           setState('POINT & READ');
         }

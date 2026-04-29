@@ -28,6 +28,7 @@
      compose.ocrFound(kind, text, meters, degrees)      → string
      compose.alert(hazard, meters, degrees)             → string
      compose.failure(reason)                            → string
+     compose.guidance(reason)                           → string
      format.distance(meters)                            → string
      format.bearing(degrees, mode='narrow'|'wide')      → string
      Speaker(opts)                                      → instance with .say(text, key)
@@ -147,10 +148,32 @@
     'model-failed':    'Detection model failed to load.',
     'no-targets':      'No targets set. Watching everything.',
     'target-lost':     'Target lost.',
-    'scanning':        'Scanning.'
+    'scanning':        'Scanning.',
+    'no-text':         'No text detected.',
+    'ocr-loading':     'Loading reader.',
+    'ocr-failed':      'Reader failed.'
   };
   function composeFailure(reason) {
     return FAILURE_PHRASES[reason] || capitalize(String(reason || 'unknown error'));
+  }
+
+  // Framing guidance — short imperative phrases the framing module
+  // emits while the user is trying to point the camera at text/an
+  // object. Distinct channel from `failure` because guidance is a
+  // recoverable, repeatable hint, not an error. Keep these to two
+  // words max — the user is moving and listening at the same time.
+  var GUIDANCE_PHRASES = {
+    'hold-steady':  'Hold steady.',
+    'move-closer':  'Move closer.',
+    'move-back':    'Move back.',
+    'more-light':   'More light.',
+    'move-left':    'Move left.',
+    'move-right':   'Move right.',
+    'center-text':  'Center the text.',
+    'ready':        'Ready.'
+  };
+  function composeGuidance(reason) {
+    return GUIDANCE_PHRASES[reason] || capitalize(String(reason || ''));
   }
 
   function capitalize(s) {
@@ -242,7 +265,8 @@
       objectFound: composeObjectFound,
       ocrFound:    composeOcrFound,
       alert:       composeAlert,
-      failure:     composeFailure
+      failure:     composeFailure,
+      guidance:    composeGuidance
     }),
     format: Object.freeze({
       distance: formatDistance,
