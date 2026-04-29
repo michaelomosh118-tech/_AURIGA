@@ -396,9 +396,11 @@
   </style>
   <link rel="stylesheet" href="nav-drawer.css">
   <script defer src="nav-drawer.js"></script>
-  <!-- Load synchronously (no defer) so window.AurigaLocatorStore is
-       available to the inline IIFE that runs at the bottom of <body>. -->
+  <!-- Load synchronously (no defer) so window.AurigaLocatorStore and
+       window.AurigaAnnounce are available to the inline IIFE that
+       runs at the bottom of <body>. -->
   <script src="locator-store.js"></script>
+  <script src="auriga-announce.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#controls">Skip to locator controls</a>
@@ -522,12 +524,32 @@
 
       const VOICE_KEY = 'auriga-locator-voice';
 
+      // House-style speaker. Repeats same key every 3.5s, different keys
+      // preempt. Failure messages use 'failure:<reason>' as their key so
+      // they can interrupt object announcements when something breaks.
+      const speaker = new AurigaAnnounce.Speaker({
+        repeatMs: 3500,
+        minGapMs: 500,
+        rate: 1.05,
+        pitch: 0.95
+      });
+
       let model = null;
       let running = false;
       let speakOn = true;
-      let lastSpoken = 0;
-      let lastSpokenLabel = '';
-      let muteGuardTimer = null;
+
+      // Brightness sampler — drives the 'lens covered' / 'too dark'
+      // failure announcements. We sample a tiny offscreen canvas of
+      // the video every couple of frames; if the average luminance
+      // stays under FAILURE_LUMA for FAILURE_LUMA_MS the speaker
+      // announces. Cleared as soon as brightness recovers.
+      const FAILURE_LUMA = 14;        // 0..255 — basically pitch black
+      const FAILURE_LUMA_MS = 1500;
+      const lumaCanvas = document.createElement('canvas');
+      lumaCanvas.width = 16; lumaCanvas.height = 16;
+      const lumaCtx = lumaCanvas.getContext('2d', { willReadFrequently: true });
+      let lowLightSince = 0;
+      let lowLightAnnounced = false;
 
       // Cached lookup of active-target names for fast filter checks.
       let activeNameSet = new Set();
@@ -780,7 +802,7 @@
             banner.classList.remove('show');
           }
 
-          maybeSpeak(primary.class, distStr, bearStr);
+          announceObject(primary.class, distance, bearing);
         } else {
           distEl.textContent = '—';
           bearEl.textContent = '—';
@@ -789,57 +811,61 @@
         }
       }
 
-      function maybeSpeak(label, distStr, bearStr) {
-        if (!speakOn) {
-          // Defensive: if speech is in flight when the user mutes,
-          // some Android WebView / mobile Chrome builds keep the
-          // current utterance going even after .cancel(). Re-cancel
-          // every detection frame while muted so audio stops fast.
-          if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel();
+      // House-style announcement for a detected target.
+      // Speaks: "<object>, <distance>, <bearing>." per AURIGA spec.
+      // De-dup key is the class label so the same target won't repeat
+      // within repeatMs but a different target preempts immediately.
+      function announceObject(label, meters, degrees) {
+        const phrase = AurigaAnnounce.compose.objectFound(label, meters, degrees);
+        speaker.say(phrase, 'object:' + label);
+      }
+
+      // Spoken failure recovery — never go silent on the user.
+      // Failure keys preempt object announcements because the user
+      // needs to know *why* nothing is being detected.
+      function announceFailure(reason) {
+        const phrase = AurigaAnnounce.compose.failure(reason);
+        speaker.say(phrase, 'failure:' + reason);
+      }
+
+      // Sample average luminance of the current video frame. Cheap:
+      // 16×16 downsample once every detection cycle. If the frame is
+      // basically black for FAILURE_LUMA_MS the speaker announces.
+      // Recovery is silent — restoring brightness just stops nagging.
+      function checkBrightness() {
+        if (!video.videoWidth || !video.videoHeight) return;
+        try {
+          lumaCtx.drawImage(video, 0, 0, lumaCanvas.width, lumaCanvas.height);
+          const data = lumaCtx.getImageData(0, 0, lumaCanvas.width, lumaCanvas.height).data;
+          let sum = 0;
+          // Rec.601 luma; sample every pixel since the canvas is tiny.
+          for (let i = 0; i < data.length; i += 4) {
+            sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
           }
-          return;
-        }
-        if (!('speechSynthesis' in window)) return;
-        const now = Date.now();
-        // Speak when the target changes, or every 3.5s for the same target.
-        if (label === lastSpokenLabel && now - lastSpoken < 3500) return;
-        lastSpokenLabel = label;
-        lastSpoken = now;
-        const u = new SpeechSynthesisUtterance(label + ', ' + distStr + ', ' + bearStr);
-        u.rate = 1.05; u.pitch = 0.95; u.volume = 1.0;
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(u);
+          const avg = sum / (data.length / 4);
+          const now = Date.now();
+          if (avg < FAILURE_LUMA) {
+            if (!lowLightSince) lowLightSince = now;
+            if (!lowLightAnnounced && now - lowLightSince > FAILURE_LUMA_MS) {
+              announceFailure('lens-covered');
+              lowLightAnnounced = true;
+            }
+          } else {
+            lowLightSince = 0;
+            lowLightAnnounced = false;
+          }
+        } catch (_) { /* canvas/CORS quirks — non-fatal */ }
       }
 
       // ── Mute helpers ───────────────────────────────────────
+      // The Speaker handles the Android WebView "cancel doesn't really
+      // cancel" bug internally via its hardMute() guard timer — we just
+      // forward the user's preference to it.
       function applyVoiceState() {
         speakBtn.textContent = speakOn ? 'VOICE ON' : 'VOICE OFF';
         speakBtn.setAttribute('aria-pressed', String(speakOn));
         speakBtn.classList.toggle('active', speakOn);
-        if (!speakOn) {
-          // Hard-stop any in-flight or queued utterance immediately,
-          // and keep cancelling for ~1s to defeat the Android WebView
-          // bug where a single .cancel() does not stop a long-running
-          // utterance that was already handed to the TTS engine.
-          if ('speechSynthesis' in window) {
-            try { window.speechSynthesis.cancel(); } catch (_) {}
-          }
-          if (muteGuardTimer) clearInterval(muteGuardTimer);
-          let guardTicks = 0;
-          muteGuardTimer = setInterval(function () {
-            if (!('speechSynthesis' in window)) return;
-            try { window.speechSynthesis.cancel(); } catch (_) {}
-            guardTicks++;
-            if (guardTicks > 10 || speakOn) {
-              clearInterval(muteGuardTimer);
-              muteGuardTimer = null;
-            }
-          }, 100);
-        } else if (muteGuardTimer) {
-          clearInterval(muteGuardTimer);
-          muteGuardTimer = null;
-        }
+        speaker.setEnabled(speakOn);
         try { localStorage.setItem(VOICE_KEY, speakOn ? '1' : '0'); } catch (_) {}
       }
       function loadVoicePref() {
@@ -855,6 +881,10 @@
         if (!running || !model) return;
         try {
           if (video.readyState >= 2 && video.videoWidth > 0) {
+            // Brightness check first — if the lens is covered, the
+            // user hears about it before the detector gets a chance
+            // to find nothing and silently shrug.
+            checkBrightness();
             const preds = await model.detect(video);
             drawDetections(preds);
           }
@@ -901,10 +931,26 @@
         });
 
         const camOk = await startCamera();
-        if (!camOk) return;
-        await loadModel();
+        if (!camOk) {
+          // Spoken failure — never go silent. The on-screen fallback
+          // panel is for sighted helpers; the speech is for the user.
+          announceFailure('no-camera');
+          return;
+        }
+        announceFailure('model-loading');
+        try {
+          await loadModel();
+        } catch (e) {
+          console.error('model load failed', e);
+          setState('MODEL ERROR');
+          announceFailure('model-failed');
+          throw e;
+        }
         setState('SCANNING');
         running = true;
+        // First spoken cue once everything's up — confirms the app
+        // is alive and listening before any detection happens.
+        announceFailure('scanning');
         loop();
       }
 
