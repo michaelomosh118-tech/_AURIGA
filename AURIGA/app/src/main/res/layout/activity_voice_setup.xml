@@ -163,7 +163,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="① Say «[Name], AURIGA» aloud — always-on wake word\n② Long-press the centre of the HUD screen\n③ Tap the mic button at the bottom of the locator\n\nSay a command after activation:\n\"open reader\"  ·  \"open targets\"  ·  \"read this page\"\n\"open menu\"  ·  \"go back\"  ·  \"help commands\""
+            android:text="① Say [Name], AURIGA aloud — always-on wake word\n② Long-press the centre of the HUD screen\n③ Tap the mic button at the bottom of the locator\n\nSay a command like: &quot;Read my emails&quot;, &quot;Navigate to the nearest hospital&quot;, or &quot;What's my ETA?&quot;"
             android:textSize="14sp"
             android:textColor="@color/hud_text"
             android:lineSpacingMultiplier="1.55" />
