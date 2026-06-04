@@ -1,0 +1,71 @@
+1s
+0s
+0s
+0s
+2m 0s
+0s
+39s
+Run chmod +x ./gradlew
+Downloading https://services.gradle.org/distributions/gradle-8.5-bin.zip
+............10%.............20%............30%.............40%.............50%............60%.............70%.............80%............90%.............100%
+
+Welcome to Gradle 8.5!
+
+Here are the highlights of this release:
+ - Support for running on Java 21
+ - Faster first use with Kotlin DSL
+ - Improved error and warning messages
+
+For more details see https://docs.gradle.org/8.5/release-notes.html
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.5/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Task :app:copyWebDeployToAssets
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preNaviReleaseBuild UP-TO-DATE
+> Task :app:generateNaviReleaseBuildConfig
+> Task :app:javaPreCompileNaviRelease
+> Task :app:checkNaviReleaseAarMetadata
+> Task :app:generateNaviReleaseResValues
+> Task :app:mapNaviReleaseSourceSetPaths
+> Task :app:generateNaviReleaseResources
+> Task :app:packageNaviReleaseResources
+> Task :app:mergeNaviReleaseResources FAILED
+[Fatal Error] activity_voice_setup.xml:61:29: Element type "TextView" must be followed by either attribute specifications, ">" or "/>".
+
+
+> Task :app:parseNaviReleaseLocalResources FAILED
+FAILURE: Build completed with 2 failures.
+
+1: Task failed with an exception.
+-----------
+* What went wrong:
+Execution failed for task ':app:mergeNaviReleaseResources'.
+> A failure occurred while executing com.android.build.gradle.internal.res.ResourceCompilerRunnable
+   > Resource compilation failed (Failed to compile resource file: /home/runner/work/_AURIGA/_AURIGA/AURIGA/app/src/main/res/layout/activity_voice_setup.xml: . Cause: javax.xml.stream.XMLStreamException: ParseError at [row,col]:[61,29]
+     Message: Element type "TextView" must be followed by either attribute specifications, ">" or "/>".). Check logs for more details.
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+2: Task failed with an exception.
+-----------
+* What went wrong:
+Execution failed for task ':app:parseNaviReleaseLocalResources'.
+> A failure occurred while executing com.android.build.gradle.internal.res.ParseLibraryResourcesTask$ParseResourcesRunnable
+   > Failed to parse XML file '/home/runner/work/_AURIGA/_AURIGA/AURIGA/app/build/intermediates/packaged_res/naviRelease/layout/activity_voice_setup.xml'
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+==============================================================================
+
+9 actionable tasks: 9 executed
+BUILD FAILED in 38s
+Error: Process 
