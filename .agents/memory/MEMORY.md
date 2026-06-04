@@ -1,0 +1,1 @@
+- [Voice Navigation Architecture](voice-nav-architecture.md) — auriga-voice.js + auriga-voice.css are the voice engine; injected on every page after nav-drawer.js
