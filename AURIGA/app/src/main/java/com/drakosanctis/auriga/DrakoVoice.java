@@ -49,6 +49,16 @@ public class DrakoVoice {
         tts.speak(announcement, TextToSpeech.QUEUE_ADD, null, "drako_alert_id");
     }
 
+    /**
+     * say: General-purpose TTS for the voice navigation engine and any
+     * other caller that needs to speak arbitrary text without a distance
+     * or bearing argument.
+     */
+    public void say(String text) {
+        if (!isReady || tts == null) return;
+        tts.speak(text, TextToSpeech.QUEUE_ADD, null, "drako_say_id");
+    }
+
     public void shutdown() {
         if (tts != null) {
             tts.stop();

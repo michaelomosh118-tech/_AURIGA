@@ -30,6 +30,7 @@
          is preserved verbatim so the user never notices the switch.)
     ────────────────────────────────────────────────────────────── -->
     <FrameLayout
+        android:id="@+id/locator_frame"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@color/deep_space"
@@ -118,6 +119,42 @@
             android:textColor="@color/diag_toggle_text"
             android:textSize="22sp"
             android:contentDescription="Open navigation menu" />
+
+        <!-- Voice navigation transcript bubble — shown while listening -->
+        <TextView
+            android:id="@+id/voice_transcript"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="96dp"
+            android:background="@drawable/hud_glass_card"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:text=""
+            android:textColor="@color/hud_text"
+            android:textSize="15sp"
+            android:fontFamily="sans-serif"
+            android:maxWidth="280dp"
+            android:visibility="gone" />
+
+        <!-- Mic FAB — bottom-centre floating activation button -->
+        <Button
+            android:id="@+id/voice_mic_fab"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="20dp"
+            android:background="@drawable/diag_toggle_bg"
+            android:text="MIC"
+            android:textColor="@color/auriga_cyan"
+            android:textSize="10sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.1"
+            android:contentDescription="@string/voice_mic_cd"
+            android:stateListAnimator="@null" />
+
     </FrameLayout>
 
     <!-- ──────────────────────────────────────────────────────────────

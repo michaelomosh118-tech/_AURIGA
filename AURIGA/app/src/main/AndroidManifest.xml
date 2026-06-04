@@ -7,6 +7,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Voice navigation: mic access + foreground service -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     
     <!-- Required for Play Store to ensure the device has a camera -->
     <uses-feature android:name="android.hardware.camera" android:required="true" />
@@ -130,6 +135,23 @@
             android:screenOrientation="portrait"
             android:configChanges="orientation|screenSize"
             android:theme="@style/AurigaDocTheme" />
+
+        <!-- Voice Navigation: first-run name setup + rename from drawer. -->
+        <activity
+            android:name=".VoiceSetupActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|keyboard|keyboardHidden"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/AurigaDocTheme" />
+
+        <!-- Voice Navigation: always-on wake-word foreground service.
+             foregroundServiceType="microphone" is required on Android 14+
+             for a foreground service that uses the mic. -->
+        <service
+            android:name=".AurigaVoiceService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
 
         <!-- Crash viewer: surfaces the last crash report on launch with
              COPY / SHARE / DISMISS buttons so users can exfiltrate stack

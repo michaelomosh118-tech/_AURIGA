@@ -1,11 +1,15 @@
 package com.drakosanctis.auriga;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -17,6 +21,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -88,6 +93,8 @@ public class LocatorActivity extends ComponentActivity {
 
     private static final String TAG = "LocatorActivity";
     private static final int CAMERA_PERMISSION_REQUEST = 1702;
+    private static final int MIC_PERMISSION_REQUEST    = 1703;
+    private static final int VOICE_SETUP_REQUEST       = 1704;
 
     /** Same SharedPreferences keys the WebView locator used. */
     private static final String PREF_LOCATOR_VOICE = "locator_web_voice_enabled";
@@ -126,6 +133,22 @@ public class LocatorActivity extends ComponentActivity {
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    // ── Voice navigation ───────────────────────────────────────────
+    private AurigaVoiceEngine        voiceEngine;
+    private SerpentineGestureDetector serpentine;
+    private TextView                 voiceTranscript;
+    private Button                   voiceMicFab;
+
+    private final BroadcastReceiver wakeReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context ctx, Intent intent) {
+            if (AurigaVoiceEngine.ACTION_WAKE_WORD.equals(intent.getAction())
+                    && voiceEngine != null) {
+                voiceEngine.startListening();
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -147,6 +170,7 @@ public class LocatorActivity extends ComponentActivity {
         wireDrawer();
         wireMenuToggle();
         wireWebViewFallbackButton();
+        initVoiceNavigation();
 
         // Try to load the YOLO model. tryCreate() returns null when
         // no .tflite asset is bundled; we surface that via the
@@ -191,6 +215,13 @@ public class LocatorActivity extends ComponentActivity {
         }
         refreshFeedbackGate(findViewById(R.id.nav_feedback),
                 findViewById(R.id.nav_feedback_hint));
+        if (voiceEngine != null) voiceEngine.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (voiceEngine != null) voiceEngine.onPause();
     }
 
     @Override
@@ -205,7 +236,129 @@ public class LocatorActivity extends ComponentActivity {
         if (haptic != null) {
             try { haptic.stop(); } catch (Throwable ignored) {}
         }
+        if (voiceEngine != null) {
+            try { voiceEngine.shutdown(); } catch (Throwable ignored) {}
+        }
+        try { unregisterReceiver(wakeReceiver); } catch (Throwable ignored) {}
         super.onDestroy();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == VOICE_SETUP_REQUEST) {
+            // Re-init engine so it picks up the new assistant name.
+            if (voiceEngine != null) {
+                try { voiceEngine.shutdown(); } catch (Throwable ignored) {}
+            }
+            voiceEngine = buildVoiceEngine();
+        }
+    }
+
+    // ─── Voice navigation init ─────────────────────────────────────
+
+    /**
+     * Initialises all voice-navigation components:
+     *   1. Finds the mic FAB + transcript views from the layout.
+     *   2. Wires the mic FAB click and the serpentine gesture to the engine.
+     *   3. Registers the wake-word broadcast receiver.
+     *   4. Starts the always-on {@link AurigaVoiceService}.
+     *   5. If first-run (no name set), launches {@link VoiceSetupActivity}.
+     *   6. Requests RECORD_AUDIO permission if not yet granted.
+     *
+     * Safe to call before the camera has been set up.
+     */
+    private void initVoiceNavigation() {
+        voiceTranscript = findViewById(R.id.voice_transcript);
+        voiceMicFab     = findViewById(R.id.voice_mic_fab);
+
+        voiceEngine = buildVoiceEngine();
+
+        // Serpentine gesture on the full locator frame.
+        FrameLayout locatorFrame = findViewById(R.id.locator_frame);
+        if (locatorFrame != null) {
+            serpentine = new SerpentineGestureDetector(this,
+                    () -> { if (voiceEngine != null) voiceEngine.startListening(); });
+            serpentine.attach(locatorFrame);
+            voiceEngine.attachLongPressToView(locatorFrame);
+        }
+
+        // Mic FAB tap.
+        if (voiceMicFab != null) {
+            voiceMicFab.setOnClickListener(v -> {
+                if (voiceEngine != null) voiceEngine.startListening();
+            });
+        }
+
+        // Wake-word broadcast from AurigaVoiceService.
+        IntentFilter filter = new IntentFilter(AurigaVoiceEngine.ACTION_WAKE_WORD);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(wakeReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(wakeReceiver, filter);
+        }
+
+        // First-run: launch name-setup if not yet done.
+        if (!AurigaVoiceEngine.isSetupDone(this)) {
+            //noinspection deprecation
+            startActivityForResult(
+                    new Intent(this, VoiceSetupActivity.class),
+                    VOICE_SETUP_REQUEST);
+        }
+
+        // Request RECORD_AUDIO and (on success) start the wake-word service.
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            AurigaVoiceService.startListening(this);
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.RECORD_AUDIO},
+                    MIC_PERMISSION_REQUEST);
+        }
+    }
+
+    /** Build (or re-build) the AurigaVoiceEngine with a live Listener. */
+    private AurigaVoiceEngine buildVoiceEngine() {
+        return new AurigaVoiceEngine(this, new AurigaVoiceEngine.Listener() {
+            @Override
+            public void onListeningStarted() {
+                if (voiceMicFab != null)     voiceMicFab.setText("●");
+                if (voiceTranscript != null) {
+                    voiceTranscript.setText("Listening…");
+                    voiceTranscript.setVisibility(View.VISIBLE);
+                }
+            }
+            @Override
+            public void onListeningStopped() {
+                if (voiceMicFab != null) voiceMicFab.setText("MIC");
+                mainHandler.postDelayed(() -> {
+                    if (voiceTranscript != null)
+                        voiceTranscript.setVisibility(View.GONE);
+                }, 1800);
+            }
+            @Override
+            public void onTranscript(String text) {
+                if (voiceTranscript != null) {
+                    voiceTranscript.setText(text);
+                    voiceTranscript.setVisibility(View.VISIBLE);
+                }
+            }
+            @Override
+            public void onOpenDrawer()  {
+                if (drawerLayout != null) drawerLayout.openDrawer(Gravity.START);
+            }
+            @Override
+            public void onCloseDrawer() { closeDrawer(); }
+            @Override
+            public void onGoBack()      { onBackPressed(); }
+            @Override
+            public void onDescribePage() {
+                if (voiceEngine != null)
+                    voiceEngine.speak("You are on the Object Locator. "
+                            + "The camera is scanning for objects matching your targets. "
+                            + "Say open menu for navigation options.");
+            }
+        });
     }
 
     // ─── Camera ────────────────────────────────────────────────────
@@ -226,6 +379,13 @@ public class LocatorActivity extends ComponentActivity {
                                            @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == MIC_PERMISSION_REQUEST) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                AurigaVoiceService.startListening(this);
+            }
+            return;
+        }
         if (requestCode != CAMERA_PERMISSION_REQUEST) return;
         boolean granted = grantResults.length > 0
                 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
