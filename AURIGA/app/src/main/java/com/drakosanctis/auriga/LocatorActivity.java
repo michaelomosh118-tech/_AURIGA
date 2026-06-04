@@ -28,6 +28,7 @@ import android.widget.Toast;
 
 import androidx.activity.ComponentActivity;
 import androidx.annotation.NonNull;
+import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
@@ -97,8 +98,20 @@ public class LocatorActivity extends ComponentActivity {
     private static final int VOICE_SETUP_REQUEST       = 1704;
 
     /** Same SharedPreferences keys the WebView locator used. */
-    private static final String PREF_LOCATOR_VOICE = "locator_web_voice_enabled";
+    private static final String PREF_LOCATOR_VOICE  = "locator_web_voice_enabled";
     private static final String PREF_LOCATOR_HAPTIC = "locator_web_haptic_enabled";
+    private static final String PREF_SMART_LIGHT    = "locator_smart_light_enabled";
+
+    /**
+     * Average pixel luminance (0–255) below which the analyser considers
+     * the scene "dark" and automatically fires a torch flash even when
+     * smart-light mode is in AUTO state. Tune lower to flash less often.
+     */
+    private static final int DARK_THRESHOLD = 55;
+
+    /** How long (ms) to leave the torch on so the sensor stabilises
+     *  before we grab the inference frame. */
+    private static final long TORCH_SETTLE_MS = 130;
 
     /** One inference per ~333 ms (≈3 fps) -- plenty for a guidance
      *  HUD and keeps battery + thermal load reasonable. */
@@ -114,6 +127,10 @@ public class LocatorActivity extends ComponentActivity {
 
     private TextView voiceSub;
     private TextView hapticSub;
+    private TextView smartLightSub;
+
+    private boolean smartLightEnabled = false;
+    private Camera  cameraRef         = null;
 
     private boolean voiceEnabled = true;
     private boolean hapticEnabled = true;
@@ -155,8 +172,9 @@ public class LocatorActivity extends ComponentActivity {
 
         SharedPreferences prefs = getSharedPreferences(
                 MainActivity.PREFS_NAME, MODE_PRIVATE);
-        voiceEnabled = prefs.getBoolean(PREF_LOCATOR_VOICE, true);
-        hapticEnabled = prefs.getBoolean(PREF_LOCATOR_HAPTIC, true);
+        voiceEnabled      = prefs.getBoolean(PREF_LOCATOR_VOICE,  true);
+        hapticEnabled     = prefs.getBoolean(PREF_LOCATOR_HAPTIC, true);
+        smartLightEnabled = prefs.getBoolean(PREF_SMART_LIGHT,    false);
 
         setContentView(R.layout.activity_locator);
 
@@ -436,7 +454,7 @@ public class LocatorActivity extends ComponentActivity {
         // ComponentActivity is a LifecycleOwner -- CameraX will
         // unbind the analyser automatically when the activity is
         // destroyed, so we don't need to do it manually here.
-        provider.bindToLifecycle(this, selector, preview, analysis);
+        cameraRef = provider.bindToLifecycle(this, selector, preview, analysis);
     }
 
     /**
@@ -454,7 +472,30 @@ public class LocatorActivity extends ComponentActivity {
                 }
                 lastAnalysedAt = now;
 
+                // ── Smart Lighting ──────────────────────────────────
+                // Take a quick "dark probe" frame first. If smart-light
+                // mode is on AND the scene is dark, flash the torch,
+                // wait for the sensor to stabilise, then grab the real
+                // inference frame. Torch is always killed afterwards so
+                // it never stays on between cycles.
+                boolean torchFired = false;
+                if (smartLightEnabled && cameraRef != null) {
+                    Bitmap probe = imageProxyToUprightBitmap(image);
+                    boolean isDark = probe == null
+                            || computeAvgBrightness(probe) < DARK_THRESHOLD;
+                    if (probe != null) probe.recycle();
+
+                    if (isDark) {
+                        try {
+                            cameraRef.getCameraControl().enableTorch(true);
+                            Thread.sleep(TORCH_SETTLE_MS);
+                            torchFired = true;
+                        } catch (Throwable ignored) {}
+                    }
+                }
+                // ── Inference ────────────────────────────────────────
                 Bitmap bmp = imageProxyToUprightBitmap(image);
+                if (torchFired) tryDisableTorch();   // off as soon as frame is grabbed
                 if (bmp == null) return;
 
                 List<Detection> dets = detector.detect(bmp);
@@ -485,6 +526,42 @@ public class LocatorActivity extends ComponentActivity {
             }
         }
     }
+
+    // ─── Smart Lighting helpers ────────────────────────────────────
+
+    /**
+     * Samples every 8th pixel of {@code bmp} (R, G, B channels) and
+     * returns the average luminance in the range [0, 255]. Cheap enough
+     * to run on the analysis thread before the YOLO inference pass.
+     */
+    private static int computeAvgBrightness(Bitmap bmp) {
+        int w = bmp.getWidth(), h = bmp.getHeight();
+        long sum = 0;
+        int  count = 0;
+        for (int y = 0; y < h; y += 8) {
+            for (int x = 0; x < w; x += 8) {
+                int px = bmp.getPixel(x, y);
+                int r = (px >> 16) & 0xFF;
+                int g = (px >>  8) & 0xFF;
+                int b =  px        & 0xFF;
+                // Perceptual luminance (ITU-R BT.601 coefficients)
+                sum += (r * 299 + g * 587 + b * 114) / 1000;
+                count++;
+            }
+        }
+        return count == 0 ? 255 : (int)(sum / count);
+    }
+
+    /** Turn the torch off via CameraX; swallows all exceptions so the
+     *  analysis loop is never interrupted by a torch failure. */
+    private void tryDisableTorch() {
+        try {
+            if (cameraRef != null)
+                cameraRef.getCameraControl().enableTorch(false);
+        } catch (Throwable ignored) {}
+    }
+
+    // ─── Camera ────────────────────────────────────────────────────
 
     /**
      * Convert a CameraX {@link ImageProxy} to an upright ARGB
@@ -694,6 +771,24 @@ public class LocatorActivity extends ComponentActivity {
                         Toast.LENGTH_SHORT).show();
             });
         }
+
+        View navSmartLight = findViewById(R.id.nav_smart_light);
+        smartLightSub = findViewById(R.id.nav_smart_light_sub);
+        if (navSmartLight != null) {
+            navSmartLight.setOnClickListener(v -> {
+                smartLightEnabled = !smartLightEnabled;
+                getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE)
+                        .edit().putBoolean(PREF_SMART_LIGHT, smartLightEnabled).apply();
+                refreshMuteLabels();
+                Toast.makeText(this,
+                        smartLightEnabled
+                                ? "Smart Light ON — flashes before each scan"
+                                : "Smart Light OFF",
+                        Toast.LENGTH_SHORT).show();
+                // Make sure torch is off whenever user disables the feature
+                if (!smartLightEnabled) tryDisableTorch();
+            });
+        }
         refreshMuteLabels();
 
         // ── SUPPORT / CONTRIBUTE ─────────────────────────────────
@@ -732,6 +827,11 @@ public class LocatorActivity extends ComponentActivity {
         }
         if (hapticSub != null) {
             hapticSub.setText(hapticEnabled ? "ON · tap to mute" : "MUTED · tap to enable");
+        }
+        if (smartLightSub != null) {
+            smartLightSub.setText(smartLightEnabled
+                    ? "ON · flashes before each scan"
+                    : "OFF · tap to enable");
         }
     }
 

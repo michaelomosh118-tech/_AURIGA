@@ -70,6 +70,11 @@
     <string name="drawer_voice_nav">◎  Voice Navigation</string>
     <string name="drawer_voice_nav_sub">Wake phrase · mic button · long-press to activate</string>
 
+    <!-- Smart lighting drawer row -->
+    <string name="drawer_smart_light">⚡  Smart Light</string>
+    <string name="drawer_smart_light_sub_off">OFF · tap to enable</string>
+    <string name="drawer_smart_light_sub_on">ON · flashes before each scan</string>
+
     <!-- Mic FAB content description -->
     <string name="voice_mic_cd">Activate voice navigation</string>
 
