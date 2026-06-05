@@ -123,7 +123,7 @@ public class CameraConnectActivity extends Activity {
     // ── Frame protocol enum ──
     private enum FrameProto { JPEG_SOF_EOF, LENGTH_PREFIX, RAW_RGB565, RAW_GRAYSCALE }
 
-    // ──────────────────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────[...]
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -136,7 +136,7 @@ public class CameraConnectActivity extends Activity {
         if (bm != null) btAdapter = bm.getAdapter();
     }
 
-    // ── VIEW BINDING ──────────────────────────────────────────────────────────
+    // ── VIEW BINDING ────────────────────────────────────────────────────────[...]
 
     private void bindViews() {
         spnSource       = findViewById(R.id.spn_source);
@@ -248,7 +248,7 @@ public class CameraConnectActivity extends Activity {
     }
 
     /** JPEG snapshot polling — GETs a fresh JPEG every pollMs milliseconds */
-    private void pollSnapshot(String urlStr) throws IOException {
+    private void pollSnapshot(String urlStr) throws IOException, InterruptedException {
         int pollMs = 200;
         setStatus("Snapshot poll active");
         while (wifiStreaming) {
@@ -667,7 +667,7 @@ public class CameraConnectActivity extends Activity {
         toast("No bulk-OUT endpoint found.");
     }
 
-    // ── RENDER HELPERS ────────────────────────────────────────────────────────
+    // ── RENDER HELPERS ───────────────────────────────────────────────────────[...]
 
     private void renderBitmap(byte[] jpegBytes) {
         Bitmap bmp = BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.length);
@@ -678,7 +678,7 @@ public class CameraConnectActivity extends Activity {
         mainHandler.post(() -> ivPreview.setImageBitmap(bmp));
     }
 
-    // ── BYTE UTILITIES ────────────────────────────────────────────────────────
+    // ── BYTE UTILITIES ───────────────────────────────────────────────────────[...]
 
     private static byte[] appendBytes(byte[] a, byte[] b) {
         byte[] out = new byte[a.length + b.length];
@@ -711,7 +711,7 @@ public class CameraConnectActivity extends Activity {
         return bos.toByteArray();
     }
 
-    // ── MISC ──────────────────────────────────────────────────────────────────
+    // ── MISC ──────────────────────────────────────────────────────────[...]
 
     private FrameProto getSelectedProto() {
         int pos = spnSerialProto.getSelectedItemPosition();
