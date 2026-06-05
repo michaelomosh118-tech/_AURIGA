@@ -701,13 +701,21 @@ public class LocatorActivity extends ComponentActivity {
     }
 
     /**
-     * Distance estimate from bounding-box height.
-     * Formula mirrors the web PWA: distance_m = REFERENCE_CONSTANT / (normHeight × 100).
-     * Returns "Xcm" for sub-metre objects, "X.Xm" otherwise.
+     * Raw distance in metres from bounding-box height.
+     * Formula: distance_m = REFERENCE_CONSTANT / (normHeight × 100).
+     * Matches the web PWA locator.html formula exactly.
+     */
+    private static float distanceM(Detection d) {
+        float normH = Math.max(d.box.bottom - d.box.top, 0.001f);
+        return REFERENCE_CONSTANT / (normH * 100f);
+    }
+
+    /**
+     * Human-readable distance string for TTS.
+     * Sub-metre → "X centimetres"; ≥1 m → "X.X metres" / "X metres".
      */
     private static String distanceStr(Detection d) {
-        float normH = Math.max(d.box.bottom - d.box.top, 0.001f);
-        float dist  = REFERENCE_CONSTANT / (normH * 100f);
+        float dist = distanceM(d);
         if (dist < 1f) {
             return Math.round(dist * 100) + " centimetres";
         }
@@ -719,19 +727,41 @@ public class LocatorActivity extends ComponentActivity {
     }
 
     /**
-     * Announce the target via TTS, with a per-label cooldown so
-     * the same chair doesn't get re-spoken every 333 ms.
+     * Announce the target via TTS and bearing-aware haptic.
      *
-     * Phrase format (matches web PWA AurigaAnnounce.compose.objectFound):
+     * ── Haptic logic ────────────────────────────────────────────────
+     *   |bearing| < 5°   → double-pulse (HapticManager.alert):
+     *                       camera is locked on the target — the user
+     *                       gets a strong "found it" confirmation.
+     *   5° ≤ |bearing| < 15° → single proximity pulse:
+     *                       slightly off-axis but close enough to be
+     *                       useful; pulse weight encodes real distance.
+     *   |bearing| ≥ 15°  → no haptic:
+     *                       voice already says "to your left / right";
+     *                       adding haptic here creates noise while the
+     *                       user is still re-aiming the camera.
+     *
+     * ── Voice phrase format (matches web PWA AurigaAnnounce) ────────
      *   "{Label}, {distance}, {bearing direction}."
-     * e.g. "Chair, 1.2 metres, slightly right."
-     *
-     * Also fires a short haptic pulse if haptic is enabled.
+     *   e.g. "Chair, 1.2 metres, slightly right."
      */
     private void announceTarget(Detection d) {
+        float absDeg = Math.abs(bearingDeg(d.centerX()));
+        float dist   = distanceM(d);
+
+        // Bearing-aware haptic — runs independently of voice cooldown
+        // so the user gets physical feedback even when voice is muted.
         if (hapticEnabled && haptic != null) {
-            try { haptic.pulse(0.7f); } catch (Throwable ignored) {}
+            try {
+                if (absDeg < 5f) {
+                    haptic.alert();          // double-pulse: locked on
+                } else if (absDeg < 15f) {
+                    haptic.pulse(dist);      // single pulse: slightly off
+                }
+                // ≥ 15°: silent — voice gives the correction direction
+            } catch (Throwable ignored) {}
         }
+
         if (!voiceEnabled || !ttsReady || tts == null) return;
 
         long now = SystemClock.uptimeMillis();
@@ -739,13 +769,10 @@ public class LocatorActivity extends ComponentActivity {
         if (sameAsLast && now - lastSpokenAt < SPEECH_COOLDOWN_MS) return;
         if (!sameAsLast && now - lastSpokenAt < 700L) return;
 
-        float   deg  = bearingDeg(d.centerX());
-        String  dir  = bearingDir(deg);
-        String  dist = distanceStr(d);
-        // Capitalise label; mirror web phrase order: what, distance, bearing.
+        String dir   = bearingDir(bearingDeg(d.centerX()));
         String label = d.label.substring(0, 1).toUpperCase(Locale.US)
                      + d.label.substring(1).toLowerCase(Locale.US);
-        String utterance = label + ", " + dist + ", " + dir + ".";
+        String utterance = label + ", " + distanceStr(d) + ", " + dir + ".";
 
         tts.speak(utterance, TextToSpeech.QUEUE_FLUSH, null,
                 "auriga_locator_" + now);
