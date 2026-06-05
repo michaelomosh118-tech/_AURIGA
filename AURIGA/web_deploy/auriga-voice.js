@@ -448,8 +448,15 @@
       }
       setTimeout(function () { cmd.action(); }, cmd.reply ? 800 : 0);
     } else {
-      speak('I didn\'t understand that. Say "help" to hear what I can do.', 'unrecognised');
-      showToast('Not understood — say "help"');
+      /* ── Jarvis fallback: route unrecognised commands to the AI engine ── */
+      if (window.Jarvis && window.Jarvis.ask) {
+        window.Jarvis.ask(text).then(function (reply) {
+          if (reply) showToast(reply.slice(0, 60) + (reply.length > 60 ? '…' : ''));
+        });
+      } else {
+        speak('I didn\'t understand that. Say "help" to hear what I can do.', 'unrecognised');
+        showToast('Not understood — say "help"');
+      }
     }
   }
 

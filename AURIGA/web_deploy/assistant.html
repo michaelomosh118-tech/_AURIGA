@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jarvis Assistant | Auriga Ecosystem</title>
+  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0A0A0F" />
+  <meta name="description" content="Auriga Jarvis — your AI-powered voice assistant for the entire Auriga accessibility platform. Control everything by voice." />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="nav-drawer.css" />
+  <link rel="stylesheet" href="auriga-voice.css" />
+  <style>
+    :root {
+      --space:        #0A0A0F;
+      --deep-space:   #05060A;
+      --cobalt:       #0057FF;
+      --cyan:         #00F0FF;
+      --amber:        #FFB300;
+      --red:          #FF3B30;
+      --green:        #00E676;
+      --text:         #FFFFFF;
+      --muted:        #7AA3C8;
+      --glass:        rgba(5, 10, 24, 0.80);
+      --glass-stroke: rgba(0, 240, 255, 0.22);
+      --mono:         'Share Tech Mono', monospace;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html, body {
+      height: 100%;
+      background: var(--deep-space);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ── Accessibility ─────────────────────────────────────────────── */
+    .skip-link {
+      position: absolute; top:-100px; left:20px;
+      background: var(--amber); color:#000;
+      padding:12px 24px; z-index:9999; text-decoration:none;
+      font-family:'Orbitron',sans-serif; font-weight:700; border-radius:4px;
+    }
+    .skip-link:focus { top:20px; }
+    *:focus-visible {
+      outline: 3px solid var(--amber);
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+
+    /* ── Background ────────────────────────────────────────────────── */
+    body::before {
+      content:'';
+      position:fixed; inset:0; z-index:0; pointer-events:none;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,87,255,0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 100% 100%, rgba(0,240,255,0.08) 0%, transparent 60%);
+    }
+
+    /* ── Layout ────────────────────────────────────────────────────── */
+    .page-wrap {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 16px 120px;
+    }
+
+    /* ── Header ────────────────────────────────────────────────────── */
+    .site-header {
+      width: 100%; max-width: 700px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 0 0;
+      margin-bottom: 8px;
+    }
+    .site-header a {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none;
+    }
+    .site-header img { width:36px; height:36px; border-radius:50%; }
+    .site-header .brand {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px; letter-spacing: 0.18em;
+      color: var(--muted); text-transform: uppercase;
+    }
+    .site-header .brand strong { color: var(--cyan); }
+
+    /* ── Jarvis identity panel ─────────────────────────────────────── */
+    .identity-panel {
+      margin: 24px 0 32px;
+      text-align: center;
+    }
+    .identity-avatar {
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 40%, rgba(0,240,255,0.25), rgba(0,87,255,0.12));
+      border: 2px solid rgba(0,240,255,0.35);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 42px;
+      margin: 0 auto 16px;
+      box-shadow: 0 0 40px rgba(0,240,255,0.15), inset 0 0 20px rgba(0,240,255,0.05);
+    }
+    .identity-name {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 22px; font-weight: 900;
+      color: var(--cyan);
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+    .identity-subtitle {
+      font-size: 13px; color: var(--muted);
+      letter-spacing: 0.12em; text-transform: uppercase;
+    }
+
+    /* ── Status bar ────────────────────────────────────────────────── */
+    .status-bar {
+      display: flex; align-items: center; gap: 8px;
+      margin: 0 auto 28px;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      flex-shrink: 0;
+    }
+    .status-dot.listening { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); animation: pulse-dot 1s ease-in-out infinite; }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .status-text { color: var(--muted); }
+    .status-text .status-active { color: var(--cyan); }
+
+    /* ── BIG Mic button ────────────────────────────────────────────── */
+    .mic-section {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 16px;
+      margin-bottom: 32px;
+    }
+    .mic-ring {
+      position: relative;
+      width: 140px; height: 140px;
+    }
+    .mic-ring-outer {
+      position: absolute; inset: 0;
+      border-radius: 50%;
+      border: 2px solid rgba(0,240,255,0.20);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .mic-ring.listening .mic-ring-outer {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 6px rgba(0,240,255,0.10), 0 0 40px rgba(0,240,255,0.20);
+      animation: ring-pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes ring-pulse {
+      0%,100% { transform:scale(1); opacity:1; }
+      50%      { transform:scale(1.08); opacity:0.7; }
+    }
+    .mic-btn {
+      position: absolute;
+      inset: 10px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, rgba(0,240,255,0.18), rgba(0,87,255,0.10));
+      border: 2px solid rgba(0,240,255,0.35);
+      color: var(--cyan);
+      font-size: 44px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, transform 0.15s;
+      display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: none;
+      user-select: none;
+    }
+    .mic-btn:hover { background: rgba(0,240,255,0.15); border-color: var(--cyan); }
+    .mic-btn:active, .mic-btn.listening {
+      background: rgba(0,240,255,0.22);
+      border-color: var(--cyan);
+      transform: scale(0.96);
+    }
+    .mic-hint {
+      font-size: 12px; color: var(--muted);
+      letter-spacing: 0.06em; text-align: center;
+      line-height: 1.6;
+    }
+
+    /* ── Transcript bubble ─────────────────────────────────────────── */
+    #jv-transcript {
+      min-height: 40px;
+      padding: 12px 20px;
+      background: rgba(0,240,255,0.06);
+      border: 1px solid rgba(0,240,255,0.20);
+      border-radius: 12px;
+      font-family: var(--mono);
+      font-size: 15px;
+      color: var(--cyan);
+      text-align: center;
+      width: 100%; max-width: 600px;
+      margin-bottom: 28px;
+      min-height: 48px;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 1;
+      transition: opacity 0.3s;
+    }
+    #jv-transcript:empty::before,
+    #jv-transcript.empty::before {
+      content: 'Say something or tap the mic above…';
+      color: var(--muted);
+      font-size: 13px;
+      font-style: italic;
+    }
+    #jv-transcript.av-interim { color: rgba(0,240,255,0.55); }
+
+    /* ── Conversation history ──────────────────────────────────────── */
+    .convo-section {
+      width: 100%; max-width: 600px;
+      margin-bottom: 32px;
+    }
+    .convo-head {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px; letter-spacing: 0.18em;
+      color: var(--muted); text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .convo-list {
+      display: flex; flex-direction: column; gap: 10px;
+      max-height: 280px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .convo-list::-webkit-scrollbar { width: 4px; }
+    .convo-list::-webkit-scrollbar-track { background: transparent; }
+    .convo-list::-webkit-scrollbar-thumb { background: rgba(0,240,255,0.18); border-radius: 2px; }
+    .convo-msg {
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      line-height: 1.55;
+      max-width: 90%;
+    }
+    .convo-msg.user {
+      background: rgba(0,87,255,0.15);
+      border: 1px solid rgba(0,87,255,0.25);
+      color: #c8d8f0;
+      align-self: flex-end;
+    }
+    .convo-msg.user::before {
+      content: 'YOU  ';
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      color: var(--cobalt);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .convo-msg.assistant {
+      background: rgba(0,240,255,0.06);
+      border: 1px solid rgba(0,240,255,0.18);
+      color: #d8f0f8;
+      align-self: flex-start;
+    }
+    .convo-msg.assistant::before {
+      content: 'JARVIS  ';
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      color: var(--cyan);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .convo-empty {
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+      padding: 24px 0;
+      font-style: italic;
+    }
+
+    /* ── Quick-action grid ─────────────────────────────────────────── */
+    .quick-section {
+      width: 100%; max-width: 600px;
+      margin-bottom: 32px;
+    }
+    .quick-head {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 9px; letter-spacing: 0.18em;
+      color: var(--muted); text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+    }
+    .quick-btn {
+      background: rgba(0,240,255,0.04);
+      border: 1px solid rgba(0,240,255,0.18);
+      border-radius: 12px;
+      padding: 14px 12px;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.2s, border-color 0.2s;
+      display: flex; flex-direction: column; gap: 6px;
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+    }
+    .quick-btn:hover {
+      background: rgba(0,240,255,0.10);
+      border-color: rgba(0,240,255,0.40);
+    }
+    .quick-btn:active { background: rgba(0,240,255,0.15); }
+    .quick-btn .q-icon { font-size: 22px; }
+    .quick-btn .q-label {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.10em; text-transform: uppercase;
+      color: var(--cyan);
+    }
+    .quick-btn .q-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
+    .quick-btn[data-tone="amber"] .q-label { color: var(--amber); }
+    .quick-btn[data-tone="amber"] { border-color: rgba(255,179,0,0.20); }
+    .quick-btn[data-tone="amber"]:hover { border-color: rgba(255,179,0,0.45); background:rgba(255,179,0,0.06); }
+
+    /* ── Keyboard hint ─────────────────────────────────────────────── */
+    .kbd-hint {
+      width: 100%; max-width: 600px;
+      display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+      margin-bottom: 20px;
+    }
+    .kbd-tag {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--muted);
+    }
+    kbd {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: #c0d8e8;
+    }
+
+    /* ── Responsive ────────────────────────────────────────────────── */
+    @media (max-width: 480px) {
+      .quick-grid { grid-template-columns: 1fr 1fr; }
+      .mic-ring { width:120px; height:120px; }
+      .mic-btn { font-size:36px; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <div class="page-wrap">
+    <header class="site-header" role="banner">
+      <a href="index.html" aria-label="Auriga home">
+        <img src="logo.png" alt="Auriga logo" width="36" height="36" />
+        <span class="brand"><strong>DRAKOSANCTIS</strong> // AURIGA</span>
+      </a>
+    </header>
+
+    <main id="main">
+
+      <!-- Identity panel -->
+      <div class="identity-panel" aria-label="Jarvis assistant status">
+        <div class="identity-avatar" role="img" aria-label="Jarvis avatar">🤖</div>
+        <div class="identity-name" id="jv-name-display">JARVIS</div>
+        <div class="identity-subtitle">Auriga AI Assistant · Voice-First Interface</div>
+      </div>
+
+      <!-- Status bar -->
+      <div class="status-bar" aria-live="polite" aria-atomic="true">
+        <div class="status-dot" id="jv-status-dot" aria-hidden="true"></div>
+        <span class="status-text" id="jv-status-text">Ready — tap mic or press <kbd>Ctrl</kbd>+<kbd>Space</kbd></span>
+      </div>
+
+      <!-- Big mic button -->
+      <section class="mic-section" aria-label="Voice input">
+        <div class="mic-ring" id="jv-ring" role="presentation">
+          <div class="mic-ring-outer" aria-hidden="true"></div>
+          <button
+            class="mic-btn"
+            id="jv-listen-btn"
+            type="button"
+            aria-label="Tap or hold to speak to Jarvis"
+            aria-pressed="false"
+          >🎤</button>
+        </div>
+        <p class="mic-hint" id="jv-mic-hint">
+          Tap mic · hold centre of screen · or press <strong>Ctrl+Space</strong>
+        </p>
+      </section>
+
+      <!-- Transcript bubble -->
+      <div
+        id="jv-transcript"
+        role="status"
+        aria-live="assertive"
+        aria-atomic="true"
+        aria-label="Voice transcript"
+        class="empty"
+      ></div>
+
+      <!-- Conversation history -->
+      <section class="convo-section" aria-label="Conversation history">
+        <div class="convo-head">Conversation</div>
+        <div class="convo-list" id="jv-convo" role="log" aria-live="polite" aria-label="Chat messages">
+          <p class="convo-empty" id="jv-convo-empty">Your conversation will appear here.</p>
+        </div>
+      </section>
+
+      <!-- Quick actions -->
+      <section class="quick-section" aria-label="Quick actions">
+        <div class="quick-head">Quick Actions</div>
+        <div class="quick-grid">
+          <button class="quick-btn" type="button" data-cmd="briefing" aria-label="Morning briefing">
+            <span class="q-icon" aria-hidden="true">🌅</span>
+            <span class="q-label">Briefing</span>
+            <span class="q-desc">Time, date, and daily tip</span>
+          </button>
+          <button class="quick-btn" type="button" data-cmd="open locator" aria-label="Open Object Locator">
+            <span class="q-icon" aria-hidden="true">📡</span>
+            <span class="q-label">Locator</span>
+            <span class="q-desc">Detect objects around you</span>
+          </button>
+          <button class="quick-btn" type="button" data-cmd="open reader" aria-label="Open DrakoVoice Reader">
+            <span class="q-icon" aria-hidden="true">📖</span>
+            <span class="q-label">Reader</span>
+            <span class="q-desc">Read text from camera</span>
+          </button>
+          <button class="quick-btn" type="button" data-cmd="describe scene" aria-label="Describe current scene">
+            <span class="q-icon" aria-hidden="true">👁️</span>
+            <span class="q-label">Scene</span>
+            <span class="q-desc">What's around me now</span>
+          </button>
+          <button class="quick-btn" type="button" data-cmd="what time is it" aria-label="Ask the time">
+            <span class="q-icon" aria-hidden="true">🕐</span>
+            <span class="q-label">Time</span>
+            <span class="q-desc">Current time</span>
+          </button>
+          <button class="quick-btn" type="button" data-cmd="accessibility tip" aria-label="Get an accessibility tip" data-tone="amber">
+            <span class="q-icon" aria-hidden="true">💡</span>
+            <span class="q-label">Daily Tip</span>
+            <span class="q-desc">Accessibility advice</span>
+          </button>
+          <button class="quick-btn" type="button" data-cmd="open menu" aria-label="Open navigation menu">
+            <span class="q-icon" aria-hidden="true">☰</span>
+            <span class="q-label">Menu</span>
+            <span class="q-desc">All pages and tools</span>
+          </button>
+          <button class="quick-btn" type="button" data-cmd="help" aria-label="List all voice commands">
+            <span class="q-icon" aria-hidden="true">❓</span>
+            <span class="q-label">Help</span>
+            <span class="q-desc">All voice commands</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Keyboard shortcuts reference -->
+      <div class="kbd-hint" aria-label="Keyboard shortcuts">
+        <span class="kbd-tag"><kbd>Ctrl</kbd>+<kbd>Space</kbd> Activate mic</span>
+        <span class="kbd-tag"><kbd>Esc</kbd> Stop listening</span>
+        <span class="kbd-tag"><kbd>B</kbd> Briefing</span>
+        <span class="kbd-tag"><kbd>L</kbd> Locator</span>
+        <span class="kbd-tag"><kbd>R</kbd> Reader</span>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Shared nav drawer -->
+  <script src="nav-drawer.js" defer></script>
+  <!-- Auriga speech engine -->
+  <script src="auriga-announce.js" defer></script>
+  <!-- Jarvis AI engine -->
+  <script src="jarvis.js" defer></script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    var listenBtn, ring, transcript, statusDot, statusText, convoList, convoEmpty;
+    var isListening = false;
+
+    function ready(fn) {
+      if (document.readyState !== 'loading') fn();
+      else document.addEventListener('DOMContentLoaded', fn);
+    }
+
+    ready(function () {
+      listenBtn   = document.getElementById('jv-listen-btn');
+      ring        = document.getElementById('jv-ring');
+      transcript  = document.getElementById('jv-transcript');
+      statusDot   = document.getElementById('jv-status-dot');
+      statusText  = document.getElementById('jv-status-text');
+      convoList   = document.getElementById('jv-convo');
+      convoEmpty  = document.getElementById('jv-convo-empty');
+
+      /* Wait for Jarvis to load */
+      waitForJarvis(function () {
+        /* Update name display */
+        var name = window.Jarvis.getName() || 'Jarvis';
+        var nameEl = document.getElementById('jv-name-display');
+        if (nameEl) nameEl.textContent = name.toUpperCase();
+
+        /* Replay existing memory into convo */
+        var mem = window.Jarvis.getMemory();
+        mem.forEach(function (m) { appendConvoMsg(m.role, m.text); });
+
+        /* Live memory updates */
+        window.Jarvis.onMemory(function (role, text) {
+          appendConvoMsg(role, text);
+        });
+
+        /* Greet on first load */
+        if (!mem.length) {
+          setTimeout(function () {
+            window.Jarvis.briefing();
+          }, 600);
+        } else {
+          var hour = new Date().getHours();
+          var greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+          var n = window.Jarvis.getName() || '';
+          window.Jarvis.speak(greet + (n ? ', ' + n : '') + '. I am ready. How can I help?', 'greet');
+        }
+      });
+
+      /* Mic button */
+      listenBtn.addEventListener('click', toggleListen);
+      listenBtn.addEventListener('touchstart', function (e) {
+        e.preventDefault();
+        toggleListen();
+      }, { passive: false });
+
+      /* Quick action buttons */
+      document.querySelectorAll('.quick-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var cmd = btn.getAttribute('data-cmd');
+          if (!cmd || !window.Jarvis) return;
+          appendConvoMsg('user', cmd);
+          window.Jarvis.ask(cmd);
+        });
+      });
+
+      /* Jarvis listening state events */
+      document.addEventListener('jarvis:listening', function (e) {
+        setListeningUI(e.detail && e.detail.on);
+      });
+      document.addEventListener('jarvis:transcript', function (e) {
+        if (!transcript) return;
+        var t = e.detail && e.detail.text;
+        if (!t) {
+          transcript.textContent = '';
+          transcript.classList.add('empty');
+        } else {
+          transcript.textContent = t;
+          transcript.classList.remove('empty');
+          transcript.classList.toggle('av-interim', !!(e.detail && e.detail.interim));
+        }
+      });
+
+      /* Keyboard shortcuts */
+      document.addEventListener('keydown', function (e) {
+        if (e.target.matches('input, textarea')) return;
+        if ((e.ctrlKey || e.metaKey) && e.code === 'Space') {
+          e.preventDefault(); toggleListen();
+        }
+        if (e.key === 'Escape' && isListening) { stopListen(); }
+        if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+          if (e.key === 'b' || e.key === 'B') { if (window.Jarvis) window.Jarvis.briefing(); }
+          if (e.key === 'l' || e.key === 'L') { window.location.href = 'locator.html'; }
+          if (e.key === 'r' || e.key === 'R') { window.location.href = 'reader.html'; }
+        }
+      });
+    });
+
+    function waitForJarvis(cb, tries) {
+      tries = tries || 0;
+      if (window.Jarvis) { cb(); return; }
+      if (tries > 40) return;
+      setTimeout(function () { waitForJarvis(cb, tries + 1); }, 100);
+    }
+
+    function toggleListen() {
+      if (!window.Jarvis) return;
+      if (isListening) stopListen();
+      else startListen();
+    }
+
+    function startListen() {
+      if (!window.Jarvis) return;
+      isListening = true;
+      window.Jarvis.listen();
+      setListeningUI(true);
+    }
+
+    function stopListen() {
+      isListening = false;
+      if (window.Jarvis) window.Jarvis.stopListening();
+      setListeningUI(false);
+    }
+
+    function setListeningUI(on) {
+      isListening = !!on;
+      if (!listenBtn || !ring || !statusDot || !statusText) return;
+      listenBtn.classList.toggle('listening', on);
+      listenBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      listenBtn.setAttribute('aria-label', on ? 'Listening — tap to stop' : 'Tap or hold to speak to Jarvis');
+      ring.classList.toggle('listening', on);
+      statusDot.classList.toggle('listening', on);
+      statusText.innerHTML = on
+        ? '<span class="status-active">LISTENING…</span>'
+        : 'Ready — tap mic or press <kbd>Ctrl</kbd>+<kbd>Space</kbd>';
+    }
+
+    function appendConvoMsg(role, text) {
+      if (!convoList || !text || !text.trim()) return;
+      if (convoEmpty) { convoEmpty.remove(); convoEmpty = null; }
+      var msg = document.createElement('div');
+      msg.className = 'convo-msg ' + (role === 'user' ? 'user' : 'assistant');
+      msg.textContent = text;
+      convoList.appendChild(msg);
+      convoList.scrollTop = convoList.scrollHeight;
+    }
+  })();
+  </script>
+</body>
+</html>

@@ -44,11 +44,17 @@
             ]
         },
         {
+            label: 'Assistant',
+            items: [
+                { text: 'JARVIS ASSISTANT',    href: 'assistant.html' }
+            ]
+        },
+        {
             label: 'Tools',
             items: [
-                { text: 'CALIBRATION LIBRARY', href: 'calibration-library.html' },
                 { text: 'OBJECT LOCATOR',      href: 'locator.html' },
                 { text: 'DRAKOVOICE READER',   href: 'reader.html' },
+                { text: 'CALIBRATION LIBRARY', href: 'calibration-library.html' },
                 { text: 'CAMERA CONNECT',      href: 'camera-connect.html' }
             ]
         },

@@ -398,6 +398,7 @@
   <script defer src="nav-drawer.js"></script>
   <script defer src="auriga-announce.js"></script>
   <script defer src="auriga-voice.js"></script>
+  <script defer src="jarvis.js"></script>
   <link rel="stylesheet" href="auriga-voice.css">
   <!-- Load synchronously (no defer) so window.AurigaLocatorStore and
        window.AurigaAnnounce are available to the inline IIFE that
@@ -540,6 +541,7 @@
       let model = null;
       let running = false;
       let speakOn = true;
+      let currentDetections = []; // shared with Jarvis scene provider
 
       // Brightness sampler — drives the 'lens covered' / 'too dark'
       // failure announcements. We sample a tiny offscreen canvas of
@@ -764,6 +766,20 @@
           ctx.fillText(label, sx + padX, Math.max(th - padY, sy - padY));
         });
 
+        // Build Jarvis scene snapshot from all filtered detections
+        currentDetections = filtered.map(function (p) {
+          const h = p.bbox[3] / vh;
+          const dist = REFERENCE_CONSTANT / Math.max(h * 100, 0.1);
+          const cx2 = p.bbox[0] + p.bbox[2] / 2;
+          const bear2 = ((cx2 - vw / 2) / vw) * FOV_DEGREES;
+          return {
+            label: p.class,
+            score: p.score,
+            distance: dist < 1 ? (dist * 100).toFixed(0) + ' cm' : dist.toFixed(1) + ' m',
+            bearing: Math.round(bear2)
+          };
+        });
+
         if (primary) {
           // Distance: REFERENCE_CONSTANT / heightPercent (0..1)
           const heightPct = primary.bbox[3] / vh;
@@ -954,6 +970,19 @@
         // First spoken cue once everything's up — confirms the app
         // is alive and listening before any detection happens.
         announceFailure('scanning');
+
+        // Register live detections with the Jarvis scene provider so
+        // "describe scene" works from the assistant page or by voice.
+        function waitForJarvis(tries) {
+          tries = tries || 0;
+          if (window.Jarvis && window.Jarvis.setSceneProvider) {
+            window.Jarvis.setSceneProvider(function () { return currentDetections; });
+          } else if (tries < 30) {
+            setTimeout(function () { waitForJarvis(tries + 1); }, 200);
+          }
+        }
+        waitForJarvis();
+
         loop();
       }
 
