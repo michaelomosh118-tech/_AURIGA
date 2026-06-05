@@ -837,6 +837,12 @@ public class LocatorActivity extends ComponentActivity {
             safeStart(TargetsActivity.class, "Targets");
         });
 
+        View navCameraConnect = findViewById(R.id.nav_camera_connect);
+        if (navCameraConnect != null) navCameraConnect.setOnClickListener(v -> {
+            closeDrawer();
+            safeStart(CameraConnectActivity.class, "Camera Connect");
+        });
+
         View navAbout = findViewById(R.id.nav_about);
         if (navAbout != null) navAbout.setOnClickListener(v -> {
             closeDrawer();

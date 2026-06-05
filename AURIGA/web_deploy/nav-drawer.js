@@ -38,7 +38,7 @@
             label: 'Products',
             items: [
                 { text: 'NAVI',       href: 'index.html#navi' },
-                { text: 'SENTINEL',   href: 'index.html#sentinel' },
+                { text: 'ARAEL',      href: 'index.html#arael' },
                 { text: 'AERO',       href: 'index.html#aero' },
                 { text: 'INDUSTRIAL', href: 'index.html#industrial' }
             ]
@@ -48,7 +48,8 @@
             items: [
                 { text: 'CALIBRATION LIBRARY', href: 'calibration-library.html' },
                 { text: 'OBJECT LOCATOR',      href: 'locator.html' },
-                { text: 'DRAKOVOICE READER',   href: 'reader.html' }
+                { text: 'DRAKOVOICE READER',   href: 'reader.html' },
+                { text: 'CAMERA CONNECT',      href: 'camera-connect.html' }
             ]
         },
         {

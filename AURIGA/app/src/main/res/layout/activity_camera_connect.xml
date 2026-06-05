@@ -1,0 +1,462 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0A0A0F"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- ── TOP BAR ── -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="CAMERA CONNECT"
+                android:textColor="#00B8D4"
+                android:textSize="18sp"
+                android:fontFamily="monospace"
+                android:letterSpacing="0.12"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No camera connected"
+                android:textColor="#888888"
+                android:textSize="11sp"
+                android:fontFamily="monospace" />
+        </LinearLayout>
+
+        <!-- ── SOURCE SELECTOR ── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="CONNECTION TYPE"
+            android:textColor="#00B8D4"
+            android:textSize="11sp"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="4dp" />
+
+        <Spinner
+            android:id="@+id/spn_source"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:background="#1A1A2E"
+            android:layout_marginBottom="16dp"
+            android:popupBackground="#1A1A2E" />
+
+        <!-- ════════════════════════════════════════════════════
+             PANEL 1 — WI-FI / IP CAMERA
+             ════════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/panel_wifi"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#0F1020"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="WI-FI / IP CAMERA"
+                android:textColor="#00B8D4"
+                android:textSize="12sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/et_wifi_url"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:hint="http://192.168.1.100:81/stream"
+                android:textColor="#E0E0E0"
+                android:textColorHint="#555"
+                android:hintTextColor="#555"
+                android:background="#1A1A2E"
+                android:padding="8dp"
+                android:fontFamily="monospace"
+                android:textSize="12sp"
+                android:inputType="textUri"
+                android:layout_marginBottom="8dp"
+                android:singleLine="true" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="STREAM FORMAT"
+                android:textColor="#888"
+                android:textSize="10sp"
+                android:fontFamily="monospace"
+                android:layout_marginBottom="4dp" />
+
+            <Spinner
+                android:id="@+id/spn_wifi_format"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:background="#1A1A2E"
+                android:entries="@array/wifi_formats"
+                android:layout_marginBottom="10dp"
+                android:popupBackground="#1A1A2E" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end">
+
+                <Button
+                    android:id="@+id/btn_connect_wifi"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="CONNECT"
+                    android:backgroundTint="#00B8D4"
+                    android:textColor="#000000"
+                    android:textStyle="bold"
+                    android:fontFamily="monospace"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="8dp" />
+
+                <Button
+                    android:id="@+id/btn_disconnect_wifi"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="STOP"
+                    android:backgroundTint="#FF3B30"
+                    android:textColor="#FFFFFF"
+                    android:fontFamily="monospace"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ════════════════════════════════════════════════════
+             PANEL 2 — BLUETOOTH LE CAMERA
+             ════════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/panel_bt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#0F1020"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="BLUETOOTH LE CAMERA"
+                android:textColor="#00B8D4"
+                android:textSize="12sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <EditText
+                android:id="@+id/et_bt_filter"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:hint="Device name filter (optional)"
+                android:textColor="#E0E0E0"
+                android:textColorHint="#555"
+                android:background="#1A1A2E"
+                android:padding="8dp"
+                android:fontFamily="monospace"
+                android:textSize="12sp"
+                android:layout_marginBottom="8dp"
+                android:singleLine="true" />
+
+            <TextView
+                android:id="@+id/tv_bt_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="60dp"
+                android:text="No devices found yet"
+                android:textColor="#888"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:background="#111125"
+                android:padding="8dp"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end">
+
+                <Button
+                    android:id="@+id/btn_scan_bt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="SCAN + CONNECT"
+                    android:backgroundTint="#00B8D4"
+                    android:textColor="#000000"
+                    android:textStyle="bold"
+                    android:fontFamily="monospace"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="8dp" />
+
+                <Button
+                    android:id="@+id/btn_disconnect_bt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="DISCONNECT"
+                    android:backgroundTint="#FF3B30"
+                    android:textColor="#FFFFFF"
+                    android:fontFamily="monospace"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ════════════════════════════════════════════════════
+             PANEL 3 — USB SERIAL / MCU
+             ════════════════════════════════════════════════════ -->
+        <LinearLayout
+            android:id="@+id/panel_serial"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#0F1020"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="USB SERIAL / MCU"
+                android:textColor="#00B8D4"
+                android:textSize="12sp"
+                android:fontFamily="monospace"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Supports: PIC18F + USB CDC · STM32 CDC · ESP32 · RP2040 · Arduino · Any CH340/CP2102/FTDI adapter"
+                android:textColor="#666"
+                android:textSize="10sp"
+                android:fontFamily="monospace"
+                android:layout_marginBottom="10dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="BAUD RATE"
+                        android:textColor="#888"
+                        android:textSize="10sp"
+                        android:fontFamily="monospace"
+                        android:layout_marginBottom="4dp" />
+
+                    <Spinner
+                        android:id="@+id/spn_serial_baud"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:background="#1A1A2E"
+                        android:entries="@array/serial_bauds"
+                        android:popupBackground="#1A1A2E" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="FRAME PROTOCOL"
+                        android:textColor="#888"
+                        android:textSize="10sp"
+                        android:fontFamily="monospace"
+                        android:layout_marginBottom="4dp" />
+
+                    <Spinner
+                        android:id="@+id/spn_serial_proto"
+                        android:layout_width="match_parent"
+                        android:layout_height="40dp"
+                        android:background="#1A1A2E"
+                        android:entries="@array/serial_protos"
+                        android:popupBackground="#1A1A2E" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Raw frame dimensions (shown only for RGB565 / Grayscale) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <EditText
+                    android:id="@+id/et_raw_width"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:hint="Width (px)"
+                    android:text="320"
+                    android:textColor="#E0E0E0"
+                    android:textColorHint="#555"
+                    android:background="#1A1A2E"
+                    android:padding="8dp"
+                    android:fontFamily="monospace"
+                    android:textSize="12sp"
+                    android:inputType="number"
+                    android:singleLine="true"
+                    android:layout_marginEnd="8dp"
+                    android:visibility="gone" />
+
+                <EditText
+                    android:id="@+id/et_raw_height"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:hint="Height (px)"
+                    android:text="240"
+                    android:textColor="#E0E0E0"
+                    android:textColorHint="#555"
+                    android:background="#1A1A2E"
+                    android:padding="8dp"
+                    android:fontFamily="monospace"
+                    android:textSize="12sp"
+                    android:inputType="number"
+                    android:singleLine="true"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end">
+
+                <Button
+                    android:id="@+id/btn_connect_serial"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="CONNECT"
+                    android:backgroundTint="#00B8D4"
+                    android:textColor="#000000"
+                    android:textStyle="bold"
+                    android:fontFamily="monospace"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="8dp" />
+
+                <Button
+                    android:id="@+id/btn_disconnect_serial"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="DISCONNECT"
+                    android:backgroundTint="#FF3B30"
+                    android:textColor="#FFFFFF"
+                    android:fontFamily="monospace"
+                    android:textSize="12sp"
+                    android:visibility="gone"
+                    android:layout_marginEnd="8dp" />
+
+                <Button
+                    android:id="@+id/btn_send_cmd"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="STATUS"
+                    android:backgroundTint="#333355"
+                    android:textColor="#00B8D4"
+                    android:fontFamily="monospace"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ── CAMERA PREVIEW ── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="LIVE PREVIEW"
+            android:textColor="#00B8D4"
+            android:textSize="11sp"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="4dp" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="240dp"
+            android:background="#111125"
+            android:layout_marginBottom="12dp">
+
+            <ImageView
+                android:id="@+id/iv_preview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitCenter"
+                android:contentDescription="Camera preview" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:text="No frame received yet"
+                android:textColor="#333"
+                android:textSize="12sp"
+                android:fontFamily="monospace" />
+        </FrameLayout>
+
+        <!-- ── DEBUG LOG ── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="CONNECTION LOG"
+            android:textColor="#555"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:letterSpacing="0.1"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:id="@+id/tv_log"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="80dp"
+            android:text=""
+            android:textColor="#666"
+            android:textSize="10sp"
+            android:fontFamily="monospace"
+            android:background="#0A0A14"
+            android:padding="8dp"
+            android:layout_marginBottom="24dp" />
+
+    </LinearLayout>
+</ScrollView>

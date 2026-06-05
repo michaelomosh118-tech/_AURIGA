@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DrakoSanctis | Camera Connect</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0A0A0F">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="nav-drawer.css">
+    <link rel="stylesheet" href="auriga-voice.css">
+    <style>
+        :root {
+            --space-black: #0A0A0F;
+            --auriga-cyan: #00F0FF;
+            --cobalt-blue: #0057FF;
+            --warning-amber: #FFB300;
+            --alert-red: #FF3B30;
+            --hud-text: #FFFFFF;
+            --mono: 'Share Tech Mono', monospace;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--space-black);
+            color: var(--hud-text);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        /* Top bar */
+        .topbar {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:14px 24px;
+            background:rgba(0,0,0,0.85);
+            border-bottom:1px solid rgba(0,240,255,0.12);
+            position:sticky; top:0; z-index:100;
+        }
+        .topbar-brand { font-family:'Orbitron'; font-size:0.75rem; letter-spacing:0.2em; color:var(--auriga-cyan); text-decoration:none; }
+        .topbar-title { font-family:'Orbitron'; font-size:0.65rem; letter-spacing:0.18em; color:#555; }
+
+        /* Layout */
+        .page { max-width:980px; margin:0 auto; padding:30px 20px 80px; }
+        h1 { font-family:'Orbitron'; font-size:1.4rem; color:var(--auriga-cyan); letter-spacing:0.06em; margin-bottom:6px; }
+        .page-sub { font-family:var(--mono); font-size:0.7rem; color:#0057FF; letter-spacing:0.15em; margin-bottom:32px; }
+
+        /* Source selector tabs */
+        .source-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:28px; }
+        .source-tab {
+            padding:8px 18px; border-radius:6px;
+            border:1px solid rgba(0,240,255,0.2);
+            background:transparent; color:#777;
+            font-family:'Orbitron'; font-size:0.58rem; letter-spacing:0.15em;
+            cursor:pointer; transition:all 0.2s;
+        }
+        .source-tab:hover { border-color:var(--auriga-cyan); color:var(--auriga-cyan); }
+        .source-tab.active { border-color:var(--auriga-cyan); color:var(--auriga-cyan); background:rgba(0,240,255,0.08); }
+        .source-tab .tab-icon { margin-right:6px; }
+
+        /* Panels */
+        .connect-panel { display:none; }
+        .connect-panel.active { display:block; }
+
+        .panel-card {
+            background:rgba(255,255,255,0.03);
+            border:1px solid rgba(0,240,255,0.15);
+            border-radius:12px; padding:22px 24px; margin-bottom:18px;
+        }
+        .panel-card h3 { font-family:'Orbitron'; font-size:0.75rem; letter-spacing:0.12em; color:var(--auriga-cyan); margin-bottom:12px; }
+        .panel-card p, .panel-card li { font-size:0.88rem; color:#9AA; line-height:1.65; }
+        .panel-card ul { padding-left:16px; margin-top:8px; }
+        .panel-card li { margin-bottom:4px; }
+
+        /* Form elements */
+        .field-group { margin-bottom:14px; }
+        .field-group label { display:block; font-family:var(--mono); font-size:0.65rem; letter-spacing:0.12em; color:#0057FF; margin-bottom:6px; }
+        .field-group input, .field-group select {
+            width:100%; padding:10px 14px;
+            background:rgba(0,0,0,0.6); border:1px solid rgba(0,240,255,0.25);
+            color:#fff; border-radius:6px;
+            font-family:var(--mono); font-size:0.8rem;
+            outline:none; transition:border-color 0.2s;
+        }
+        .field-group input:focus, .field-group select:focus { border-color:var(--auriga-cyan); }
+        .field-row { display:flex; gap:12px; }
+        .field-row .field-group { flex:1; }
+
+        /* Buttons */
+        .btn {
+            padding:10px 22px; border-radius:6px; border:1px solid var(--auriga-cyan);
+            background:transparent; color:var(--auriga-cyan);
+            font-family:'Orbitron'; font-size:0.6rem; letter-spacing:0.15em;
+            cursor:pointer; transition:all 0.2s;
+        }
+        .btn:hover { background:rgba(0,240,255,0.1); }
+        .btn.primary { background:rgba(0,240,255,0.12); }
+        .btn.danger { border-color:var(--alert-red); color:var(--alert-red); }
+        .btn.amber { border-color:var(--warning-amber); color:var(--warning-amber); }
+        .btn-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+
+        /* Preview area */
+        .preview-wrap {
+            background:#000; border:1px solid rgba(0,240,255,0.2);
+            border-radius:10px; overflow:hidden;
+            position:relative; min-height:240px;
+            display:flex; align-items:center; justify-content:center;
+        }
+        .preview-wrap video, .preview-wrap img, .preview-wrap canvas {
+            width:100%; max-height:480px; object-fit:contain; display:block;
+        }
+        .preview-placeholder {
+            text-align:center; color:#333; padding:40px;
+        }
+        .preview-placeholder .icon { font-size:3rem; margin-bottom:12px; }
+        .preview-placeholder p { font-family:var(--mono); font-size:0.7rem; }
+        .preview-overlay {
+            position:absolute; top:10px; left:10px; right:10px;
+            display:flex; justify-content:space-between; align-items:flex-start;
+            pointer-events:none;
+        }
+        .preview-badge {
+            background:rgba(0,0,0,0.75); border:1px solid rgba(0,240,255,0.3);
+            border-radius:4px; padding:3px 8px;
+            font-family:'Orbitron'; font-size:0.5rem; letter-spacing:0.12em; color:var(--auriga-cyan);
+        }
+        .preview-badge.live { border-color:#FF3B30; color:#FF3B30; animation:blink 1.2s ease infinite; }
+        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+        /* Status pill */
+        .status-pill {
+            display:inline-flex; align-items:center; gap:6px;
+            padding:4px 12px; border-radius:20px;
+            font-family:var(--mono); font-size:0.65rem;
+            border:1px solid rgba(0,240,255,0.2); background:rgba(0,0,0,0.4);
+            margin-bottom:14px;
+        }
+        .status-dot { width:7px; height:7px; border-radius:50%; background:#333; }
+        .status-dot.connected { background:#00F0FF; box-shadow:0 0 8px #00F0FF; }
+        .status-dot.error { background:#FF3B30; box-shadow:0 0 8px #FF3B30; }
+        .status-dot.connecting { background:#FFB300; box-shadow:0 0 8px #FFB300; animation:blink 0.8s ease infinite; }
+
+        /* Serial terminal */
+        .serial-terminal {
+            background:#000; border:1px solid rgba(0,240,255,0.15); border-radius:8px;
+            padding:14px; font-family:var(--mono); font-size:0.7rem; color:#00F0FF;
+            height:140px; overflow-y:auto; white-space:pre-wrap; word-break:break-all;
+            margin-top:14px;
+        }
+        .serial-terminal .line-ts { color:#333; }
+        .serial-terminal .line-rx { color:#00F0FF; }
+        .serial-terminal .line-tx { color:#FFB300; }
+        .serial-terminal .line-err { color:#FF3B30; }
+        .serial-terminal .line-sys { color:#555; }
+
+        /* MCU chips */
+        .mcu-grid { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+        .mcu-chip {
+            padding:5px 14px; border-radius:20px;
+            border:1px solid rgba(0,240,255,0.2); background:rgba(0,240,255,0.04);
+            font-family:var(--mono); font-size:0.65rem; color:#7AA3C8;
+            cursor:pointer; transition:all 0.15s;
+        }
+        .mcu-chip:hover, .mcu-chip.active { border-color:var(--auriga-cyan); color:var(--auriga-cyan); background:rgba(0,240,255,0.1); }
+
+        /* Protocol codes */
+        .code-block {
+            background:rgba(0,0,0,0.6); border:1px solid rgba(0,240,255,0.15);
+            border-radius:6px; padding:14px 16px;
+            font-family:var(--mono); font-size:0.68rem; color:#7AA3C8;
+            overflow-x:auto; white-space:pre; margin-top:10px; line-height:1.7;
+        }
+        .code-block .kw { color:#00F0FF; }
+        .code-block .cm { color:#334; }
+        .code-block .str { color:#FFB300; }
+        .code-block .num { color:#AA44FF; }
+
+        /* Bluetooth scan list */
+        .bt-device-list { margin-top:12px; }
+        .bt-device {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:10px 14px; border-radius:6px;
+            border:1px solid rgba(0,240,255,0.1); margin-bottom:6px;
+            background:rgba(255,255,255,0.02); transition:border-color 0.15s;
+        }
+        .bt-device:hover { border-color:rgba(0,240,255,0.3); }
+        .bt-device .dev-name { font-family:var(--mono); font-size:0.75rem; color:#CDE; }
+        .bt-device .dev-meta { font-family:var(--mono); font-size:0.6rem; color:#555; }
+        .bt-device .dev-rssi { font-family:var(--mono); font-size:0.65rem; color:#FFB300; }
+
+        /* Open-in buttons */
+        .open-in-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+        .open-in-btn {
+            padding:8px 16px; border-radius:6px;
+            border:1px solid rgba(0,240,255,0.25); background:rgba(0,240,255,0.05);
+            color:var(--auriga-cyan); font-family:'Orbitron'; font-size:0.55rem;
+            letter-spacing:0.12em; cursor:pointer; transition:all 0.2s; text-decoration:none;
+            display:inline-block;
+        }
+        .open-in-btn:hover { background:rgba(0,240,255,0.12); }
+
+        /* Compat table */
+        .compat-table { width:100%; border-collapse:collapse; font-size:0.8rem; margin-top:10px; }
+        .compat-table th { font-family:'Orbitron'; font-size:0.55rem; letter-spacing:0.12em; color:#0057FF; text-align:left; padding:8px 10px; border-bottom:1px solid rgba(0,240,255,0.15); }
+        .compat-table td { padding:8px 10px; border-bottom:1px solid rgba(255,255,255,0.04); color:#9AA; }
+        .compat-table .ok { color:#00F0FF; }
+        .compat-table .partial { color:#FFB300; }
+        .compat-table .no { color:#FF3B30; }
+
+        @media(max-width:640px) {
+            .field-row { flex-direction:column; }
+            .source-tabs { gap:6px; }
+            .source-tab { font-size:0.5rem; padding:7px 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <a href="index.html" class="topbar-brand">DRAKOSANCTIS // AURIGA</a>
+        <span class="topbar-title">CAMERA CONNECT</span>
+    </div>
+
+    <div class="page">
+        <h1>CAMERA CONNECT</h1>
+        <p class="page-sub">BLUETOOTH · WI-FI · USB/SERIAL · MICROCONTROLLER BRIDGE</p>
+
+        <!-- STATUS -->
+        <div id="global-status" class="status-pill">
+            <span class="status-dot" id="status-dot"></span>
+            <span id="status-text">No camera connected</span>
+        </div>
+
+        <!-- SOURCE TABS -->
+        <div class="source-tabs">
+            <button class="source-tab active" onclick="switchTab('usb')" id="tab-usb"><span class="tab-icon">🔌</span>USB / BUILT-IN</button>
+            <button class="source-tab" onclick="switchTab('wifi')" id="tab-wifi"><span class="tab-icon">📡</span>WI-FI / IP CAMERA</button>
+            <button class="source-tab" onclick="switchTab('serial')" id="tab-serial"><span class="tab-icon">⚡</span>SERIAL / MCU</button>
+            <button class="source-tab" onclick="switchTab('bluetooth')" id="tab-bluetooth"><span class="tab-icon">🔵</span>BLUETOOTH</button>
+        </div>
+
+        <!-- ── PANEL: USB / BUILT-IN ── -->
+        <div class="connect-panel active" id="panel-usb">
+            <div class="panel-card">
+                <h3>USB & BUILT-IN CAMERA</h3>
+                <p>Connects to any USB UVC-class camera, built-in webcam, or device camera (front/rear). Works on Android (Chrome), iOS (Safari 14+), desktop, and Raspberry Pi with a camera module.</p>
+            </div>
+            <div class="panel-card">
+                <div class="field-row">
+                    <div class="field-group">
+                        <label>CAMERA FACING</label>
+                        <select id="usb-facing">
+                            <option value="environment">Rear / Environment (default)</option>
+                            <option value="user">Front / User-facing</option>
+                            <option value="">Any (let browser choose)</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label>RESOLUTION TARGET</label>
+                        <select id="usb-res">
+                            <option value="hd">1280×720 (HD)</option>
+                            <option value="fhd">1920×1080 (Full HD)</option>
+                            <option value="4k">3840×2160 (4K — if supported)</option>
+                            <option value="sd">640×480 (SD / Low Power)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn primary" onclick="startUSBCamera()">CONNECT CAMERA</button>
+                    <button class="btn danger" onclick="stopCamera()">DISCONNECT</button>
+                </div>
+            </div>
+            <div class="preview-wrap" id="usb-preview-wrap">
+                <video id="usb-video" autoplay playsinline muted style="display:none;"></video>
+                <div class="preview-placeholder" id="usb-placeholder">
+                    <div class="icon">📷</div>
+                    <p>Click CONNECT CAMERA to start live feed</p>
+                </div>
+                <div class="preview-overlay">
+                    <span class="preview-badge" id="usb-badge" style="display:none;"></span>
+                    <span class="preview-badge live" id="usb-live-badge" style="display:none;">⬤ LIVE</span>
+                </div>
+            </div>
+            <div class="open-in-row" id="usb-open-row" style="display:none;">
+                <a class="open-in-btn" href="locator.html">▶ OPEN IN OBJECT LOCATOR</a>
+                <a class="open-in-btn" href="reader.html">▶ OPEN IN DRAKOVOICE READER</a>
+            </div>
+            <div class="panel-card" style="margin-top:18px;">
+                <h3>BROWSER COMPATIBILITY</h3>
+                <table class="compat-table">
+                    <tr><th>Platform</th><th>getUserMedia</th><th>USB UVC</th><th>Notes</th></tr>
+                    <tr><td>Android · Chrome 90+</td><td class="ok">✓ Full</td><td class="ok">✓ OTG</td><td>Front + rear cameras</td></tr>
+                    <tr><td>iOS · Safari 14.3+</td><td class="ok">✓ Full</td><td class="partial">Partial</td><td>No environment override on old iOS</td></tr>
+                    <tr><td>Desktop · Chrome/Edge</td><td class="ok">✓ Full</td><td class="ok">✓ UVC</td><td>All USB UVC cameras</td></tr>
+                    <tr><td>Raspberry Pi · Chromium</td><td class="ok">✓ Full</td><td class="ok">✓ CSI + USB</td><td>Camera module + USB webcam</td></tr>
+                    <tr><td>Firefox</td><td class="ok">✓ Full</td><td class="ok">✓ UVC</td><td>Facing mode may be ignored</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── PANEL: WI-FI / IP CAMERA ── -->
+        <div class="connect-panel" id="panel-wifi">
+            <div class="panel-card">
+                <h3>WI-FI / IP CAMERA STREAM</h3>
+                <p>Connect any IP camera or microcontroller (ESP32-CAM, Raspberry Pi, PIC + WiFi module) that streams MJPEG over HTTP or serves a WebSocket JPEG feed. Also supports RTSP-over-WebSocket via a local proxy.</p>
+            </div>
+            <div class="panel-card">
+                <div class="field-group">
+                    <label>STREAM URL</label>
+                    <input type="url" id="wifi-url" placeholder="http://192.168.1.100/stream or ws://192.168.1.100:81/ws" value="">
+                </div>
+                <div class="field-row">
+                    <div class="field-group">
+                        <label>STREAM FORMAT</label>
+                        <select id="wifi-format" onchange="onFormatChange()">
+                            <option value="mjpeg">MJPEG HTTP (most IP cameras)</option>
+                            <option value="jpg">Snapshot JPEG (polling)</option>
+                            <option value="ws-jpg">WebSocket JPEG frames (ESP32-CAM, custom MCU)</option>
+                            <option value="webrtc">WebRTC (experimental)</option>
+                        </select>
+                    </div>
+                    <div class="field-group" id="poll-interval-group" style="display:none;">
+                        <label>POLL INTERVAL (ms)</label>
+                        <input type="number" id="poll-interval" value="200" min="50" max="5000">
+                    </div>
+                </div>
+                <div class="field-group" id="wifi-auth-group">
+                    <label>BASIC AUTH (optional)</label>
+                    <div class="field-row">
+                        <div class="field-group"><input type="text" id="wifi-user" placeholder="Username"></div>
+                        <div class="field-group"><input type="password" id="wifi-pass" placeholder="Password"></div>
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn primary" onclick="startWifiCamera()">CONNECT STREAM</button>
+                    <button class="btn danger" onclick="stopCamera()">DISCONNECT</button>
+                </div>
+            </div>
+            <div class="preview-wrap" id="wifi-preview-wrap">
+                <img id="wifi-img" style="display:none;" alt="IP camera stream">
+                <canvas id="wifi-canvas" style="display:none;"></canvas>
+                <div class="preview-placeholder" id="wifi-placeholder">
+                    <div class="icon">📡</div>
+                    <p>Enter stream URL above and click CONNECT STREAM</p>
+                </div>
+                <div class="preview-overlay">
+                    <span class="preview-badge" id="wifi-badge" style="display:none;"></span>
+                    <span class="preview-badge live" id="wifi-live-badge" style="display:none;">⬤ LIVE</span>
+                </div>
+            </div>
+            <div class="panel-card" style="margin-top:18px;">
+                <h3>SUPPORTED DEVICES</h3>
+                <table class="compat-table">
+                    <tr><th>Device</th><th>Format</th><th>Default URL</th></tr>
+                    <tr><td>ESP32-CAM (Arduino)</td><td class="ok">MJPEG</td><td><code>http://&lt;IP&gt;/stream</code></td></tr>
+                    <tr><td>ESP32-CAM (WebSocket)</td><td class="ok">WS-JPEG</td><td><code>ws://&lt;IP&gt;:81/ws</code></td></tr>
+                    <tr><td>Raspberry Pi (mjpg-streamer)</td><td class="ok">MJPEG</td><td><code>http://&lt;IP&gt;:8080/?action=stream</code></td></tr>
+                    <tr><td>PIC + ESP8266 WiFi module</td><td class="ok">WS-JPEG</td><td>Configure in firmware</td></tr>
+                    <tr><td>STM32 + W5500 Ethernet</td><td class="ok">MJPEG / Snapshot</td><td>Configure IP in firmware</td></tr>
+                    <tr><td>Generic IP Camera (Hikvision, Dahua)</td><td class="ok">MJPEG</td><td><code>http://&lt;IP&gt;/mjpeg/1</code></td></tr>
+                    <tr><td>RTSP cameras</td><td class="partial">Via proxy</td><td>Use rtsp-web-proxy</td></tr>
+                </table>
+                <div class="code-block" style="margin-top:14px;"><span class="cm">// ESP32-CAM firmware example — streams MJPEG on /stream</span>
+<span class="kw">#include</span> <span class="str">"esp_camera.h"</span>
+<span class="kw">#include</span> <span class="str">"WebServer.h"</span>
+
+<span class="cm">// Configure camera pins for AI Thinker module</span>
+camera_config_t config = {
+  .pin_d0 = Y2_GPIO_NUM, .pin_d1 = Y3_GPIO_NUM,
+  .xclk_freq_hz = <span class="num">20000000</span>,
+  .pixel_format = PIXFORMAT_JPEG,
+  .frame_size   = FRAMESIZE_VGA,
+  .jpeg_quality = <span class="num">12</span>, .fb_count = <span class="num">2</span>
+};
+<span class="cm">// HTTP handler → sends multipart/x-mixed-replace MJPEG stream</span>
+<span class="cm">// Auriga Camera Connect detects this automatically</span></div>
+                <div class="code-block" style="margin-top:10px;"><span class="cm">// PIC18F + ESP8266 AT-firmware bridge (UART → WiFi JPEG frames)</span>
+<span class="cm">// PIC captures OV7670 frame → sends JPEG over UART to ESP8266</span>
+<span class="cm">// ESP8266 forwards each frame as WebSocket binary message</span>
+<span class="cm">// Auriga receives on ws://&lt;IP&gt;:81/ws — select "WebSocket JPEG frames"</span>
+
+<span class="kw">void</span> send_frame(uint8_t *jpeg_buf, uint32_t len) {
+  <span class="cm">// UART frame: [0xFF 0xD8] ... JPEG bytes ... [0xFF 0xD9]</span>
+  uart_write(jpeg_buf, len);
+}</div>
+            </div>
+        </div>
+
+        <!-- ── PANEL: SERIAL / MCU ── -->
+        <div class="connect-panel" id="panel-serial">
+            <div class="panel-card">
+                <h3>SERIAL / MICROCONTROLLER BRIDGE</h3>
+                <p>Uses the <strong>Web Serial API</strong> (Chrome 89+, Edge 89+) to connect directly to any microcontroller with a USB-serial adapter — PIC, AVR, STM32, ESP32, RP2040, Arduino, and more. The MCU sends JPEG frames over UART; Auriga renders them in real time.</p>
+                <div class="mcu-grid" id="mcu-presets">
+                    <button class="mcu-chip active" onclick="setMCUPreset('pic')" id="mcu-pic">PIC18F / PIC32</button>
+                    <button class="mcu-chip" onclick="setMCUPreset('arduino')" id="mcu-arduino">Arduino Uno/Mega</button>
+                    <button class="mcu-chip" onclick="setMCUPreset('esp32')" id="mcu-esp32">ESP32 / ESP8266</button>
+                    <button class="mcu-chip" onclick="setMCUPreset('stm32')" id="mcu-stm32">STM32</button>
+                    <button class="mcu-chip" onclick="setMCUPreset('rp2040')" id="mcu-rp2040">RP2040 (Pi Pico)</button>
+                    <button class="mcu-chip" onclick="setMCUPreset('avr')" id="mcu-avr">ATmega / ATtiny</button>
+                    <button class="mcu-chip" onclick="setMCUPreset('custom')" id="mcu-custom">Custom</button>
+                </div>
+            </div>
+            <div class="panel-card">
+                <div class="field-row">
+                    <div class="field-group">
+                        <label>BAUD RATE</label>
+                        <select id="serial-baud">
+                            <option value="9600">9600</option>
+                            <option value="19200">19200</option>
+                            <option value="38400">38400</option>
+                            <option value="57600">57600</option>
+                            <option value="115200" selected>115200 (recommended)</option>
+                            <option value="230400">230400</option>
+                            <option value="460800">460800</option>
+                            <option value="921600">921600 (high-speed)</option>
+                        </select>
+                    </div>
+                    <div class="field-group">
+                        <label>FRAME PROTOCOL</label>
+                        <select id="serial-proto">
+                            <option value="jpeg-sof-eof">JPEG SOF/EOF delimiters (0xFF 0xD8 … 0xFF 0xD9)</option>
+                            <option value="length-prefix">Length-prefixed (4-byte LE uint32 + JPEG payload)</option>
+                            <option value="raw-rgb565">Raw RGB565 (width × height × 2 bytes)</option>
+                            <option value="raw-grayscale">Raw Grayscale (width × height bytes)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field-group" id="raw-width-group" style="display:none;">
+                        <label>FRAME WIDTH (px)</label>
+                        <input type="number" id="raw-width" value="320" min="8" max="1280">
+                    </div>
+                    <div class="field-group" id="raw-height-group" style="display:none;">
+                        <label>FRAME HEIGHT (px)</label>
+                        <input type="number" id="raw-height" value="240" min="8" max="960">
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn primary" onclick="connectSerial()" id="serial-connect-btn">CONNECT SERIAL PORT</button>
+                    <button class="btn danger" onclick="disconnectSerial()" id="serial-disconnect-btn" style="display:none;">DISCONNECT</button>
+                    <button class="btn amber" onclick="sendSerialCommand()" id="serial-cmd-btn" style="display:none;">SEND CMD</button>
+                </div>
+            </div>
+            <div class="preview-wrap" id="serial-preview-wrap" style="min-height:200px;">
+                <canvas id="serial-canvas" style="display:none;"></canvas>
+                <div class="preview-placeholder" id="serial-placeholder">
+                    <div class="icon">⚡</div>
+                    <p>Connect a serial device to receive camera frames</p>
+                </div>
+                <div class="preview-overlay">
+                    <span class="preview-badge" id="serial-badge" style="display:none;"></span>
+                    <span class="preview-badge live" id="serial-live-badge" style="display:none;">⬤ LIVE</span>
+                </div>
+            </div>
+            <div class="serial-terminal" id="serial-terminal">
+<span class="line-sys">[sys] Auriga Camera Connect · Serial Bridge Ready</span>
+<span class="line-sys">[sys] Supported: PIC18/32, AVR, STM32, ESP32, RP2040, any UART-USB adapter</span>
+<span class="line-sys">[sys] Click CONNECT SERIAL PORT to open a port</span>
+            </div>
+            <div class="panel-card" style="margin-top:18px;">
+                <h3>PIC MICROCONTROLLER FIRMWARE REFERENCE</h3>
+                <p>For PIC18F or PIC32 connected to an OV7670 / OV2640 camera module. Tested on PIC18F4550 (USB) and PIC32MX (UART + USB-serial adapter).</p>
+                <div class="code-block"><span class="cm">// PIC18F4550 — OV7670 capture → USB-CDC JPEG stream</span>
+<span class="cm">// Camera module: OV7670 (QVGA 320×240)</span>
+<span class="cm">// Compiler: XC8 v2.x, MCC generated USB CDC</span>
+
+<span class="kw">#include</span> <span class="str">"mcc_generated_files/usb/usb_device_cdc.h"</span>
+<span class="kw">#include</span> <span class="str">"ov7670.h"</span>    <span class="cm">// your OV7670 SCCB driver</span>
+
+<span class="kw">void</span> main(<span class="kw">void</span>) {
+    OV7670_init(QVGA, JPEG, Q10);   <span class="cm">// 320×240 JPEG quality 10</span>
+
+    <span class="kw">while</span>(<span class="num">1</span>) {
+        uint8_t *buf; uint32_t len;
+        OV7670_capture(&buf, &len);  <span class="cm">// capture one JPEG frame</span>
+
+        <span class="cm">// Send with JPEG SOF/EOF — Auriga auto-detects 0xFF 0xD8 … 0xFF 0xD9</span>
+        CDCTxBuffer(buf, len);
+        CDCFlushTxBuffer();
+        <span class="cm">// ~15 fps at 115200 baud with QVGA JPEG</span>
+    }
+}
+
+<span class="cm">// For PIC32: use UART2 at 921600 baud for higher frame rates</span>
+<span class="cm">// uart_write(buf, len) → USB-UART adapter → Chrome Web Serial API</span></div>
+                <div class="code-block" style="margin-top:10px;"><span class="cm">// STM32F4 — DCMI + DMA → USB CDC JPEG stream</span>
+<span class="kw">#include</span> <span class="str">"stm32f4xx_hal.h"</span>
+<span class="kw">extern</span> DCMI_HandleTypeDef hdcmi;
+
+<span class="kw">void</span> stream_frames(<span class="kw">void</span>) {
+    <span class="kw">while</span>(<span class="num">1</span>) {
+        HAL_DCMI_Start_DMA(&hdcmi, DCMI_MODE_SNAPSHOT, frame_buf, BUF_LEN);
+        HAL_Delay(<span class="num">33</span>);  <span class="cm">// ~30 fps</span>
+        <span class="cm">// JPEG is in frame_buf — send via USB CDC or UART</span>
+        CDC_Transmit_FS(frame_buf, jpeg_len);
+    }
+}</div>
+            </div>
+            <div class="panel-card">
+                <h3>BROWSER COMPATIBILITY — WEB SERIAL API</h3>
+                <table class="compat-table">
+                    <tr><th>Browser</th><th>Web Serial</th><th>Notes</th></tr>
+                    <tr><td>Chrome 89+ (desktop)</td><td class="ok">✓ Full</td><td>Full USB-serial support</td></tr>
+                    <tr><td>Edge 89+ (desktop)</td><td class="ok">✓ Full</td><td>Same as Chrome</td></tr>
+                    <tr><td>Chrome Android</td><td class="partial">Partial</td><td>USB OTG required; some devices work</td></tr>
+                    <tr><td>Firefox</td><td class="no">✗ Not supported</td><td>Use Chrome/Edge for serial</td></tr>
+                    <tr><td>Safari / iOS</td><td class="no">✗ Not supported</td><td>Use Wi-Fi mode with ESP8266 bridge</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── PANEL: BLUETOOTH ── -->
+        <div class="connect-panel" id="panel-bluetooth">
+            <div class="panel-card">
+                <h3>BLUETOOTH CAMERA</h3>
+                <p>Uses the <strong>Web Bluetooth API</strong> to connect to BT LE camera modules — including ESP32-based Bluetooth cameras, Nordic Semiconductor nRF52-based systems, and custom BT camera accessories. Receives JPEG frame chunks over BLE notify characteristics.</p>
+            </div>
+            <div class="panel-card">
+                <div class="field-row">
+                    <div class="field-group">
+                        <label>SERVICE UUID (leave default for DrakoCamera BT profile)</label>
+                        <input type="text" id="bt-service-uuid" value="12345678-1234-5678-1234-56789abcdef0" placeholder="BLE service UUID">
+                    </div>
+                    <div class="field-group">
+                        <label>RX CHARACTERISTIC UUID</label>
+                        <input type="text" id="bt-char-uuid" value="12345678-1234-5678-1234-56789abcdef1" placeholder="BLE characteristic UUID">
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label>DEVICE NAME FILTER (optional)</label>
+                    <input type="text" id="bt-name-filter" placeholder="e.g. DrakoCamera or leave empty to scan all">
+                </div>
+                <div class="btn-row">
+                    <button class="btn primary" onclick="scanBluetooth()">SCAN FOR DEVICES</button>
+                    <button class="btn danger" onclick="disconnectBluetooth()" id="bt-disconnect-btn" style="display:none;">DISCONNECT BT</button>
+                </div>
+                <div class="bt-device-list" id="bt-device-list"></div>
+            </div>
+            <div class="preview-wrap" id="bt-preview-wrap" style="min-height:200px;">
+                <canvas id="bt-canvas" style="display:none;"></canvas>
+                <div class="preview-placeholder" id="bt-placeholder">
+                    <div class="icon">🔵</div>
+                    <p>Scan and pair a Bluetooth camera to receive frames</p>
+                </div>
+                <div class="preview-overlay">
+                    <span class="preview-badge" id="bt-badge" style="display:none;"></span>
+                    <span class="preview-badge live" id="bt-live-badge" style="display:none;">⬤ LIVE</span>
+                </div>
+            </div>
+            <div class="panel-card" style="margin-top:18px;">
+                <h3>ESP32 BLE CAMERA FIRMWARE REFERENCE</h3>
+                <div class="code-block"><span class="cm">// ESP32 — OV2640 camera → BLE GATT JPEG frame streamer</span>
+<span class="cm">// Chunk size: 512 bytes per BLE notify (MTU negotiated to 517)</span>
+
+<span class="kw">#include</span> <span class="str">"BLEDevice.h"</span>
+<span class="kw">#include</span> <span class="str">"esp_camera.h"</span>
+
+<span class="kw">#define</span> SERVICE_UUID  <span class="str">"12345678-1234-5678-1234-56789abcdef0"</span>
+<span class="kw">#define</span> CHAR_UUID     <span class="str">"12345678-1234-5678-1234-56789abcdef1"</span>
+
+BLECharacteristic *pChar;
+
+<span class="kw">void</span> streamFrame(camera_fb_t *fb) {
+  uint32_t total = fb->len;
+  <span class="cm">// Send length header first (4 bytes little-endian)</span>
+  uint8_t hdr[4] = {total&0xFF,(total>>8)&0xFF,(total>>16)&0xFF,(total>>24)&0xFF};
+  pChar->setValue(hdr, <span class="num">4</span>); pChar->notify();
+
+  <span class="cm">// Send JPEG in 512-byte chunks</span>
+  <span class="kw">for</span>(uint32_t i=<span class="num">0</span>; i&lt;total; i+=<span class="num">512</span>) {
+    uint32_t chunkLen = min(<span class="num">512U</span>, total-i);
+    pChar->setValue(fb->buf+i, chunkLen);
+    pChar->notify();
+    delay(<span class="num">5</span>); <span class="cm">// BLE congestion control</span>
+  }
+}
+
+<span class="kw">void</span> loop() {
+  camera_fb_t *fb = esp_camera_fb_get();
+  <span class="kw">if</span>(fb) { streamFrame(fb); esp_camera_fb_return(fb); }
+  delay(<span class="num">66</span>); <span class="cm">// ~15 fps</span>
+}</div>
+                <div class="code-block" style="margin-top:10px;"><span class="cm">// nRF52840 (Nordic) — BLE camera module firmware sketch</span>
+<span class="cm">// OV7670 attached via parallel data bus + PCLK/HREF/VSYNC</span>
+<span class="cm">// Transmits JPEG chunks identical to ESP32 above</span>
+<span class="cm">// Use same SERVICE_UUID / CHAR_UUID in Auriga Camera Connect</span></div>
+                <div class="panel-card" style="margin-top:14px;">
+                    <h3>BROWSER COMPATIBILITY — WEB BLUETOOTH</h3>
+                    <table class="compat-table">
+                        <tr><th>Browser</th><th>Web Bluetooth</th><th>Notes</th></tr>
+                        <tr><td>Chrome 56+ (desktop, Android)</td><td class="ok">✓ Full</td><td>Requires HTTPS or localhost</td></tr>
+                        <tr><td>Edge 79+</td><td class="ok">✓ Full</td><td>Same as Chrome</td></tr>
+                        <tr><td>Samsung Internet 6+</td><td class="ok">✓ Full</td><td>Android only</td></tr>
+                        <tr><td>Firefox</td><td class="no">✗ Not supported</td><td>Flag-based only, non-functional</td></tr>
+                        <tr><td>Safari / iOS</td><td class="no">✗ Not supported</td><td>Use Wi-Fi mode</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /page -->
+
+    <script src="nav-drawer.js" defer></script>
+    <script src="auriga-voice.js" defer></script>
+    <script>
+    /* ── STATE ── */
+    let activeStream = null;       // MediaStream (USB)
+    let serialPort   = null;       // SerialPort
+    let serialReader = null;       // ReadableStreamDefaultReader
+    let btDevice     = null;       // BluetoothDevice
+    let btChar       = null;       // BluetoothRemoteGATTCharacteristic
+    let wifiPoller   = null;       // setInterval handle
+    let wsConn       = null;       // WebSocket
+    let serialBuffer = new Uint8Array(0);
+    let btBuffer     = new Uint8Array(0);
+    let btExpected   = 0;
+
+    /* ── HELPERS ── */
+    function setStatus(state, text) {
+        const dot = document.getElementById('status-dot');
+        const txt = document.getElementById('status-text');
+        dot.className = 'status-dot ' + state;
+        txt.textContent = text;
+    }
+
+    function switchTab(tab) {
+        document.querySelectorAll('.source-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.connect-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        document.getElementById('panel-' + tab).classList.add('active');
+    }
+
+    function onFormatChange() {
+        const fmt = document.getElementById('wifi-format').value;
+        document.getElementById('poll-interval-group').style.display = fmt === 'jpg' ? 'flex' : 'none';
+    }
+
+    /* ── USB CAMERA ── */
+    const RES = { hd:[1280,720], fhd:[1920,1080], '4k':[3840,2160], sd:[640,480] };
+    async function startUSBCamera() {
+        stopCamera();
+        setStatus('connecting', 'Requesting camera access…');
+        const facing = document.getElementById('usb-facing').value;
+        const res = RES[document.getElementById('usb-res').value] || RES.hd;
+        const constraints = {
+            video: {
+                width: { ideal: res[0] }, height: { ideal: res[1] },
+                ...(facing ? { facingMode: facing } : {})
+            }
+        };
+        try {
+            activeStream = await navigator.mediaDevices.getUserMedia(constraints);
+            const video = document.getElementById('usb-video');
+            video.srcObject = activeStream;
+            video.style.display = 'block';
+            document.getElementById('usb-placeholder').style.display = 'none';
+            document.getElementById('usb-live-badge').style.display = 'inline';
+            document.getElementById('usb-badge').style.display = 'inline';
+            document.getElementById('usb-open-row').style.display = 'flex';
+            const track = activeStream.getVideoTracks()[0];
+            document.getElementById('usb-badge').textContent =
+                track.label.slice(0,28) + ' · ' + track.getSettings().width + '×' + track.getSettings().height;
+            setStatus('connected', 'Camera connected — ' + track.label.slice(0,40));
+        } catch(e) {
+            setStatus('error', 'Camera error: ' + e.message);
+            alert('Camera access denied or unavailable.\n\n' + e.message);
+        }
+    }
+
+    function stopCamera() {
+        if (activeStream) { activeStream.getTracks().forEach(t => t.stop()); activeStream = null; }
+        if (wifiPoller) { clearInterval(wifiPoller); wifiPoller = null; }
+        if (wsConn) { wsConn.close(); wsConn = null; }
+        document.querySelectorAll('video').forEach(v => { v.srcObject = null; v.style.display = 'none'; });
+        document.querySelectorAll('.preview-placeholder').forEach(p => p.style.display = 'block');
+        document.querySelectorAll('.preview-badge').forEach(b => b.style.display = 'none');
+        document.getElementById('usb-open-row').style.display = 'none';
+        const wImg = document.getElementById('wifi-img'); wImg.src = ''; wImg.style.display = 'none';
+        setStatus('', 'No camera connected');
+    }
+
+    /* ── WIFI / IP CAMERA ── */
+    async function startWifiCamera() {
+        stopCamera();
+        const url = document.getElementById('wifi-url').value.trim();
+        if (!url) { alert('Enter a stream URL first.'); return; }
+        const fmt = document.getElementById('wifi-format').value;
+        setStatus('connecting', 'Connecting to ' + url.slice(0,50) + '…');
+
+        if (fmt === 'mjpeg') {
+            const img = document.getElementById('wifi-img');
+            img.src = url;
+            img.style.display = 'block';
+            document.getElementById('wifi-placeholder').style.display = 'none';
+            document.getElementById('wifi-live-badge').style.display = 'inline';
+            document.getElementById('wifi-badge').style.display = 'inline';
+            document.getElementById('wifi-badge').textContent = 'MJPEG · ' + url.slice(0,30);
+            img.onload = () => setStatus('connected', 'MJPEG stream active · ' + url.slice(0,40));
+            img.onerror = () => setStatus('error', 'Stream error — check URL and CORS');
+        } else if (fmt === 'jpg') {
+            const canvas = document.getElementById('wifi-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.style.display = 'block';
+            document.getElementById('wifi-placeholder').style.display = 'none';
+            document.getElementById('wifi-live-badge').style.display = 'inline';
+            const interval = parseInt(document.getElementById('poll-interval').value) || 200;
+            let frameCount = 0;
+            wifiPoller = setInterval(async () => {
+                try {
+                    const res = await fetch(url + '?t=' + Date.now(), { cache:'no-store' });
+                    const blob = await res.blob();
+                    const bitmap = await createImageBitmap(blob);
+                    canvas.width = bitmap.width; canvas.height = bitmap.height;
+                    ctx.drawImage(bitmap, 0, 0);
+                    frameCount++;
+                    if (frameCount === 1) setStatus('connected', 'Snapshot poll active · ' + url.slice(0,30));
+                } catch(e) { setStatus('error', 'Fetch error: ' + e.message); }
+            }, interval);
+        } else if (fmt === 'ws-jpg') {
+            const canvas = document.getElementById('wifi-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.style.display = 'block';
+            document.getElementById('wifi-placeholder').style.display = 'none';
+            wsConn = new WebSocket(url);
+            wsConn.binaryType = 'arraybuffer';
+            wsConn.onopen = () => {
+                setStatus('connected', 'WebSocket JPEG stream active');
+                document.getElementById('wifi-live-badge').style.display = 'inline';
+            };
+            wsConn.onmessage = async (e) => {
+                const blob = new Blob([e.data], { type:'image/jpeg' });
+                const bitmap = await createImageBitmap(blob);
+                canvas.width = bitmap.width; canvas.height = bitmap.height;
+                ctx.drawImage(bitmap, 0, 0);
+            };
+            wsConn.onerror = () => setStatus('error', 'WebSocket error — check URL');
+            wsConn.onclose = () => setStatus('', 'WebSocket closed');
+        }
+    }
+
+    /* ── SERIAL / MCU ── */
+    const MCU_PRESETS = {
+        pic:     { baud:'115200', proto:'jpeg-sof-eof' },
+        arduino: { baud:'115200', proto:'jpeg-sof-eof' },
+        esp32:   { baud:'921600', proto:'jpeg-sof-eof' },
+        stm32:   { baud:'460800', proto:'length-prefix' },
+        rp2040:  { baud:'921600', proto:'jpeg-sof-eof' },
+        avr:     { baud:'57600',  proto:'jpeg-sof-eof' },
+        custom:  { baud:'115200', proto:'jpeg-sof-eof' }
+    };
+
+    function setMCUPreset(mcu) {
+        document.querySelectorAll('.mcu-chip').forEach(c => c.classList.remove('active'));
+        document.getElementById('mcu-' + mcu).classList.add('active');
+        const p = MCU_PRESETS[mcu];
+        document.getElementById('serial-baud').value = p.baud;
+        document.getElementById('serial-proto').value = p.proto;
+        const isRaw = p.proto.startsWith('raw-');
+        document.getElementById('raw-width-group').style.display = isRaw ? 'flex' : 'none';
+        document.getElementById('raw-height-group').style.display = isRaw ? 'flex' : 'none';
+    }
+
+    function serialLog(cls, msg) {
+        const t = document.getElementById('serial-terminal');
+        const ts = new Date().toTimeString().slice(0,8);
+        t.innerHTML += `\n<span class="line-ts">[${ts}]</span> <span class="line-${cls}">${msg}</span>`;
+        t.scrollTop = t.scrollHeight;
+    }
+
+    async function connectSerial() {
+        if (!('serial' in navigator)) {
+            alert('Web Serial API not supported in this browser.\nUse Chrome 89+ or Edge 89+ on desktop.\n\nAlternative: Use Wi-Fi mode with an ESP8266/ESP32 bridge.');
+            return;
+        }
+        try {
+            const baud = parseInt(document.getElementById('serial-baud').value);
+            serialLog('sys', 'Requesting serial port…');
+            serialPort = await navigator.serial.requestPort();
+            await serialPort.open({ baudRate: baud });
+            serialLog('sys', `Port opened · ${baud} baud`);
+            setStatus('connected', `Serial connected · ${baud} baud`);
+            document.getElementById('serial-connect-btn').style.display = 'none';
+            document.getElementById('serial-disconnect-btn').style.display = 'inline';
+            document.getElementById('serial-cmd-btn').style.display = 'inline';
+            document.getElementById('serial-live-badge').style.display = 'inline';
+            document.getElementById('serial-placeholder').style.display = 'none';
+            document.getElementById('serial-canvas').style.display = 'block';
+            readSerialStream();
+        } catch(e) {
+            serialLog('err', 'Error: ' + e.message);
+            setStatus('error', 'Serial error: ' + e.message);
+        }
+    }
+
+    async function readSerialStream() {
+        const proto = document.getElementById('serial-proto').value;
+        const canvas = document.getElementById('serial-canvas');
+        const ctx = canvas.getContext('2d');
+        serialReader = serialPort.readable.getReader();
+        serialLog('sys', 'Reading stream · protocol: ' + proto);
+        let frameCount = 0;
+        try {
+            while (true) {
+                const { value, done } = await serialReader.read();
+                if (done) break;
+                serialBuffer = appendBytes(serialBuffer, value);
+
+                if (proto === 'jpeg-sof-eof') {
+                    const sof = findBytes(serialBuffer, [0xFF, 0xD8]);
+                    const eof = findBytes(serialBuffer, [0xFF, 0xD9]);
+                    if (sof !== -1 && eof !== -1 && eof > sof) {
+                        const jpeg = serialBuffer.slice(sof, eof + 2);
+                        serialBuffer = serialBuffer.slice(eof + 2);
+                        await renderJPEGtoCanvas(ctx, canvas, jpeg);
+                        frameCount++;
+                        if (frameCount % 30 === 0) serialLog('rx', `Frame #${frameCount} · ${jpeg.length} bytes`);
+                        document.getElementById('serial-badge').style.display = 'inline';
+                        document.getElementById('serial-badge').textContent = `SERIAL · ${frameCount} frames`;
+                        setStatus('connected', `Serial · ${frameCount} frames received`);
+                    }
+                } else if (proto === 'length-prefix') {
+                    while (serialBuffer.length >= 4) {
+                        const len = serialBuffer[0] | (serialBuffer[1]<<8) | (serialBuffer[2]<<16) | (serialBuffer[3]<<24);
+                        if (len < 1 || len > 500000) { serialBuffer = serialBuffer.slice(1); continue; }
+                        if (serialBuffer.length < 4 + len) break;
+                        const jpeg = serialBuffer.slice(4, 4 + len);
+                        serialBuffer = serialBuffer.slice(4 + len);
+                        await renderJPEGtoCanvas(ctx, canvas, jpeg);
+                        frameCount++;
+                    }
+                } else if (proto === 'raw-rgb565') {
+                    const w = parseInt(document.getElementById('raw-width').value) || 320;
+                    const h = parseInt(document.getElementById('raw-height').value) || 240;
+                    const needed = w * h * 2;
+                    if (serialBuffer.length >= needed) {
+                        canvas.width = w; canvas.height = h;
+                        const imgData = ctx.createImageData(w, h);
+                        for (let i = 0; i < w*h; i++) {
+                            const px = (serialBuffer[i*2] << 8) | serialBuffer[i*2+1];
+                            imgData.data[i*4]   = (px >> 11) << 3;
+                            imgData.data[i*4+1] = ((px >> 5) & 0x3F) << 2;
+                            imgData.data[i*4+2] = (px & 0x1F) << 3;
+                            imgData.data[i*4+3] = 255;
+                        }
+                        ctx.putImageData(imgData, 0, 0);
+                        serialBuffer = serialBuffer.slice(needed);
+                        frameCount++;
+                    }
+                } else if (proto === 'raw-grayscale') {
+                    const w = parseInt(document.getElementById('raw-width').value) || 320;
+                    const h = parseInt(document.getElementById('raw-height').value) || 240;
+                    const needed = w * h;
+                    if (serialBuffer.length >= needed) {
+                        canvas.width = w; canvas.height = h;
+                        const imgData = ctx.createImageData(w, h);
+                        for (let i = 0; i < w*h; i++) {
+                            imgData.data[i*4] = imgData.data[i*4+1] = imgData.data[i*4+2] = serialBuffer[i];
+                            imgData.data[i*4+3] = 255;
+                        }
+                        ctx.putImageData(imgData, 0, 0);
+                        serialBuffer = serialBuffer.slice(needed);
+                        frameCount++;
+                    }
+                }
+            }
+        } catch(e) {
+            if (e.name !== 'AbortError') serialLog('err', 'Stream error: ' + e.message);
+        } finally {
+            serialReader = null;
+        }
+    }
+
+    async function disconnectSerial() {
+        if (serialReader) { try { await serialReader.cancel(); } catch(_) {} }
+        if (serialPort) { try { await serialPort.close(); } catch(_) {} serialPort = null; }
+        serialLog('sys', 'Serial port closed.');
+        setStatus('', 'No camera connected');
+        document.getElementById('serial-connect-btn').style.display = 'inline';
+        document.getElementById('serial-disconnect-btn').style.display = 'none';
+        document.getElementById('serial-cmd-btn').style.display = 'none';
+        document.getElementById('serial-live-badge').style.display = 'none';
+    }
+
+    function sendSerialCommand() {
+        const cmd = prompt('Send command to MCU (ASCII):');
+        if (!cmd || !serialPort || !serialPort.writable) return;
+        const writer = serialPort.writable.getWriter();
+        const encoded = new TextEncoder().encode(cmd + '\n');
+        writer.write(encoded).then(() => writer.releaseLock());
+        serialLog('tx', cmd);
+    }
+
+    /* ── BLUETOOTH ── */
+    async function scanBluetooth() {
+        if (!('bluetooth' in navigator)) {
+            alert('Web Bluetooth API not supported.\nUse Chrome 56+ or Edge 79+ on HTTPS.\n\nAlternative: Use Wi-Fi mode or Serial mode.');
+            return;
+        }
+        setStatus('connecting', 'Scanning for Bluetooth cameras…');
+        const nameFilter = document.getElementById('bt-name-filter').value.trim();
+        const filters = nameFilter ? [{ name: nameFilter }] : [{ services: [document.getElementById('bt-service-uuid').value] }];
+        try {
+            btDevice = await navigator.bluetooth.requestDevice({
+                filters,
+                optionalServices: [document.getElementById('bt-service-uuid').value]
+            });
+            document.getElementById('bt-device-list').innerHTML = `
+                <div class="bt-device">
+                    <div><div class="dev-name">${btDevice.name || 'Unknown Device'}</div><div class="dev-meta">${btDevice.id}</div></div>
+                    <div class="dev-rssi">PAIRED</div>
+                </div>`;
+            setStatus('connecting', 'Connecting to ' + (btDevice.name || btDevice.id) + '…');
+            const server = await btDevice.gatt.connect();
+            const service = await server.getPrimaryService(document.getElementById('bt-service-uuid').value);
+            btChar = await service.getCharacteristic(document.getElementById('bt-char-uuid').value);
+            await btChar.startNotifications();
+            btChar.addEventListener('characteristicvaluechanged', onBTFrame);
+            setStatus('connected', 'Bluetooth connected · ' + (btDevice.name || btDevice.id));
+            document.getElementById('bt-disconnect-btn').style.display = 'inline';
+            document.getElementById('bt-placeholder').style.display = 'none';
+            document.getElementById('bt-canvas').style.display = 'block';
+            document.getElementById('bt-live-badge').style.display = 'inline';
+            btDevice.addEventListener('gattserverdisconnected', () => {
+                setStatus('error', 'Bluetooth disconnected');
+                document.getElementById('bt-live-badge').style.display = 'none';
+            });
+        } catch(e) {
+            setStatus('error', 'Bluetooth error: ' + e.message);
+        }
+    }
+
+    async function onBTFrame(e) {
+        const canvas = document.getElementById('bt-canvas');
+        const ctx = canvas.getContext('2d');
+        const chunk = new Uint8Array(e.target.value.buffer);
+
+        if (chunk.length === 4 && btExpected === 0) {
+            btExpected = chunk[0] | (chunk[1]<<8) | (chunk[2]<<16) | (chunk[3]<<24);
+            btBuffer = new Uint8Array(0);
+            return;
+        }
+        btBuffer = appendBytes(btBuffer, chunk);
+        if (btExpected > 0 && btBuffer.length >= btExpected) {
+            await renderJPEGtoCanvas(ctx, canvas, btBuffer.slice(0, btExpected));
+            document.getElementById('bt-badge').style.display = 'inline';
+            document.getElementById('bt-badge').textContent = 'BT · ' + btBuffer.length + 'B';
+            btBuffer = new Uint8Array(0); btExpected = 0;
+        } else if (btExpected === 0) {
+            const sof = findBytes(chunk, [0xFF, 0xD8]);
+            const eof = findBytes(chunk, [0xFF, 0xD9]);
+            if (sof !== -1 && eof > sof) {
+                await renderJPEGtoCanvas(ctx, canvas, chunk.slice(sof, eof+2));
+            }
+        }
+    }
+
+    function disconnectBluetooth() {
+        if (btChar) { try { btChar.stopNotifications(); } catch(_) {} }
+        if (btDevice && btDevice.gatt.connected) btDevice.gatt.disconnect();
+        setStatus('', 'Bluetooth disconnected');
+        document.getElementById('bt-disconnect-btn').style.display = 'none';
+        document.getElementById('bt-live-badge').style.display = 'none';
+    }
+
+    /* ── LOW-LEVEL HELPERS ── */
+    function appendBytes(a, b) {
+        const out = new Uint8Array(a.length + b.length);
+        out.set(a, 0); out.set(b, a.length); return out;
+    }
+
+    function findBytes(buf, seq) {
+        outer: for (let i = 0; i <= buf.length - seq.length; i++) {
+            for (let j = 0; j < seq.length; j++) if (buf[i+j] !== seq[j]) continue outer;
+            return i;
+        }
+        return -1;
+    }
+
+    async function renderJPEGtoCanvas(ctx, canvas, bytes) {
+        const blob = new Blob([bytes], { type:'image/jpeg' });
+        try {
+            const bitmap = await createImageBitmap(blob);
+            canvas.width = bitmap.width; canvas.height = bitmap.height;
+            ctx.drawImage(bitmap, 0, 0);
+        } catch(_) {}
+    }
+
+    /* ── SERVICE WORKER ── */
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+    </script>
+</body>
+</html>

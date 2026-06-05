@@ -13,6 +13,16 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     
+    <!-- Bluetooth LE camera connectivity (API 31+ split permissions) -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!-- USB Host: connect PIC, STM32, ESP32, Arduino, etc. via OTG cable -->
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+
     <!-- Required for Play Store to ensure the device has a camera -->
     <uses-feature android:name="android.hardware.camera" android:required="true" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
@@ -152,6 +162,17 @@
             android:name=".AurigaVoiceService"
             android:exported="false"
             android:foregroundServiceType="microphone" />
+
+        <!-- Camera Connect: external camera over Wi-Fi / BT LE / USB Serial.
+             Supports IP cameras (MJPEG/WS), ESP32-CAM, nRF52 BLE modules,
+             PIC18F + USB CDC, STM32, RP2040, Arduino, any CH340/FTDI/CP2102
+             USB-to-serial adapter via the Android USB Host API. -->
+        <activity
+            android:name=".CameraConnectActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:theme="@style/AurigaDocTheme" />
 
         <!-- Crash viewer: surfaces the last crash report on launch with
              COPY / SHARE / DISMISS buttons so users can exfiltrate stack

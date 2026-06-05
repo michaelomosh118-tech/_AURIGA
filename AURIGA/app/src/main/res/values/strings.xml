@@ -56,6 +56,29 @@
     <string name="drawer_contribute_sdk">◈  SDK &amp; Partner Interest</string>
     <string name="drawer_contribute_sdk_sub">Drone, robotics, industrial &amp; white-label enquiries</string>
 
+    <!-- Camera Connect spinner arrays -->
+    <string-array name="wifi_formats">
+        <item>HTTP MJPEG stream</item>
+        <item>JPEG snapshot poll</item>
+        <item>WebSocket JPEG</item>
+    </string-array>
+    <string-array name="serial_bauds">
+        <item>9600</item>
+        <item>19200</item>
+        <item>38400</item>
+        <item>57600</item>
+        <item>115200</item>
+        <item>230400</item>
+        <item>460800</item>
+        <item>921600</item>
+    </string-array>
+    <string-array name="serial_protos">
+        <item>JPEG SOF/EOF auto-detect</item>
+        <item>4-byte length prefix + JPEG</item>
+        <item>Raw RGB565</item>
+        <item>Raw Grayscale</item>
+    </string-array>
+
     <!-- HUD Labels -->
     <string name="label_distance">Distance</string>
     <string name="label_bearing">Bearing</string>
@@ -74,6 +97,10 @@
     <string name="drawer_smart_light">⚡  Smart Light</string>
     <string name="drawer_smart_light_sub_off">OFF · tap to enable</string>
     <string name="drawer_smart_light_sub_on">ON · flashes before each scan</string>
+
+    <!-- Camera Connect drawer row -->
+    <string name="drawer_nav_camera_connect">⊞  Camera Connect</string>
+    <string name="drawer_nav_camera_connect_sub">Wi-Fi · Bluetooth LE · USB Serial / PIC · MCU</string>
 
     <!-- Mic FAB content description -->
     <string name="voice_mic_cd">Activate voice navigation</string>
