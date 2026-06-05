@@ -292,6 +292,18 @@ public class AurigaVoiceEngine implements RecognitionListener {
     private void routeCommand(String text) {
         String name = getAssistantName(activity).toLowerCase(Locale.US).trim();
 
+        // Persist user input to memory store
+        AurigaMemoryStore.store(activity, "user", text, "voice");
+        // Extract profile facts from what the user said
+        AurigaMemoryStore.extractAndSaveProfile(activity, text);
+
+        // Quality signals — user correcting or confirming the last answer
+        if (text.matches(".*\\b(yes,? exactly|that'?s? (right|correct|perfect)|exactly right|correct)\\b.*")) {
+            AurigaMemoryStore.markLastQuality(activity, 1);
+        } else if (text.matches(".*\\b(that'?s? wrong|that is wrong|wrong answer|incorrect|no that'?s? not right)\\b.*")) {
+            AurigaMemoryStore.markLastQuality(activity, -1);
+        }
+
         // Strip wake prefix so "Nova Auriga open locator" still works.
         String cmd = text;
         if (cmd.startsWith(name)) {
@@ -465,11 +477,9 @@ public class AurigaVoiceEngine implements RecognitionListener {
         // ── Conversational AI fallback (on-device knowledge base) ────
         } else if (!cmd.isEmpty()) {
             String kbAnswer = AurigaKnowledge.answer(cmd);
-            if (kbAnswer != null) {
-                speak(kbAnswer);
-            } else {
-                speak(AurigaKnowledge.fallback(cmd));
-            }
+            String reply = kbAnswer != null ? kbAnswer : AurigaKnowledge.fallback(cmd);
+            speak(reply);
+            AurigaMemoryStore.store(activity, "assistant", reply, "voice");
         }
     }
 

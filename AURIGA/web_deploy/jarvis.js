@@ -220,6 +220,10 @@
     if (memory.length > MAX_MEMORY) memory = memory.slice(-MAX_MEMORY);
     saveMemory();
     notifyMemoryListeners(role, text);
+    /* Persist to IndexedDB across sessions */
+    if (window.AurigaMemory) {
+      window.AurigaMemory.store(role, text).catch(function () {});
+    }
   }
 
   var memoryListeners = [];
@@ -698,16 +702,39 @@
       });
     }
 
-    /* 3. Try conversational AI (free endpoint, no key required) */
-    return queryAI(lower).then(function (aiAnswer) {
-      if (aiAnswer) {
-        speak(aiAnswer, 'ai-' + lower.slice(0, 20));
-        return aiAnswer;
+    /* 3a. Extract user profile facts silently in the background */
+    if (window.AurigaMemory) {
+      window.AurigaMemory.extractAndSaveProfile(lower).catch(function () {});
+    }
+
+    /* 3b. Try on-device LLM first (fully offline, uses memory context) */
+    var llmReady = window.AurigaLLM && window.AurigaLLM.status === 'ready';
+    var ctxPromise = (window.AurigaMemory && llmReady)
+      ? window.AurigaMemory.getContext(lower, 6)
+      : Promise.resolve('');
+
+    return ctxPromise.then(function (memCtx) {
+      if (llmReady) {
+        return window.AurigaLLM.ask(lower, memCtx);
       }
-      /* 4. Final offline fallback */
-      var fallback = buildOfflineFallback(lower);
-      speak(fallback, 'fallback');
-      return fallback;
+      return null;
+    }).then(function (llmAnswer) {
+      if (llmAnswer) {
+        speak(llmAnswer, 'llm-' + lower.slice(0, 20));
+        return llmAnswer;
+      }
+
+      /* 3c. Try online AI endpoint */
+      return queryAI(lower).then(function (aiAnswer) {
+        if (aiAnswer) {
+          speak(aiAnswer, 'ai-' + lower.slice(0, 20));
+          return aiAnswer;
+        }
+        /* 3d. Final offline fallback */
+        var fallback = buildOfflineFallback(lower);
+        speak(fallback, 'fallback');
+        return fallback;
+      });
     });
   }
 
@@ -952,6 +979,14 @@
       return;
     }
 
+    /* Detect quality feedback signals before routing */
+    var tl = text.trim().toLowerCase();
+    if (/\b(yes,?\s+exactly|that'?s?\s+(right|correct|perfect|great)|exactly right|correct)\b/.test(tl)) {
+      if (window.AurigaMemory) window.AurigaMemory.markLastQuality(1).catch(function () {});
+    } else if (/\b(no,?\s+(that'?s?\s+)?(wrong|incorrect|not right)|that'?s?\s+wrong|wrong answer|incorrect)\b/.test(tl)) {
+      if (window.AurigaMemory) window.AurigaMemory.markLastQuality(-1).catch(function () {});
+    }
+
     ask(text);
   }
 
@@ -999,6 +1034,11 @@
   }
 
   init();
+
+  /* Signal to AurigaLLM (which may load after us) that Jarvis is ready */
+  try {
+    document.dispatchEvent(new CustomEvent('jarvis:ready'));
+  } catch (_) {}
 
   /* ── Public API ───────────────────────────────────────────────────── */
   window.Jarvis = {
