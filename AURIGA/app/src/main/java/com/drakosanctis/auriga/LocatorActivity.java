@@ -121,6 +121,23 @@ public class LocatorActivity extends ComponentActivity {
     /** Don't speak the same label more often than this. */
     private static final long SPEECH_COOLDOWN_MS = 2200L;
 
+    // ── Distance / bearing constants ────────────────────────────────────
+    /**
+     * Horizontal field of view assumed for the rear camera.
+     * Matches the web PWA (locator.html FOV_DEGREES = 60).
+     * Bearing (°) = (normCentreX − 0.5) × FOV_DEGREES.
+     * Positive → right of centre; negative → left.
+     */
+    private static final float FOV_DEGREES = 60f;
+
+    /**
+     * Empirical constant used by the web PWA distance formula:
+     *   distance_m = REFERENCE_CONSTANT / (normHeight × 100)
+     * Larger bounding-box height → object is closer.
+     * Matches locator.html REFERENCE_CONSTANT = 100.
+     */
+    private static final float REFERENCE_CONSTANT = 100f;
+
     private DrawerLayout drawerLayout;
     private PreviewView previewView;
     private LocatorOverlayView overlayView;
@@ -647,23 +664,69 @@ public class LocatorActivity extends ComponentActivity {
         return best;
     }
 
+    /**
+     * HUD status line shown on the overlay.
+     * Format: LABEL · ±XX° · X.Xm · XX%
+     */
     private static String buildStatusLine(Detection d) {
-        String bearing = bearingFor(d.centerX());
-        return d.label.toUpperCase()
-                + " · " + bearing
+        float deg  = bearingDeg(d.centerX());
+        String dir = bearingDir(deg);
+        String dist = distanceStr(d);
+        return d.label.toUpperCase(Locale.US)
+                + " · " + (deg >= 0 ? "+" : "") + Math.round(deg) + "°"
+                + " · " + dist
+                + " · " + dir
                 + " · " + Math.round(d.confidence * 100) + "%";
     }
 
-    private static String bearingFor(float normX) {
-        if (normX < 0.33f) return "LEFT";
-        if (normX > 0.67f) return "RIGHT";
-        return "CENTRE";
+    /**
+     * Signed bearing in degrees relative to frame centre.
+     * Formula mirrors the web PWA: bearing = (normCentreX − 0.5) × FOV_DEGREES.
+     * Positive = right of centre; negative = left.
+     */
+    private static float bearingDeg(float normX) {
+        return (normX - 0.5f) * FOV_DEGREES;
+    }
+
+    /**
+     * Human-readable direction word, matching the web PWA's formatBearing()
+     * 'narrow' mode thresholds exactly.
+     */
+    private static String bearingDir(float deg) {
+        if (Math.abs(deg) < 5f)  return "ahead";
+        if (deg <= -15f)          return "to your left";
+        if (deg < 0f)             return "slightly left";
+        if (deg >= 15f)           return "to your right";
+        return "slightly right";
+    }
+
+    /**
+     * Distance estimate from bounding-box height.
+     * Formula mirrors the web PWA: distance_m = REFERENCE_CONSTANT / (normHeight × 100).
+     * Returns "Xcm" for sub-metre objects, "X.Xm" otherwise.
+     */
+    private static String distanceStr(Detection d) {
+        float normH = Math.max(d.box.bottom - d.box.top, 0.001f);
+        float dist  = REFERENCE_CONSTANT / (normH * 100f);
+        if (dist < 1f) {
+            return Math.round(dist * 100) + " centimetres";
+        }
+        long whole = Math.round(dist);
+        if (whole >= 2 && Math.abs(dist - whole) <= 0.05f) {
+            return whole + " metres";
+        }
+        return String.format(Locale.US, "%.1f metres", dist);
     }
 
     /**
      * Announce the target via TTS, with a per-label cooldown so
-     * the same chair doesn't get re-spoken every 333 ms. Also
-     * fires a short haptic pulse if haptic is enabled.
+     * the same chair doesn't get re-spoken every 333 ms.
+     *
+     * Phrase format (matches web PWA AurigaAnnounce.compose.objectFound):
+     *   "{Label}, {distance}, {bearing direction}."
+     * e.g. "Chair, 1.2 metres, slightly right."
+     *
+     * Also fires a short haptic pulse if haptic is enabled.
      */
     private void announceTarget(Detection d) {
         if (hapticEnabled && haptic != null) {
@@ -676,9 +739,14 @@ public class LocatorActivity extends ComponentActivity {
         if (sameAsLast && now - lastSpokenAt < SPEECH_COOLDOWN_MS) return;
         if (!sameAsLast && now - lastSpokenAt < 700L) return;
 
-        String utterance = String.format(Locale.US,
-                "%s, %s",
-                d.label, bearingFor(d.centerX()).toLowerCase(Locale.US));
+        float   deg  = bearingDeg(d.centerX());
+        String  dir  = bearingDir(deg);
+        String  dist = distanceStr(d);
+        // Capitalise label; mirror web phrase order: what, distance, bearing.
+        String label = d.label.substring(0, 1).toUpperCase(Locale.US)
+                     + d.label.substring(1).toLowerCase(Locale.US);
+        String utterance = label + ", " + dist + ", " + dir + ".";
+
         tts.speak(utterance, TextToSpeech.QUEUE_FLUSH, null,
                 "auriga_locator_" + now);
         lastSpokenAt = now;
