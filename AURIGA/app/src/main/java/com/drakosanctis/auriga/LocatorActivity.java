@@ -28,6 +28,7 @@ import android.widget.Toast;
 
 import androidx.activity.ComponentActivity;
 import androidx.annotation.NonNull;
+import android.view.MotionEvent;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
@@ -129,8 +130,14 @@ public class LocatorActivity extends ComponentActivity {
     private TextView hapticSub;
     private TextView smartLightSub;
 
-    private boolean smartLightEnabled = false;
-    private Camera  cameraRef         = null;
+    private boolean          smartLightEnabled = false;
+    private Camera           cameraRef         = null;
+    /**
+     * Two-phase torch flag. Set to {@code true} in Phase 1 (dark scene
+     * detected, torch fired). Cleared in Phase 2 (next fresh frame
+     * captured under torch light, inference runs, torch killed).
+     */
+    private volatile boolean torchPrimed       = false;
 
     private boolean voiceEnabled = true;
     private boolean hapticEnabled = true;
@@ -292,12 +299,15 @@ public class LocatorActivity extends ComponentActivity {
 
         voiceEngine = buildVoiceEngine();
 
-        // Serpentine gesture on the full locator frame.
+        // Serpentine gesture — detector is created here; events are fed
+        // via dispatchTouchEvent() at the activity level so it always sees
+        // all MOVE/UP events regardless of which child view consumes them.
+        serpentine = new SerpentineGestureDetector(this,
+                () -> { if (voiceEngine != null) voiceEngine.startListening(); });
+
+        // Long-press on the locator frame as a second activation path.
         FrameLayout locatorFrame = findViewById(R.id.locator_frame);
         if (locatorFrame != null) {
-            serpentine = new SerpentineGestureDetector(this,
-                    () -> { if (voiceEngine != null) voiceEngine.startListening(); });
-            serpentine.attach(locatorFrame);
             voiceEngine.attachLongPressToView(locatorFrame);
         }
 
@@ -472,30 +482,42 @@ public class LocatorActivity extends ComponentActivity {
                 }
                 lastAnalysedAt = now;
 
-                // ── Smart Lighting ──────────────────────────────────
-                // Take a quick "dark probe" frame first. If smart-light
-                // mode is on AND the scene is dark, flash the torch,
-                // wait for the sensor to stabilise, then grab the real
-                // inference frame. Torch is always killed afterwards so
-                // it never stays on between cycles.
-                boolean torchFired = false;
+                // ── Smart Lighting (two-phase) ────────────────────────
+                // Phase 1 (torchPrimed == false):
+                //   Probe the current frame brightness. If dark, fire the
+                //   torch and return — do NOT run inference on this stale
+                //   dark frame. The torch warms up between cycles.
+                // Phase 2 (torchPrimed == true):
+                //   This frame was captured while the torch was already on.
+                //   Run inference on the well-lit frame, then kill the torch.
+                // Net result: the inference always sees a lit frame, never
+                // the dark frame that triggered the flash.
                 if (smartLightEnabled && cameraRef != null) {
-                    Bitmap probe = imageProxyToUprightBitmap(image);
-                    boolean isDark = probe == null
-                            || computeAvgBrightness(probe) < DARK_THRESHOLD;
-                    if (probe != null) probe.recycle();
-
-                    if (isDark) {
-                        try {
-                            cameraRef.getCameraControl().enableTorch(true);
-                            Thread.sleep(TORCH_SETTLE_MS);
-                            torchFired = true;
-                        } catch (Throwable ignored) {}
+                    if (!torchPrimed) {
+                        Bitmap probe = imageProxyToUprightBitmap(image);
+                        boolean isDark = probe == null
+                                || computeAvgBrightness(probe) < DARK_THRESHOLD;
+                        if (probe != null) probe.recycle();
+                        if (isDark) {
+                            try {
+                                cameraRef.getCameraControl().enableTorch(true);
+                            } catch (Throwable ignored) {}
+                            torchPrimed = true;
+                            return; // wait for next fresh frame under torch light
+                        }
+                        // Scene is bright — fall through to normal inference.
                     }
+                    // torchPrimed == true: torch has been on since last cycle;
+                    // inference below will use this lit frame, then torch off.
                 }
+
                 // ── Inference ────────────────────────────────────────
                 Bitmap bmp = imageProxyToUprightBitmap(image);
-                if (torchFired) tryDisableTorch();   // off as soon as frame is grabbed
+                // If torch was primed, this lit frame is now in memory — kill torch.
+                if (torchPrimed) {
+                    tryDisableTorch();
+                    torchPrimed = false;
+                }
                 if (bmp == null) return;
 
                 List<Detection> dets = detector.detect(bmp);
@@ -860,6 +882,23 @@ public class LocatorActivity extends ComponentActivity {
                     label + " unavailable: " + t.getMessage(),
                     Toast.LENGTH_LONG).show();
         }
+    }
+
+    /**
+     * Feed every touch event to the serpentine gesture detector BEFORE
+     * any view processes it. This guarantees the detector always receives
+     * ACTION_DOWN, ACTION_MOVE, and ACTION_UP regardless of whether a
+     * child view (PreviewView, overlay, FAB, etc.) consumes the event.
+     *
+     * Previously the detector was attached via {@code setOnTouchListener}
+     * on the locator FrameLayout, but a non-clickable FrameLayout drops
+     * MOVE/UP events when ACTION_DOWN returns {@code false}, so the S-curve
+     * was never recognised. Routing through dispatchTouchEvent fixes this.
+     */
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (serpentine != null) serpentine.onTouch(ev);
+        return super.dispatchTouchEvent(ev);
     }
 
     @Override

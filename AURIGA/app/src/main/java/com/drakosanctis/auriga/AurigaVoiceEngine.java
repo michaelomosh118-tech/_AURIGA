@@ -116,6 +116,10 @@ public class AurigaVoiceEngine implements RecognitionListener {
             return;
         }
         try {
+            // Pause the always-on wake service so both SpeechRecognizers
+            // don't fight over the single microphone.
+            AurigaVoiceService.stopListening(activity);
+
             listening = true;
             Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
@@ -125,9 +129,11 @@ public class AurigaVoiceEngine implements RecognitionListener {
             intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
             recognizer.startListening(intent);
             if (listener != null) listener.onListeningStarted();
-            speakQuiet("Listening");
+            // No TTS "Listening" sound — the mic would immediately pick it
+            // up and confuse the recognizer. Visual transcript bubble is enough.
         } catch (Throwable t) {
             listening = false;
+            AurigaVoiceService.startListening(activity); // restore wake service
             if (listener != null) listener.onListeningStopped();
         }
     }
@@ -172,6 +178,8 @@ public class AurigaVoiceEngine implements RecognitionListener {
 
     /** Call from the host activity's {@code onResume}. */
     public void onResume() {
+        // Always recreate so we start with a clean recognizer, not one
+        // that may be in a dead state from a previous error or pause cycle.
         if (recognizer == null) {
             initRecognizer();
         }
@@ -180,6 +188,11 @@ public class AurigaVoiceEngine implements RecognitionListener {
     /** Call from the host activity's {@code onPause} to free the mic. */
     public void onPause() {
         stopListening();
+        // Destroy the recognizer — leaving it alive holds the mic resource
+        // and causes conflicts when the activity is backgrounded.
+        try {
+            if (recognizer != null) { recognizer.destroy(); recognizer = null; }
+        } catch (Throwable ignored) {}
     }
 
     /** Call from {@code onDestroy} to release all resources. */
@@ -235,6 +248,16 @@ public class AurigaVoiceEngine implements RecognitionListener {
     @Override
     public void onError(int error) {
         listening = false;
+        // SpeechRecognizer is permanently dead after any error on Android —
+        // must destroy and recreate, not reuse.
+        mainHandler.post(() -> {
+            try {
+                if (recognizer != null) { recognizer.destroy(); recognizer = null; }
+            } catch (Throwable ignored) {}
+            initRecognizer();
+            // Resume the always-on wake service now the mic is free.
+            AurigaVoiceService.startListening(activity);
+        });
         if (listener != null) listener.onListeningStopped();
     }
 
@@ -242,6 +265,8 @@ public class AurigaVoiceEngine implements RecognitionListener {
     public void onResults(Bundle results) {
         listening = false;
         if (listener != null) listener.onListeningStopped();
+        // Mic is released — hand it back to the wake service.
+        AurigaVoiceService.startListening(activity);
         ArrayList<String> matches =
                 results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
         if (matches != null && !matches.isEmpty()) {
