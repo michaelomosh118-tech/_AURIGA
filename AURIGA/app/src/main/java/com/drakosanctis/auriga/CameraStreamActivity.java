@@ -1,7 +1,6 @@
 package com.drakosanctis.auriga;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -23,6 +22,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
@@ -55,7 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>Works for NAVI and ARAEL (sentinel) flavors — both share this activity.
  * No external library dependencies; pure Java {@code ServerSocket} + CameraX.
  */
-public class CameraStreamActivity extends Activity {
+public class CameraStreamActivity extends AppCompatActivity {
 
     private static final String TAG      = "CameraStream";
     private static final int    PORT     = 8080;
@@ -79,9 +79,9 @@ public class CameraStreamActivity extends Activity {
     private TextView statusLabel;
     private Button   streamBtn;
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // ───────────────────────────────────────────────────────────────[...]
     // Lifecycle
-    // ─────────────────────────────────────────────────────────────────────────
+    // ───────────────────────────────────────────────────────────────[...]
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,9 +111,9 @@ public class CameraStreamActivity extends Activity {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────[...]
     // UI — built programmatically (no XML dep, same pattern as CrashReportActivity)
-    // ─────────────────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────[...]
 
     private ScrollView buildUi() {
         int C_BG     = Color.parseColor("#030D0D");
@@ -130,7 +130,7 @@ public class CameraStreamActivity extends Activity {
         root.setGravity(Gravity.TOP);
         root.setPadding(dp(20), dp(48), dp(20), dp(32));
 
-        // ── Title ──────────────────────────────────────────────────────────
+        // ── Title ─────────────────────────────────────────────────────────[...]
         TextView title = new TextView(this);
         title.setText("⊞  STREAM TO LAPTOP");
         title.setTextColor(C_CYAN);
@@ -180,7 +180,7 @@ public class CameraStreamActivity extends Activity {
         };
         for (String step : steps) addLabel(howCard, step, C_STEP, 12f, dp(5));
 
-        // ── Status ─────────────────────────────────────────────────────────
+        // ── Status ──────────────────────────────────────────────────────────[...]
         statusLabel = new TextView(this);
         statusLabel.setText("● IDLE  —  tap START STREAM to begin");
         statusLabel.setTextColor(C_IDLE);
@@ -214,9 +214,9 @@ public class CameraStreamActivity extends Activity {
         return sv;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────[...]
     // Stream lifecycle
-    // ─────────────────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────[...]
 
     private void startStream() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
@@ -258,9 +258,9 @@ public class CameraStreamActivity extends Activity {
         setStatus("● IDLE  —  tap START STREAM to begin", "#336666");
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────[...]
     // CameraX → JPEG pipeline
-    // ─────────────────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────[...]
 
     private void bindCamera() {
         CameraSelector sel = new CameraSelector.Builder()
@@ -317,9 +317,9 @@ public class CameraStreamActivity extends Activity {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────[...]
     // HTTP MJPEG server
-    // ─────────────────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────[...]
 
     private void runHttpServer() {
         try {
@@ -404,9 +404,9 @@ public class CameraStreamActivity extends Activity {
         out.flush();
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────[...]
     // Helpers
-    // ─────────────────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────[...]
 
     private String getWifiIp() {
         try {
@@ -437,9 +437,9 @@ public class CameraStreamActivity extends Activity {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────[...]
     // UI factory helpers
-    // ─────────────────────────────────────────────────────────────────────────
+    // ────────────────────────────────────────────────────────────────[...]
 
     private LinearLayout card(int bg, int hPad, int bottomMargin) {
         LinearLayout c = new LinearLayout(this);
