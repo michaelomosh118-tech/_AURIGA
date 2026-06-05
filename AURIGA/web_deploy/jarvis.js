@@ -46,6 +46,7 @@
   var briefingActive  = false;
   var memory          = [];      // [{role, text, ts}]
   var skills          = [];      // custom skill extensions
+  var _speaker        = null;    // singleton AurigaAnnounce.Speaker
 
   /* ── Jarvis Persona ──────────────────────────────────────────────── */
   /*
@@ -228,17 +229,32 @@
     });
   }
 
-  /* ── Speaker (defer to AurigaAnnounce if available) ──────────────── */
+  /* ── Speaker singleton (defer to AurigaAnnounce if available) ────── */
+  /*
+   * BUG FIX: the old code created a NEW Speaker instance on every speak()
+   * call, so the deduplication / gap logic inside Speaker was useless —
+   * each instance had no history. Speeches could collide and cancel each
+   * other. We now keep one module-level singleton and lazy-init it.
+   */
+  function getSpeaker() {
+    if (_speaker) return _speaker;
+    if (window.AurigaAnnounce) {
+      _speaker = new window.AurigaAnnounce.Speaker({
+        rate: 0.95, pitch: 1.0, repeatMs: 600, minGapMs: 100
+      });
+      _speaker.enabled = true;
+    }
+    return _speaker;
+  }
+
   function speak(text, key) {
     addToMemory('assistant', text);
-    // Try AurigaAnnounce first
-    if (window.AurigaAnnounce) {
-      var sp = new window.AurigaAnnounce.Speaker({ rate: 0.95, pitch: 1.0, repeatMs: 600, minGapMs: 100 });
-      sp.enabled = true;
+    var sp = getSpeaker();
+    if (sp) {
       sp.say(text, key || ('j-' + Date.now()));
       return;
     }
-    // Fallback to raw SpeechSynthesis
+    // Fallback to raw SpeechSynthesis when AurigaAnnounce isn't loaded yet
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
     var u = new SpeechSynthesisUtterance(text);
@@ -247,133 +263,303 @@
   }
 
   /* ── Core command table ───────────────────────────────────────────── */
+  /*
+   * Design: every command accepts broad natural-language paraphrases so
+   * users don't need to memorise exact phrases. Three groups of patterns:
+   *   1. Verb + noun  ("open locator", "start reader")
+   *   2. Intent       ("I want to find objects", "help me read")
+   *   3. Question     ("what's around me", "what does this say")
+   */
   var COMMANDS = [
-    /* ── Navigation ── */
+    /* ── Home ── */
     {
-      match: [/\b(go\s+)?home\b/i, /\bmain\s+page\b/i],
+      match: [
+        /\b(go\s+)?(to\s+)?home\b/i,
+        /\bmain\s+page\b/i,
+        /\btake\s+me\s+home\b/i,
+        /\breturn\s+(to\s+)?home\b/i,
+        /\bstart\s+page\b/i,
+        /\blanding\s+page\b/i
+      ],
       reply: 'Going home.',
       action: function () { navigateTo('index.html'); }
     },
+
+    /* ── Object Locator ── */
     {
-      match: [/\b(open\s+)?locator\b/i, /\bobject\s+locator\b/i, /\bfind\s+objects?\b/i, /\bstart\s+detecting\b/i],
+      match: [
+        /\b(open|start|launch|go\s+to|load)\s+(the\s+)?locator\b/i,
+        /\bobject\s+locator\b/i,
+        /\bfind\s+objects?\b/i,
+        /\b(start|begin)\s+detect(ing|ion)\b/i,
+        /\bscan\s+(my\s+)?surroundings?\b/i,
+        /\bwhat('s|\s+is)\s+(a|a?round|nearby|in\s+front)\b/i,
+        /\bshow\s+me\s+what'?s?\s+around\b/i,
+        /\blook\s+around\b/i,
+        /\bidentify\s+objects?\b/i,
+        /\bnavigat(e|ion)\s+mode\b/i,
+        /\bspatial\s+(view|mode|scan)\b/i,
+        /\bdetect(ion)?\s+mode\b/i,
+        /\bI\s+want\s+to\s+(find|see)\s+objects?\b/i,
+        /\bhelp\s+me\s+(find|navigate)\b/i
+      ],
       reply: 'Opening the Object Locator.',
       action: function () { navigateTo('locator.html'); }
     },
+
+    /* ── DrakoVoice Reader ── */
     {
-      match: [/\b(open\s+)?reader\b/i, /\bdrako\s*voice\b/i, /\bread\s+text\b/i, /\bocr\b/i, /\bscan\s+text\b/i],
+      match: [
+        /\b(open|start|launch|go\s+to)\s+(the\s+)?(drako\s*voice\s+)?reader\b/i,
+        /\bdrako\s*voice\b/i,
+        /\bread\s+(this|text|a?\s*sign|a?\s*document|a?\s*label|a?\s*menu|a?\s*page)\b/i,
+        /\bocr(\s+mode)?\b/i,
+        /\bscan\s+text\b/i,
+        /\bwhat\s+does\s+this\s+say\b/i,
+        /\bwhat('s|\s+is)\s+(written|printed|on\s+this)\b/i,
+        /\bI\s+want\s+to\s+read\b/i,
+        /\bhelp\s+me\s+read\b/i,
+        /\breadout\s+mode\b/i,
+        /\btext\s+recogni(tion|ze)\b/i,
+        /\bdocument\s+reader\b/i
+      ],
       reply: 'Opening the DrakoVoice Reader.',
       action: function () { navigateTo('reader.html'); }
     },
+
+    /* ── Calibration ── */
     {
-      match: [/\b(open\s+)?calibrat(e|ion)\b/i, /\blibrary\b/i],
+      match: [
+        /\b(open|start|launch|go\s+to)\s+(the\s+)?calibrat(e|ion)\b/i,
+        /\b(calibration\s+)?library\b/i,
+        /\bcalibrate\b/i,
+        /\bimprove\s+(accuracy|distance)\b/i,
+        /\bsetup\s+calibration\b/i,
+        /\brecalibrate\b/i,
+        /\b(ten|10)[- ]point\s+calibration\b/i,
+        /\bdistance\s+calibration\b/i
+      ],
       reply: 'Opening the Calibration Library.',
       action: function () { navigateTo('calibration-library.html'); }
     },
+
+    /* ── Send Feedback ── */
     {
-      match: [/\b(send\s+)?feedback\b/i, /\breport\s+(a\s+)?(bug|issue|problem)\b/i],
+      match: [
+        /\b(send|open|give|submit)\s+(the\s+)?feedback\b/i,
+        /\breport\s+(a\s+)?(bug|issue|problem|error)\b/i,
+        /\bI\s+(found|have)\s+a\s+bug\b/i,
+        /\bsomething('s|\s+is)\s+wrong\b/i,
+        /\bsuggest\s+(an?\s+)?idea\b/i,
+        /\bsubmit\s+(a\s+)?suggestion\b/i,
+        /\bcontact\s+support\b/i,
+        /\bfeedback\s+form\b/i,
+        /\bfile\s+a\s+report\b/i
+      ],
       reply: 'Opening Send Feedback.',
       action: function () { navigateTo('feedback.html'); }
     },
+
+    /* ── Targets Manager ── */
     {
-      match: [/\b(open\s+)?targets?\b/i, /\bset\s+targets?\b/i, /\bmanage\s+targets?\b/i, /\btrack\s+objects?\b/i],
+      match: [
+        /\b(open|start|go\s+to|manage|set|edit)\s+(the\s+)?targets?\b/i,
+        /\btrack\s+objects?\b/i,
+        /\bwhat\s+(am\s+I|are\s+you)\s+tracking\b/i,
+        /\b(add|remove)\s+(a?\s+)?target\b/i,
+        /\bwatch\s+list\b/i,
+        /\btracking\s+list\b/i,
+        /\bconfigure\s+targets?\b/i
+      ],
       reply: 'Opening Targets Manager.',
       action: function () { navigateTo('locator-targets.html'); }
     },
+
+    /* ── About ── */
     {
-      match: [/\b(open\s+)?about\b/i, /\bwho\s+(made|built|created)\b/i],
-      reply: null,
+      match: [
+        /\b(open\s+)?about\b/i,
+        /\bwho\s+(made|built|created)\s+(this|auriga)\b/i,
+        /\btell\s+me\s+about\s+auriga\b/i,
+        /\bapp\s+info\b/i,
+        /\bcredits\b/i
+      ],
+      reply: 'Opening About.',
       action: function () { navigateTo('about.html'); }
     },
+
+    /* ── Jarvis / Assistant page ── */
     {
-      match: [/\b(open\s+)?assistant\b/i, /\bopen\s+jarvis\b/i, /\bjarvis\s+mode\b/i],
+      match: [
+        /\b(open\s+)?(the\s+)?assistant\b/i,
+        /\bopen\s+jarvis\b/i,
+        /\bjarvis\s+mode\b/i,
+        /\bai\s+assistant\b/i,
+        /\bchat\s+(with\s+)?jarvis\b/i
+      ],
       reply: 'Opening the Jarvis Assistant.',
       action: function () { navigateTo('assistant.html'); }
     },
+
     /* ── Section navigation (home page) ── */
     {
-      match: [/\b(go\s+to\s+)?ecosystem\b/i],
+      match: [/\b(go\s+to\s+|show\s+|view\s+)?ecosystem\b/i],
       reply: 'Showing the Ecosystem section.',
       action: function () { showSection('ecosystem'); }
     },
     {
-      match: [/\b(go\s+to\s+)?(strategic\s+)?position\b/i],
+      match: [/\b(go\s+to\s+|show\s+)?((strategic\s+)?position|competitive)\b/i],
       reply: 'Showing Strategic Position.',
       action: function () { showSection('position'); }
     },
     {
-      match: [/\b(go\s+to\s+)?navi\b/i, /\bauriga\s+navi\b/i],
+      match: [/\b(go\s+to\s+|show\s+)?navi\b/i, /\bauriga\s+navi\b/i, /\bcharioteer\b/i],
       reply: 'Showing Auriga Navi.',
       action: function () { showSection('navi'); }
     },
     {
-      match: [/\b(go\s+to\s+)?sentinel\b/i],
+      match: [/\b(go\s+to\s+|show\s+)?sentinel\b/i, /\bauriga\s+sentinel\b/i],
       reply: 'Showing Auriga Sentinel.',
       action: function () { showSection('sentinel'); }
     },
     {
-      match: [/\b(go\s+to\s+)?aero\b/i],
+      match: [/\b(go\s+to\s+|show\s+)?aero\b/i, /\bauriga\s+aero\b/i],
       reply: 'Showing Auriga Aero.',
       action: function () { showSection('aero'); }
     },
     {
-      match: [/\b(go\s+to\s+)?industrial\b/i],
+      match: [/\b(go\s+to\s+|show\s+)?industrial\b/i, /\bauriga\s+industrial\b/i],
       reply: 'Showing Auriga Industrial.',
       action: function () { showSection('industrial'); }
     },
-    /* ── Controls ── */
+
+    /* ── Menu controls ── */
     {
-      match: [/\b(open\s+)?(the\s+)?menu\b/i, /\bnavigation\s+drawer\b/i],
+      match: [
+        /\b(open|show|expand|pull\s+out)\s+(the\s+)?(menu|drawer|sidebar|navigation)\b/i,
+        /\bnavigation\s+drawer\b/i,
+        /\bmenu\s+please\b/i,
+        /\bapp\s+menu\b/i
+      ],
       reply: 'Opening the menu.',
       action: function () { if (window.toggleNavDrawer) window.toggleNavDrawer(); }
     },
     {
-      match: [/\bclose\s+(the\s+)?menu\b/i, /\bclose\s+drawer\b/i],
+      match: [
+        /\b(close|hide|dismiss|collapse|shut)\s+(the\s+)?(menu|drawer|sidebar|navigation)\b/i
+      ],
       reply: 'Menu closed.',
       action: function () { if (window.closeNavDrawer) window.closeNavDrawer(); }
     },
+
+    /* ── Scroll / navigate ── */
     {
-      match: [/\bscroll\s+down\b/i, /\bnext\s+section\b/i],
+      match: [
+        /\bscroll\s+down\b/i,
+        /\bnext\s+section\b/i,
+        /\bmove\s+down\b/i,
+        /\bmore\s+content\b/i
+      ],
       reply: 'Scrolling down.',
       action: function () { window.scrollBy({ top: window.innerHeight * 0.75, behavior: 'smooth' }); }
     },
     {
-      match: [/\bscroll\s+up\b/i, /\bprevious\s+section\b/i],
+      match: [
+        /\bscroll\s+up\b/i,
+        /\bprevious\s+section\b/i,
+        /\bmove\s+up\b/i,
+        /\bback\s+to\s+top\b/i
+      ],
       reply: 'Scrolling up.',
       action: function () { window.scrollBy({ top: -window.innerHeight * 0.75, behavior: 'smooth' }); }
     },
     {
-      match: [/\bgo\s+back\b/i, /\bback\b/i],
+      match: [
+        /\bgo\s+back\b/i,
+        /\bprevious\s+page\b/i,
+        /\breturn\b/i,
+        /\bnavigate\s+back\b/i,
+        /\bpress\s+back\b/i,
+        /\btake\s+me\s+back\b/i,
+        /\b^back$\b/i
+      ],
       reply: 'Going back.',
       action: function () { window.history.back(); }
     },
+
     /* ── Jarvis-specific skills ── */
     {
-      match: [/\b(morning\s+)?briefing\b/i, /\bdaily\s+(briefing|digest|summary)\b/i, /\bgood\s+morning\b/i],
+      match: [
+        /\b(morning\s+)?briefing\b/i,
+        /\bdaily\s+(briefing|digest|summary|update)\b/i,
+        /\bgood\s+morning\b/i,
+        /\bwhat'?s?\s+(new|happening)\b/i,
+        /\bmorning\s+update\b/i
+      ],
       reply: null,
       action: function () { runBriefing(); }
     },
     {
-      match: [/\bdescribe\s+(the\s+)?scene\b/i, /\bwhat('s|\s+is)\s+(around|nearby|in front)\b/i, /\bwhat\s+do\s+you\s+see\b/i],
+      match: [
+        /\bdescribe\s+(the\s+)?scene\b/i,
+        /\bwhat('s|\s+is)\s+(a|a?round|nearby|in\s+front)\b/i,
+        /\bwhat\s+do\s+you\s+see\b/i,
+        /\bwhat\s+can\s+you\s+see\b/i,
+        /\bwhat('s|\s+is)\s+(detected|visible|there)\b/i,
+        /\btell\s+me\s+what'?s?\s+around\b/i,
+        /\bdescribe\s+(my\s+)?surroundings?\b/i
+      ],
       reply: null,
       action: function () { describeScene(); }
     },
     {
-      match: [/\bchange\s+(my\s+)?name\b/i, /\brename\b/i, /\bnew\s+name\b/i],
-      reply: 'Sure. Say your new assistant name after the tone.',
+      match: [
+        /\bchange\s+(my\s+)?name\b/i,
+        /\brename\b/i,
+        /\bnew\s+name\b/i,
+        /\bcall\s+you\s+(something|by)\b/i,
+        /\bgive\s+you\s+a\s+name\b/i,
+        /\bi\s+want\s+to\s+rename\b/i
+      ],
+      reply: 'Sure. Say your new assistant name.',
       action: function () { startRenameFlow(); }
     },
     {
-      match: [/\bhelp\b/i, /\bwhat\s+can\s+you\s+do\b/i, /\blist\s+commands?\b/i],
+      match: [
+        /\bhelp\b/i,
+        /\bwhat\s+can\s+you\s+do\b/i,
+        /\blist\s+commands?\b/i,
+        /\bavailable\s+commands?\b/i,
+        /\bwhat\s+(are\s+your|do\s+you\s+know)\b/i,
+        /\bshow\s+commands?\b/i,
+        /\bwhat\s+can\s+I\s+say\b/i
+      ],
       reply: null,
       action: function () { speak(buildSkillList(), 'help'); }
     },
     {
-      match: [/\b(read\s+)?(this\s+)?page\b/i, /\bwhat('s|\s+is)\s+(on\s+)?(this\s+)?page\b/i, /\bdescribe\s+(this\s+)?page\b/i],
+      match: [
+        /\b(read|describe|summarise|summarize)\s+(this\s+)?page\b/i,
+        /\bwhat('s|\s+is)\s+(on\s+)?(this\s+)?page\b/i,
+        /\bwhere\s+am\s+I\b/i,
+        /\bwhat\s+(screen|page)\s+am\s+I\s+on\b/i,
+        /\btell\s+me\s+about\s+this\s+page\b/i,
+        /\bcurrent\s+page\b/i
+      ],
       reply: null,
       action: function () { announcePage(true); }
     },
     {
-      match: [/\bstop\s+(listening|voice|speaking)\b/i, /\bquiet\b/i, /\bmute\s+(me|voice|mic)\b/i],
+      match: [
+        /\bstop\s+(listening|voice|speaking|talking)\b/i,
+        /\bquiet\b/i,
+        /\b(be\s+)?quiet\b/i,
+        /\bshh+\b/i,
+        /\bmute\s+(me|voice|mic|yourself)\b/i,
+        /\bsilence\b/i,
+        /\bpause\s+voice\b/i,
+        /\bthat'?s?\s+enough\b/i
+      ],
       reply: 'Voice paused. Long-press the screen or press Control Space to wake me again.',
       action: function () {
         stopListening();
@@ -381,7 +567,13 @@
       }
     },
     {
-      match: [/\baccessibility\s+tip\b/i, /\btip\s+(of\s+the\s+day|for\s+today)\b/i, /\bdaily\s+tip\b/i],
+      match: [
+        /\baccessibility\s+tip\b/i,
+        /\btip\s+(of\s+the\s+day|for\s+today)\b/i,
+        /\bdaily\s+tip\b/i,
+        /\bany\s+tips?\b/i,
+        /\bgive\s+me\s+a\s+tip\b/i
+      ],
       reply: null,
       action: function () { speak(getDailyTip(), 'tip'); }
     },

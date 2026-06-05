@@ -16,6 +16,7 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * AurigaVoiceEngine — Android voice navigation layer.
@@ -25,6 +26,8 @@ import java.util.Locale;
  *   - Checks for first-run assistant name setup
  *   - Listens for the wake phrase "[name] AURIGA"
  *   - Routes spoken commands to activities, drawer, and system actions
+ *     using rich natural-language synonym sets so users don't have to
+ *     remember exact phrases
  *   - Fires callbacks to the host activity for drawer / back / describe ops
  *
  * Usage:
@@ -126,11 +129,9 @@ public class AurigaVoiceEngine implements RecognitionListener {
                     RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
             intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
-            intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
+            intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
             recognizer.startListening(intent);
             if (listener != null) listener.onListeningStarted();
-            // No TTS "Listening" sound — the mic would immediately pick it
-            // up and confuse the recognizer. Visual transcript bubble is enough.
         } catch (Throwable t) {
             listening = false;
             AurigaVoiceService.startListening(activity); // restore wake service
@@ -178,8 +179,6 @@ public class AurigaVoiceEngine implements RecognitionListener {
 
     /** Call from the host activity's {@code onResume}. */
     public void onResume() {
-        // Always recreate so we start with a clean recognizer, not one
-        // that may be in a dead state from a previous error or pause cycle.
         if (recognizer == null) {
             initRecognizer();
         }
@@ -188,8 +187,6 @@ public class AurigaVoiceEngine implements RecognitionListener {
     /** Call from the host activity's {@code onPause} to free the mic. */
     public void onPause() {
         stopListening();
-        // Destroy the recognizer — leaving it alive holds the mic resource
-        // and causes conflicts when the activity is backgrounded.
         try {
             if (recognizer != null) { recognizer.destroy(); recognizer = null; }
         } catch (Throwable ignored) {}
@@ -248,14 +245,11 @@ public class AurigaVoiceEngine implements RecognitionListener {
     @Override
     public void onError(int error) {
         listening = false;
-        // SpeechRecognizer is permanently dead after any error on Android —
-        // must destroy and recreate, not reuse.
         mainHandler.post(() -> {
             try {
                 if (recognizer != null) { recognizer.destroy(); recognizer = null; }
             } catch (Throwable ignored) {}
             initRecognizer();
-            // Resume the always-on wake service now the mic is free.
             AurigaVoiceService.startListening(activity);
         });
         if (listener != null) listener.onListeningStopped();
@@ -265,7 +259,6 @@ public class AurigaVoiceEngine implements RecognitionListener {
     public void onResults(Bundle results) {
         listening = false;
         if (listener != null) listener.onListeningStopped();
-        // Mic is released — hand it back to the wake service.
         AurigaVoiceService.startListening(activity);
         ArrayList<String> matches =
                 results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
@@ -288,76 +281,199 @@ public class AurigaVoiceEngine implements RecognitionListener {
     @Override public void onEvent(int eventType, Bundle params) {}
 
     // ── Command routing ─────────────────────────────────────────────
+    //
+    // Design principle: every command accepts a broad set of natural-
+    // language paraphrases. Users shouldn't need to remember exact
+    // phrases. We lean on three tiers:
+    //   1. Prefix/stem matches (e.g. any sentence containing "locator")
+    //   2. Semantic aliases (e.g. "find objects" = locator)
+    //   3. Intent phrases (e.g. "I want to read" = reader)
 
     private void routeCommand(String text) {
         String name = getAssistantName(activity).toLowerCase(Locale.US).trim();
-        boolean isWakeOnly = text.equals(name + " auriga")
-                || text.equals("auriga")
-                || text.equals("hey auriga")
-                || text.equals("ok auriga");
 
-        if (contains(text, "open locator", "object locator", "go to locator", "start locator")) {
+        // Strip wake prefix so "Nova Auriga open locator" still works.
+        String cmd = text;
+        if (cmd.startsWith(name)) {
+            cmd = cmd.substring(name.length())
+                    .replaceFirst("^\\s*auriga\\s*", "").trim();
+        } else if (cmd.startsWith("hey auriga") || cmd.startsWith("ok auriga")
+                || cmd.startsWith("hello auriga") || cmd.startsWith("yo auriga")) {
+            cmd = cmd.replaceFirst("^(hey|ok|hello|yo)\\s+auriga\\s*", "").trim();
+        } else if (cmd.startsWith("auriga")) {
+            cmd = cmd.substring("auriga".length()).trim();
+        }
+
+        // ── Wake-only (no further command) ─────────────────────────
+        if (cmd.isEmpty()) {
+            speak("Auriga ready. What can I do for you?");
+            return;
+        }
+
+        // ── Object Locator ─────────────────────────────────────────
+        if (matches(cmd,
+                "open locator", "start locator", "launch locator", "go to locator",
+                "object locator", "start detecting", "detect objects", "find objects",
+                "find things", "scan my surroundings", "what's around me",
+                "what is around me", "what's in front of me", "show me what's around",
+                "navigate mode", "start navigation", "spatial view", "scan area",
+                "look around", "identify objects", "object detection", "detection mode")) {
             speak("Opening Object Locator");
             safeStart(LocatorActivity.class);
-        } else if (contains(text, "open reader", "drakovoice reader", "go to reader",
-                "start reader", "read mode")) {
+
+        // ── DrakoVoice Reader ──────────────────────────────────────
+        } else if (matches(cmd,
+                "open reader", "start reader", "launch reader", "go to reader",
+                "drakovoice reader", "drakovoice", "read text", "read mode",
+                "scan text", "read this", "what does this say", "read this sign",
+                "read that", "i want to read", "i need to read", "reading mode",
+                "ocr mode", "text recognition", "read something", "scan sign",
+                "read a document", "help me read", "reading", "document reader")) {
             speak("Opening DrakoVoice Reader");
             safeStart(ReaderActivity.class);
-        } else if (contains(text, "open targets", "go to targets", "object targets")) {
+
+        // ── Targets manager ────────────────────────────────────────
+        } else if (matches(cmd,
+                "open targets", "start targets", "go to targets", "object targets",
+                "manage targets", "set targets", "edit targets", "my targets",
+                "track objects", "track something", "what am i tracking",
+                "what objects am i tracking", "add target", "remove target",
+                "configure targets", "tracking list", "watch list")) {
             speak("Opening Object Targets");
             safeStart(TargetsActivity.class);
-        } else if (contains(text, "calibration", "calibrate", "calibration walk")) {
+
+        // ── Calibration Walk ───────────────────────────────────────
+        } else if (matches(cmd,
+                "open calibration", "calibration walk", "start calibration",
+                "calibrate", "do calibration", "run calibration",
+                "improve accuracy", "improve distance", "setup calibration",
+                "recalibrate", "calibration library", "calibration setup",
+                "ten point calibration", "10 point calibration",
+                "distance calibration", "set up accuracy")) {
             speak("Opening Calibration Walk");
             safeStart(CalibrationWalkActivity.class);
-        } else if (contains(text, "send feedback", "feedback", "report")) {
+
+        // ── Send Feedback ──────────────────────────────────────────
+        } else if (matches(cmd,
+                "send feedback", "open feedback", "give feedback",
+                "report a bug", "report bug", "report an issue", "report issue",
+                "report a problem", "submit feedback", "share feedback",
+                "i found a bug", "something is wrong", "something's wrong",
+                "suggest an idea", "suggest idea", "submit a suggestion",
+                "feedback form", "contact support", "file a report", "report")) {
             speak("Opening Feedback");
             safeStart(FeedbackActivity.class);
-        } else if (contains(text, "about auriga", "about the app", "about")) {
+
+        // ── About ──────────────────────────────────────────────────
+        } else if (matches(cmd,
+                "open about", "about auriga", "about this app", "about the app",
+                "who made this", "who built this", "who created this",
+                "tell me about auriga", "what is auriga", "app info",
+                "application info", "show credits", "about")) {
             speak("Opening About");
             safeStart(AboutActivity.class);
-        } else if (contains(text, "help tips", "help")) {
+
+        // ── Help & Tips ────────────────────────────────────────────
+        } else if (matches(cmd,
+                "open help", "show help", "help tips", "help me",
+                "i need help", "how do i use this", "how does this work",
+                "usage guide", "user guide", "tips", "tips and tricks",
+                "getting started", "beginner guide", "tutorial", "help")) {
             speak("Opening Help");
             safeStart(HelpActivity.class);
-        } else if (contains(text, "support centre", "support")) {
+
+        // ── Support Centre ─────────────────────────────────────────
+        } else if (matches(cmd,
+                "open support", "support centre", "contact us", "get support",
+                "technical support", "customer support", "need support", "support")) {
             speak("Opening Support Centre");
             safeStart(SupportActivity.class);
-        } else if (contains(text, "open menu", "open drawer", "show menu", "open navigation")) {
+
+        // ── Open menu / drawer ─────────────────────────────────────
+        } else if (matches(cmd,
+                "open menu", "show menu", "open drawer", "show drawer",
+                "navigation menu", "open navigation", "open navigation drawer",
+                "main menu", "app menu", "expand menu", "pull out menu",
+                "open sidebar", "sidebar", "menu please")) {
             speak("Opening menu");
             if (listener != null) listener.onOpenDrawer();
-        } else if (contains(text, "close menu", "close drawer", "hide menu")) {
+
+        // ── Close menu / drawer ────────────────────────────────────
+        } else if (matches(cmd,
+                "close menu", "hide menu", "close drawer", "hide drawer",
+                "dismiss menu", "collapse menu", "shut the menu",
+                "close navigation", "close sidebar")) {
             speak("Closing menu");
             if (listener != null) listener.onCloseDrawer();
-        } else if (contains(text, "go back", "back")) {
+
+        // ── Go back ────────────────────────────────────────────────
+        } else if (matches(cmd,
+                "go back", "back", "previous screen", "previous page",
+                "return", "go to previous", "navigate back", "back button",
+                "press back", "take me back")) {
             speak("Going back");
             if (listener != null) listener.onGoBack();
-        } else if (contains(text, "read this page", "describe", "where am i",
-                "what is this", "read page")) {
+
+        // ── Describe this page ─────────────────────────────────────
+        } else if (matches(cmd,
+                "read this page", "describe", "describe this page",
+                "where am i", "what is this", "what is this screen",
+                "what's on screen", "what am i looking at", "read page",
+                "tell me about this page", "what page is this",
+                "summarise this page", "summarize this page",
+                "current page", "page description", "what screen am i on")) {
             if (listener != null) listener.onDescribePage();
-        } else if (contains(text, "stop listening", "stop", "cancel",
-                "never mind", "nevermind")) {
-            speakQuiet("Stopped");
-        } else if (contains(text, "mute voice", "mute navigation", "voice off")) {
+
+        // ── Voice nav controls ─────────────────────────────────────
+        } else if (matches(cmd,
+                "stop listening", "stop", "cancel", "never mind", "nevermind",
+                "quiet", "be quiet", "shh", "silence", "that's enough",
+                "that is enough", "done", "exit voice", "pause voice")) {
+            speakQuiet("Stopped.");
+
+        } else if (matches(cmd,
+                "mute voice", "mute navigation", "voice off", "turn off voice",
+                "disable voice", "disable voice navigation", "silence mode")) {
             setVoiceNavEnabled(activity, false);
-            speak("Voice navigation muted. Long-press to re-enable.");
-        } else if (contains(text, "enable voice", "unmute voice",
-                "unmute navigation", "voice on")) {
+            speak("Voice navigation muted. Long-press anywhere to re-enable.");
+
+        } else if (matches(cmd,
+                "enable voice", "unmute voice", "unmute navigation", "voice on",
+                "turn on voice", "enable voice navigation", "activate voice")) {
             setVoiceNavEnabled(activity, true);
-            speak("Voice navigation enabled.");
-        } else if (contains(text, "what can you do", "list commands", "help commands")) {
-            speak("I can open locator, reader, targets, calibration, feedback, "
-                    + "about, help. I can open or close the menu, go back, "
-                    + "or describe this page. Say stop to cancel.");
-        } else if (contains(text, "change name", "rename")) {
+            speak("Voice navigation enabled. Say a command.");
+
+        // ── Rename assistant ───────────────────────────────────────
+        } else if (matches(cmd,
+                "change name", "rename", "rename assistant", "new name",
+                "change assistant name", "set my name", "call you something",
+                "give you a name", "i want to rename you")) {
             speak("Opening voice setup.");
             safeStart(VoiceSetupActivity.class);
-        } else if (isWakeOnly) {
-            speak("Auriga ready. Say a command.");
-        } else if (!text.isEmpty()) {
-            speak("I didn't catch that. Say help commands for a list.");
+
+        // ── What can you do? ───────────────────────────────────────
+        } else if (matches(cmd,
+                "what can you do", "list commands", "help commands",
+                "what are your commands", "available commands",
+                "show commands", "command list", "what do you know",
+                "what commands", "what can i say")) {
+            speak("I can open the locator, reader, targets, calibration, feedback, " +
+                    "about, help, and support. I can open or close the menu, go back, " +
+                    "describe the current page, and control voice navigation. " +
+                    "Say any of these naturally — you don't need to use exact words.");
+
+        // ── Unrecognised ───────────────────────────────────────────
+        } else if (!cmd.isEmpty()) {
+            speak("I didn't catch that. Try saying: open locator, read this, " +
+                    "go back, open menu, or what can you do.");
         }
     }
 
-    private static boolean contains(String text, String... phrases) {
+    /**
+     * Returns true if {@code text} contains ANY of the given {@code phrases}
+     * as a substring (case already lower on input).
+     */
+    private static boolean matches(String text, String... phrases) {
         for (String p : phrases) {
             if (text.contains(p)) return true;
         }
