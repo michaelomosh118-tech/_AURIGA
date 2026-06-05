@@ -21,10 +21,11 @@
 (function () {
   'use strict';
 
-  var MODEL_ID      = 'Llama-3.2-1B-Instruct-q4f32_1-MLC';
-  var WEB_LLM_CDN   = 'https://esm.run/@mlc-ai/web-llm';
-  var PREF_KEY      = 'auriga-llm-consent';   // 'yes' | 'no'
-  var MAX_NEW_TOKENS = 80;
+  var MODEL_ID         = 'Llama-3.2-1B-Instruct-q4f32_1-MLC';
+  var WEB_LLM_CDN      = 'https://esm.run/@mlc-ai/web-llm';
+  var PREF_KEY         = 'auriga-llm-consent';   // 'yes' | 'no'
+  var MAX_NEW_TOKENS   = 80;    /* voice assistant — keep responses short  */
+  var CHAT_MAX_TOKENS  = 350;   /* chat page — full conversational replies */
 
   var status   = 'idle';
   var progress = 0;
@@ -133,6 +134,49 @@
       console.warn('[AurigaLLM] inference error:', err && err.message);
       return null;
     });
+  }
+
+  /* ── Streaming inference (for chat.html) ───────────────────── */
+  /*
+   * Streams tokens one chunk at a time.
+   *   messages  — full messages array including system prompt
+   *   onChunk   — called with each text delta (string)
+   *   onDone    — called with no args when stream ends
+   *   onError   — called with error when something fails
+   */
+  function streamAsk(messages, onChunk, onDone, onError) {
+    if (status !== 'ready' || !engine) {
+      if (onError) onError(new Error('model-not-ready'));
+      return;
+    }
+
+    /* Use async IIFE — WebGPU / WebLLM requires modern Chrome anyway */
+    (async function () {
+      try {
+        var stream = await engine.chat.completions.create({
+          messages:    messages,
+          max_tokens:  CHAT_MAX_TOKENS,
+          temperature: 0.7,
+          top_p:       0.92,
+          stream:      true
+        });
+
+        /* Consume the AsyncGenerator */
+        for await (var chunk of stream) {
+          var delta = (chunk &&
+                       chunk.choices &&
+                       chunk.choices[0] &&
+                       chunk.choices[0].delta &&
+                       chunk.choices[0].delta.content) || '';
+          if (delta) onChunk(delta);
+        }
+
+        if (onDone) onDone();
+      } catch (err) {
+        console.warn('[AurigaLLM] stream error:', err && err.message);
+        if (onError) onError(err);
+      }
+    })();
   }
 
   /* ── Consent flow ───────────────────────────────────────────── */
@@ -296,7 +340,8 @@
   window.AurigaLLM = {
     get status()   { return status; },
     get progress() { return progress; },
-    ask:            ask,
+    ask:             ask,
+    streamAsk:       streamAsk,
     requestDownload: requestDownload,
     decline:         decline,
     onStatus:        function (fn) { statusListeners.push(fn); },

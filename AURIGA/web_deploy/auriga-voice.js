@@ -51,6 +51,8 @@
   var speaker         = null;
   var swipeState      = null; // tracks the serpentine gesture
   var toastTimer      = null;
+  var alwaysOn        = false; // continuously restarts mic after each command
+  var manualStop      = false; // true when user explicitly stops always-on
 
   /* ── Speaker (lazy-init after AurigaAnnounce loads) ──────────────── */
   function getSpeaker() {
@@ -518,6 +520,12 @@
 
     recognition.onend = function () {
       stopListening();
+      /* Always-on: restart mic after a short breath unless manually stopped */
+      if (alwaysOn && !manualStop) {
+        setTimeout(function () {
+          if (alwaysOn && !manualStop && !listening) startListening();
+        }, 700);
+      }
     };
 
     try {
@@ -536,6 +544,33 @@
     }
   }
 
+  /* ── Always-on mode ──────────────────────────────────────────────── */
+  function setAlwaysOn(on) {
+    alwaysOn    = on;
+    manualStop  = !on;
+    try { localStorage.setItem('auriga-always-on', on ? '1' : '0'); } catch (_) {}
+
+    /* Visual: pulse the listen ring differently when always-on */
+    var ring = document.getElementById('av-listen-ring');
+    if (ring) ring.classList.toggle('av-always-on', on);
+
+    /* Update AurigaSwipe's always-on button if present */
+    var alwaysBtn = document.getElementById('ch-always-btn');
+    if (alwaysBtn) {
+      alwaysBtn.classList.toggle('active', on);
+      alwaysBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+
+    if (on) {
+      showToast('Always-on mic enabled');
+      speak('Always on. I\'m continuously listening.', 'always-on-on');
+      if (!listening) setTimeout(startListening, 600);
+    } else {
+      showToast('Mic will close after each command');
+      speak('Normal mode.', 'always-on-off');
+    }
+  }
+
   /* ── Handle final transcript ─────────────────────────────────────── */
   function handleFinalTranscript(text) {
     setTranscript(text, false);
@@ -543,6 +578,16 @@
 
     if (!text) return;
     var lower = text.toLowerCase();
+
+    /* ── Always-on commands (highest priority) ───────────────── */
+    if (/\b(always\s+on|always\s+listen(?:ing)?|keep\s+listen(?:ing)?|continuous\s+mode|stay\s+on)\b/i.test(lower)) {
+      setAlwaysOn(true);
+      return;
+    }
+    if (/\b(stop\s+always|normal\s+mode|quiet\s+mode|stop\s+continuous|turn\s+off\s+always|one\s+shot\s+mode)\b/i.test(lower)) {
+      setAlwaysOn(false);
+      return;
+    }
 
     /* Rename flow intercept */
     if (renamePending) {
@@ -1037,14 +1082,27 @@
     /* Add voice tile to accessibility console (after nav-drawer.js runs) */
     setTimeout(addVoiceTileToConsole, 200);
 
+    /* Restore always-on preference from previous session */
+    try {
+      if (localStorage.getItem('auriga-always-on') === '1') {
+        alwaysOn = true;
+        /* Delay startup so TTS introduction plays first */
+        setTimeout(function () {
+          if (alwaysOn && !listening && voiceEnabled) startListening();
+        }, 3000);
+      }
+    } catch (_) {}
+
     /* Expose public API */
     window.AurigaVoice = {
-      speak:        speak,
-      listen:       requestMicAndListen,
+      speak:         speak,
+      listen:        requestMicAndListen,
       stopListening: stopListening,
-      setEnabled:   setEnabled,
-      getName:      function () { return assistantName; },
-      announcePage: announcePage
+      setEnabled:    setEnabled,
+      setAlwaysOn:   setAlwaysOn,
+      get alwaysOn() { return alwaysOn; },
+      getName:       function () { return assistantName; },
+      announcePage:  announcePage
     };
   }
 

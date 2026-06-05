@@ -52,6 +52,7 @@
         {
             label: 'Tools',
             items: [
+                { text: 'AI CHAT',             href: 'chat.html' },
                 { text: 'OBJECT LOCATOR',      href: 'locator.html' },
                 { text: 'DRAKOVOICE READER',   href: 'reader.html' },
                 { text: 'CALIBRATION LIBRARY', href: 'calibration-library.html' },

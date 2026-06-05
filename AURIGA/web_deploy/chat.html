@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Auriga Chat</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0a;
+      --surface:   #111111;
+      --surface2:  #181818;
+      --surface3:  #222222;
+      --cyan:      #00B8D4;
+      --cyan-dim:  #007A8C;
+      --cyan-glow: rgba(0,184,212,0.18);
+      --amber:     #FFB300;
+      --text:      #e8e8e8;
+      --text-dim:  #777;
+      --user-bg:   #002d38;
+      --user-border: rgba(0,184,212,0.35);
+      --ai-bg:     rgba(255,255,255,0.04);
+      --ai-border: rgba(0,184,212,0.12);
+      --radius:    16px;
+      --hdr:       56px;
+      --bar:       64px;
+    }
+
+    html { height: 100%; background: var(--bg); }
+    body {
+      height: 100%; height: 100dvh;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout shell ─────────────────────────────────── */
+    #ch-wrap {
+      display: flex; flex-direction: column;
+      height: 100%; height: 100dvh;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    #ch-header {
+      height: var(--hdr);
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 12px 0 8px;
+      background: var(--surface);
+      border-bottom: 1px solid rgba(0,184,212,0.18);
+      flex-shrink: 0;
+      position: relative; z-index: 10;
+    }
+
+    #ch-back {
+      width: 40px; height: 40px;
+      background: none; border: none;
+      color: var(--cyan); font-size: 28px; line-height: 1;
+      cursor: pointer; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background 0.15s;
+    }
+    #ch-back:hover { background: var(--cyan-glow); }
+
+    #ch-title {
+      font: 700 13px/1 monospace;
+      letter-spacing: 2.5px; color: var(--text);
+      flex: 1; user-select: none;
+    }
+    #ch-title span { color: var(--cyan); }
+
+    #ch-status {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 11px; color: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    #ch-mode-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--text-dim);
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    #ch-mode-dot.online  { background: #4caf50; }
+    #ch-mode-dot.offline { background: var(--cyan); box-shadow: 0 0 7px var(--cyan); }
+    #ch-mode-dot.loading { background: var(--amber); animation: pulse-dot 1s infinite; }
+
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.25} }
+
+    #ch-always-btn {
+      height: 26px;
+      background: none;
+      border: 1px solid var(--text-dim);
+      color: var(--text-dim);
+      font: 600 9px/1 monospace; letter-spacing: 1px;
+      padding: 0 8px; border-radius: 4px;
+      cursor: pointer; transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    #ch-always-btn.active {
+      border-color: var(--cyan); color: var(--cyan);
+      background: rgba(0,184,212,0.1);
+      box-shadow: 0 0 8px rgba(0,184,212,0.2);
+    }
+
+    /* ── Messages ────────────────────────────────────────── */
+    #ch-messages {
+      flex: 1; overflow-y: auto;
+      padding: 14px 12px 8px;
+      display: flex; flex-direction: column;
+      gap: 10px;
+      scroll-behavior: smooth;
+    }
+    #ch-messages::-webkit-scrollbar { width: 3px; }
+    #ch-messages::-webkit-scrollbar-track { background: transparent; }
+    #ch-messages::-webkit-scrollbar-thumb { background: rgba(0,184,212,0.15); border-radius: 2px; }
+
+    /* ── Bubbles ─────────────────────────────────────────── */
+    .ch-msg {
+      display: flex; flex-direction: column;
+      animation: msg-in 0.18s ease-out;
+      max-width: 88%;
+    }
+    @keyframes msg-in { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+
+    .ch-msg.user { align-self: flex-end; }
+    .ch-msg.ai   { align-self: flex-start; }
+    .ch-msg.sys  { align-self: center; max-width: 100%; }
+
+    .ch-label {
+      font: 600 9px/1 monospace; letter-spacing: 1.5px;
+      margin-bottom: 4px; opacity: 0.55;
+    }
+    .ch-msg.user .ch-label { text-align: right; color: var(--cyan); }
+    .ch-msg.ai   .ch-label { color: var(--text-dim); }
+    .ch-msg.sys  .ch-label { display: none; }
+
+    .ch-bubble {
+      padding: 12px 15px;
+      border-radius: var(--radius);
+      font-size: 16px; line-height: 1.6;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .ch-msg.user .ch-bubble {
+      background: var(--user-bg);
+      border: 1px solid var(--user-border);
+      color: #b2ecf8;
+      border-bottom-right-radius: 4px;
+    }
+    .ch-msg.ai .ch-bubble {
+      background: var(--ai-bg);
+      border: 1px solid var(--ai-border);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+    }
+    .ch-msg.sys .ch-bubble {
+      background: none; border: none;
+      font-size: 11px; color: var(--text-dim);
+      letter-spacing: 0.5px; text-align: center;
+      padding: 2px 0;
+    }
+
+    /* Streaming cursor */
+    .ch-msg.ai.streaming .ch-bubble::after {
+      content: '▌';
+      color: var(--cyan);
+      animation: blink-cur 0.75s step-end infinite;
+      margin-left: 1px;
+    }
+    @keyframes blink-cur { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ── Typing indicator ────────────────────────────────── */
+    #ch-typing {
+      align-self: flex-start;
+      display: none;
+      align-items: center; gap: 5px;
+      background: var(--ai-bg);
+      border: 1px solid var(--ai-border);
+      padding: 13px 17px;
+      border-radius: var(--radius); border-bottom-left-radius: 4px;
+    }
+    #ch-typing.on { display: flex; animation: msg-in 0.18s ease-out; }
+    #ch-typing span {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--cyan-dim);
+      animation: tdot 1.2s infinite;
+    }
+    #ch-typing span:nth-child(2) { animation-delay: 0.18s; }
+    #ch-typing span:nth-child(3) { animation-delay: 0.36s; }
+    @keyframes tdot {
+      0%,60%,100%{transform:scale(0.85);opacity:0.35}
+      30%{transform:scale(1.25);opacity:1}
+    }
+
+    /* ── Empty state ─────────────────────────────────────── */
+    #ch-empty {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+      padding: 0 40px;
+      opacity: 0.45;
+    }
+    #ch-empty-icon { font-size: 52px; display: block; margin-bottom: 14px; }
+    #ch-empty p { font-size: 14px; line-height: 1.65; color: var(--text-dim); }
+
+    /* ── Input bar ───────────────────────────────────────── */
+    #ch-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px;
+      padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+      background: var(--surface);
+      border-top: 1px solid rgba(0,184,212,0.12);
+      flex-shrink: 0;
+    }
+
+    #ch-mic-btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 2px solid var(--cyan-dim);
+      background: none; color: var(--cyan);
+      font-size: 19px; cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+    #ch-mic-btn:hover { background: var(--cyan-glow); border-color: var(--cyan); }
+    #ch-mic-btn.on {
+      border-color: var(--cyan);
+      background: rgba(0,184,212,0.15);
+      animation: mic-ring 1.1s infinite;
+    }
+    @keyframes mic-ring {
+      0%,100%{box-shadow:0 0 0 0 rgba(0,184,212,0.45)}
+      50%{box-shadow:0 0 0 9px rgba(0,184,212,0)}
+    }
+
+    #ch-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid rgba(0,184,212,0.18);
+      border-radius: 22px;
+      color: var(--text); font-size: 15px;
+      padding: 10px 16px;
+      outline: none; resize: none;
+      transition: border-color 0.2s;
+      max-height: 120px; overflow-y: auto;
+      line-height: 1.4;
+    }
+    #ch-input:focus { border-color: var(--cyan); }
+    #ch-input::placeholder { color: var(--text-dim); }
+
+    #ch-send-btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--cyan); border: none;
+      color: #000; font-size: 17px;
+      cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, transform 0.1s;
+    }
+    #ch-send-btn:hover { background: #00d4f5; }
+    #ch-send-btn:active { transform: scale(0.92); }
+    #ch-send-btn:disabled {
+      background: var(--surface3); color: var(--text-dim); cursor: not-allowed;
+    }
+
+    /* ── Interim transcript (while mic is active) ─────────── */
+    #ch-interim {
+      font-size: 12px; color: var(--cyan-dim);
+      letter-spacing: 0.3px; padding: 2px 12px 0;
+      min-height: 0; overflow: hidden;
+      transition: max-height 0.2s;
+    }
+
+    /* ── Swipe hint ──────────────────────────────────────── */
+    #ch-swipe-hint {
+      position: fixed; bottom: 80px; left: 0; right: 0;
+      text-align: center;
+      font: 11px monospace; letter-spacing: 1px;
+      color: rgba(0,184,212,0.4);
+      pointer-events: none;
+      animation: hint-fade 3s ease-out forwards;
+    }
+    @keyframes hint-fade { 0%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
+
+    /* ── Reduce motion ───────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      .ch-msg { animation: none; }
+      #ch-typing span { animation: none; opacity: 0.7; }
+      .ch-msg.ai.streaming .ch-bubble::after { animation: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="ch-wrap">
+
+  <header id="ch-header">
+    <button id="ch-back" aria-label="Go back">‹</button>
+    <div id="ch-title"><span>AURIGA</span> CHAT</div>
+    <div id="ch-status" aria-live="polite">
+      <span id="ch-mode-dot"></span>
+      <span id="ch-mode-text">Starting…</span>
+    </div>
+    <button id="ch-always-btn" aria-label="Toggle always-on microphone" aria-pressed="false">ALWAYS ON</button>
+  </header>
+
+  <main id="ch-messages" role="log" aria-live="polite" aria-label="Chat messages" tabindex="0">
+    <div id="ch-empty" aria-hidden="true">
+      <span id="ch-empty-icon">◎</span>
+      <p>Ask me anything.<br>I work fully offline.</p>
+    </div>
+    <div id="ch-typing" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </div>
+  </main>
+
+  <div id="ch-interim" aria-live="polite" aria-label="Interim transcript"></div>
+
+  <footer id="ch-bar">
+    <button id="ch-mic-btn" aria-label="Voice input">🎙</button>
+    <textarea id="ch-input" rows="1" placeholder="Ask anything…"
+              aria-label="Type your message"
+              autocomplete="off" autocorrect="off" spellcheck="false"
+              inputmode="text"></textarea>
+    <button id="ch-send-btn" aria-label="Send message">▶</button>
+  </footer>
+
+</div>
+
+<script src="auriga-announce.js"></script>
+<script src="auriga-memory.js" defer></script>
+<script src="auriga-voice.js" defer></script>
+<script src="jarvis.js" defer></script>
+<script src="auriga-llm.js" defer></script>
+<script src="auriga-swipe.js" defer></script>
+
+<script>
+/* ── Auriga Chat engine ────────────────────────────────────────────── */
+(function () {
+  'use strict';
+
+  var sessionMsgs  = [];   // LLM context window for this session
+  var isStreaming  = false;
+  var alwaysOn     = false;
+  var micActive    = false;
+  var chatRecog    = null;
+
+  var msgsEl    = document.getElementById('ch-messages');
+  var typingEl  = document.getElementById('ch-typing');
+  var emptyEl   = document.getElementById('ch-empty');
+  var interimEl = document.getElementById('ch-interim');
+  var inputEl   = document.getElementById('ch-input');
+  var sendBtn   = document.getElementById('ch-send-btn');
+  var micBtn    = document.getElementById('ch-mic-btn');
+  var alwaysBtn = document.getElementById('ch-always-btn');
+  var modeDot   = document.getElementById('ch-mode-dot');
+  var modeText  = document.getElementById('ch-mode-text');
+
+  /* ── System prompt ──────────────────────────────────────── */
+  function buildSysPrompt(profileCtx) {
+    var p =
+      'You are Auriga, a calm, intelligent AI companion purpose-built for blind and ' +
+      'low-vision users. You have deep knowledge of accessibility, spatial orientation, ' +
+      'object detection, navigation, everyday practical tasks, and assistive technology. ' +
+      'Speak in clear, natural English sentences. Do not use markdown, bullet symbols, ' +
+      'asterisks, numbered lists, or any special characters. Write in short paragraphs, ' +
+      'as if speaking aloud. Be warm, direct, and precise. ' +
+      'For physical objects: describe tactile properties, approximate size, and location. ' +
+      'For navigation: always state direction and estimated distance. ' +
+      'For general questions: give a complete, useful answer — typically 2 to 5 sentences. ' +
+      'If you do not know something, say so honestly rather than guessing.';
+    if (profileCtx && profileCtx.trim()) {
+      p += ' About this user: ' + profileCtx.trim();
+    }
+    return p;
+  }
+
+  /* ── Helpers ─────────────────────────────────────────────── */
+  function hideEmpty() { if (emptyEl) emptyEl.style.display = 'none'; }
+
+  function appendMsg(role, text, doSpeak) {
+    hideEmpty();
+    doSpeak = (doSpeak !== false);
+
+    var wrap = document.createElement('div');
+    wrap.className = 'ch-msg ' + role;
+
+    if (role !== 'sys') {
+      var lbl = document.createElement('div');
+      lbl.className = 'ch-label';
+      lbl.setAttribute('aria-hidden', 'true');
+      lbl.textContent = role === 'user' ? 'YOU' : 'AURIGA';
+      wrap.appendChild(lbl);
+    }
+
+    var bub = document.createElement('div');
+    bub.className = 'ch-bubble';
+    bub.textContent = text;
+    wrap.appendChild(bub);
+
+    msgsEl.insertBefore(wrap, typingEl);
+    scrollBottom();
+
+    if (doSpeak && role === 'ai') tts(text);
+    return { wrap: wrap, bub: bub };
+  }
+
+  function createStreamBubble() {
+    hideEmpty();
+    var wrap = document.createElement('div');
+    wrap.className = 'ch-msg ai streaming';
+
+    var lbl = document.createElement('div');
+    lbl.className = 'ch-label';
+    lbl.setAttribute('aria-hidden', 'true');
+    lbl.textContent = 'AURIGA';
+    wrap.appendChild(lbl);
+
+    var bub = document.createElement('div');
+    bub.className = 'ch-bubble';
+    bub.setAttribute('aria-live', 'polite');
+    wrap.appendChild(bub);
+
+    msgsEl.insertBefore(wrap, typingEl);
+    scrollBottom();
+    return { wrap: wrap, bub: bub };
+  }
+
+  function showTyping() { typingEl.classList.add('on'); scrollBottom(); }
+  function hideTyping() { typingEl.classList.remove('on'); }
+
+  function scrollBottom(smooth) {
+    var behavior = (smooth === false) ? 'auto' : 'smooth';
+    try { msgsEl.scrollTo({ top: msgsEl.scrollHeight, behavior: behavior }); }
+    catch (_) { msgsEl.scrollTop = msgsEl.scrollHeight; }
+  }
+
+  function setStatus(mode, text) {
+    modeDot.className = mode;
+    modeText.textContent = text;
+  }
+
+  function tts(text) {
+    if (window.Jarvis && Jarvis.speak) { Jarvis.speak(text, 'chat-ai'); return; }
+    if (window.AurigaVoice && AurigaVoice.speak) { AurigaVoice.speak(text, 'chat-ai'); return; }
+    if (!window.speechSynthesis) return;
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.97; u.pitch = 1.0;
+    speechSynthesis.speak(u);
+  }
+
+  /* ── Send a message ─────────────────────────────────────── */
+  function send(raw) {
+    var text = (raw || inputEl.value || '').trim();
+    if (!text || isStreaming) return;
+
+    isStreaming = true;
+    sendBtn.disabled = true;
+    inputEl.value = '';
+    inputEl.style.height = '';
+
+    appendMsg('user', text, false);
+    sessionMsgs.push({ role: 'user', content: text });
+
+    if (window.AurigaMemory) {
+      AurigaMemory.store('user', text);
+      AurigaMemory.extractAndSaveProfile(text);
+    }
+
+    showTyping();
+
+    var profileP = window.AurigaMemory
+      ? AurigaMemory.getProfileContext()
+      : Promise.resolve('');
+
+    profileP.then(function (profileCtx) {
+      var sys  = { role: 'system', content: buildSysPrompt(profileCtx) };
+      var tail = sessionMsgs.slice(-14);
+      var msgs = [sys].concat(tail);
+
+      if (window.AurigaLLM && AurigaLLM.status === 'ready') {
+        hideTyping();
+        var ref = createStreamBubble();
+        var full = '';
+
+        AurigaLLM.streamAsk(msgs,
+          function (chunk) {          /* onChunk */
+            full += chunk;
+            ref.bub.textContent = full;
+            scrollBottom();
+          },
+          function () {               /* onDone */
+            ref.wrap.classList.remove('streaming');
+            finalize(full, true);
+          },
+          function () {               /* onError — try online */
+            ref.wrap.remove();
+            showTyping();
+            fallbackOnline(text);
+          }
+        );
+
+      } else {
+        fallbackOnline(text);
+      }
+    });
+  }
+
+  function fallbackOnline(userText) {
+    var ask = window.Jarvis && Jarvis.ask
+      ? Jarvis.ask(userText)
+      : Promise.resolve(null);
+
+    ask.then(function (reply) {
+      hideTyping();
+      var txt = reply && reply.trim()
+        ? reply.trim()
+        : 'I\'m not sure about that. Try asking in a different way.';
+      appendMsg('ai', txt, true);
+      finalize(txt, false);
+    }).catch(function () {
+      hideTyping();
+      var err = 'Something went wrong. Please try again.';
+      appendMsg('ai', err, true);
+      finalize(err, false);
+    });
+  }
+
+  function finalize(text, wasStreamed) {
+    isStreaming  = false;
+    sendBtn.disabled = false;
+    sessionMsgs.push({ role: 'assistant', content: text });
+    if (window.AurigaMemory) AurigaMemory.store('assistant', text);
+
+    /* Re-arm mic in always-on mode after TTS finishes */
+    if (alwaysOn) {
+      var delay = Math.min(text.length * 52, 9000) + 700;
+      setTimeout(function () {
+        if (alwaysOn && !micActive && !isStreaming) startMic();
+      }, delay);
+    }
+  }
+
+  /* ── Mic / voice input ──────────────────────────────────── */
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+
+  function startMic() {
+    if (micActive || !SR) return;
+    micActive = true;
+    micBtn.classList.add('on');
+    micBtn.setAttribute('aria-label', 'Stop voice input');
+
+    chatRecog = new SR();
+    chatRecog.lang = 'en-US';
+    chatRecog.interimResults = true;
+    chatRecog.continuous = false;
+    chatRecog.maxAlternatives = 3;
+
+    chatRecog.onresult = function (e) {
+      var interim = '', final = '';
+      for (var i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final   += e.results[i][0].transcript;
+        else                      interim += e.results[i][0].transcript;
+      }
+      if (interim) {
+        interimEl.textContent = interim;
+        inputEl.value = interim;
+      }
+      if (final) {
+        interimEl.textContent = '';
+        inputEl.value = '';
+        stopMic();
+        send(final.trim());
+      }
+    };
+
+    chatRecog.onerror = function (e) {
+      if (e.error === 'not-allowed') {
+        appendMsg('sys', '— microphone access denied —');
+      }
+      stopMic();
+    };
+
+    chatRecog.onend = function () {
+      /* If still marked active (no result) clean up */
+      if (micActive) stopMic();
+    };
+
+    try { chatRecog.start(); }
+    catch (_) { stopMic(); }
+  }
+
+  function stopMic() {
+    micActive = false;
+    micBtn.classList.remove('on');
+    micBtn.setAttribute('aria-label', 'Voice input');
+    interimEl.textContent = '';
+    if (chatRecog) {
+      try { chatRecog.stop(); } catch (_) {}
+      chatRecog = null;
+    }
+  }
+
+  /* ── Always-on mode ─────────────────────────────────────── */
+  function setAlwaysOn(on) {
+    alwaysOn = on;
+    alwaysBtn.classList.toggle('active', on);
+    alwaysBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    try { localStorage.setItem('auriga-chat-always-on', on ? '1' : '0'); } catch (_) {}
+
+    if (on) {
+      appendMsg('sys', '— always-on microphone enabled —');
+      if (!micActive && !isStreaming) setTimeout(startMic, 400);
+    } else {
+      stopMic();
+      appendMsg('sys', '— microphone will close after each message —');
+    }
+  }
+
+  /* ── Status sync with AurigaLLM ─────────────────────────── */
+  function syncStatus() {
+    if (!window.AurigaLLM) {
+      setStatus('online', 'Online mode');
+      return;
+    }
+    var s = AurigaLLM.status;
+    if      (s === 'ready')          setStatus('offline', 'Offline AI');
+    else if (s === 'loading')        setStatus('loading',  'Loading AI ' + AurigaLLM.progress + '%');
+    else if (s === 'consent-needed') setStatus('',         'Download AI?');
+    else                             setStatus('online',   'Online mode');
+  }
+
+  /* ── Auto-grow textarea ──────────────────────────────────── */
+  function autoGrow() {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  }
+
+  /* ── Load history from IndexedDB ─────────────────────────── */
+  function loadHistory() {
+    if (!window.AurigaMemory) return;
+    AurigaMemory.getContext('', 14).then(function (ctx) {
+      if (!ctx || !ctx.trim()) return;
+      var loaded = 0;
+      ctx.trim().split('\n').forEach(function (line) {
+        var colon = line.indexOf(':');
+        if (colon === -1) return;
+        var role    = line.slice(0, colon).trim().toLowerCase();
+        var content = line.slice(colon + 1).trim();
+        if (!content) return;
+        if (role === 'user') {
+          appendMsg('user', content, false);
+          sessionMsgs.push({ role: 'user', content: content });
+          loaded++;
+        } else if (role === 'auriga') {
+          appendMsg('ai', content, false);
+          sessionMsgs.push({ role: 'assistant', content: content });
+          loaded++;
+        }
+      });
+      if (loaded > 0) {
+        appendMsg('sys', '— ' + loaded + ' messages from previous conversations —');
+        scrollBottom(false);
+      }
+    });
+  }
+
+  /* ── Init ────────────────────────────────────────────────── */
+  function init() {
+    /* Input: send on Enter (not Shift+Enter), grow on type */
+    inputEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+    });
+    inputEl.addEventListener('input', autoGrow);
+
+    /* Buttons */
+    sendBtn.addEventListener('click', function () { send(); });
+    micBtn.addEventListener('click', function () {
+      if (micActive) stopMic();
+      else startMic();
+    });
+    alwaysBtn.addEventListener('click', function () { setAlwaysOn(!alwaysOn); });
+    document.getElementById('ch-back').addEventListener('click', function () { history.back(); });
+
+    /* LLM status listeners */
+    var watchStatus = function () { syncStatus(); };
+    if (window.AurigaLLM) {
+      AurigaLLM.onStatus(watchStatus);
+      AurigaLLM.onProgress(watchStatus);
+    }
+    document.addEventListener('jarvis:ready', watchStatus);
+    setInterval(watchStatus, 2500);
+    syncStatus();
+
+    /* Restore always-on */
+    try {
+      if (localStorage.getItem('auriga-chat-always-on') === '1') {
+        setTimeout(function () { setAlwaysOn(true); }, 1500);
+      }
+    } catch (_) {}
+
+    /* Load history then greet if first visit today */
+    setTimeout(function () {
+      loadHistory();
+
+      var today = new Date().toDateString();
+      var lastDay = '';
+      try { lastDay = localStorage.getItem('auriga-chat-day') || ''; } catch (_) {}
+
+      var greet;
+      if (lastDay !== today) {
+        try { localStorage.setItem('auriga-chat-day', today); } catch (_) {}
+        if (window.AurigaMemory) {
+          AurigaMemory.getStats().then(function (s) {
+            if (s && s.conversations > 4) {
+              var profP = AurigaMemory.getProfileContext();
+              profP.then(function (pCtx) {
+                var name = '';
+                try {
+                  var m = pCtx.match(/user's name is ([A-Za-z]+)/);
+                  if (m) name = ', ' + m[1];
+                } catch (_) {}
+                greet = 'Welcome back' + name + '. I remember our previous conversations. What would you like to talk about?';
+                appendMsg('ai', greet, true);
+                sessionMsgs.push({ role: 'assistant', content: greet });
+                if (window.AurigaMemory) AurigaMemory.store('assistant', greet);
+              });
+            } else {
+              greet = 'Hello! I\'m Auriga, your offline AI companion. Ask me anything — I can help with navigation, object descriptions, reading, and general questions. Once the AI model is ready, I work entirely without internet.';
+              appendMsg('ai', greet, true);
+              sessionMsgs.push({ role: 'assistant', content: greet });
+              if (window.AurigaMemory) AurigaMemory.store('assistant', greet);
+            }
+          });
+        } else {
+          greet = 'Hello! I\'m Auriga. Ask me anything.';
+          appendMsg('ai', greet, true);
+          sessionMsgs.push({ role: 'assistant', content: greet });
+        }
+      }
+    }, 900);
+
+    /* Swipe hint on first visit */
+    try {
+      if (!localStorage.getItem('auriga-chat-hint-seen')) {
+        localStorage.setItem('auriga-chat-hint-seen', '1');
+        var hint = document.createElement('div');
+        hint.id = 'ch-swipe-hint';
+        hint.textContent = '← swipe from left edge to return here from any page';
+        document.body.appendChild(hint);
+        setTimeout(function () { hint.remove(); }, 4000);
+      }
+    } catch (_) {}
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    setTimeout(init, 80);
+  }
+
+})();
+</script>
+</body>
+</html>

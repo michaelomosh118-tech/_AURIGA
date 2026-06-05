@@ -1,6 +1,6 @@
 // Bump the cache name when the asset list or shell HTML changes so old
 // clients pick up the new bundle on their next page load.
-const CACHE_NAME = 'drakosanctis-v16';
+const CACHE_NAME = 'drakosanctis-v17';
 
 // Local app-shell pages we always want available offline. The fetch
 // handler also opportunistically caches every other GET response so
@@ -20,7 +20,11 @@ const ASSETS_TO_CACHE = [
   './auriga-voice.css',
   './auriga-voice.js',
   './jarvis.js',
+  './auriga-memory.js',
+  './auriga-llm.js',
+  './auriga-swipe.js',
   './assistant.html',
+  './chat.html',
   './camera-connect.html',
   './logo.png',
   './manifest.json'

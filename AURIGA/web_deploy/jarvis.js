@@ -392,6 +392,21 @@
       action: function () { navigateTo('about.html'); }
     },
 
+    /* ── AI Chat page ── */
+    {
+      match: [
+        /\b(open|start|launch|go\s+to)\s+(the\s+)?chat\b/i,
+        /\bai\s+chat\b/i,
+        /\bopen\s+chat(bot)?\b/i,
+        /\blet'?s?\s+chat\b/i,
+        /\btalk\s+(to\s+)?(me|you|ai)\b/i,
+        /\bconversation\s+mode\b/i,
+        /\bchat\s+with\s+(ai|auriga)\b/i
+      ],
+      reply: 'Opening AI Chat.',
+      action: function () { navigateTo('chat.html'); }
+    },
+
     /* ── Jarvis / Assistant page ── */
     {
       match: [
