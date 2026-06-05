@@ -366,17 +366,54 @@
         /* Placeholder inside HUD */
         .hud-placeholder {
             position: relative; z-index: 3;
-            text-align: center; padding: 40px 20px;
+            text-align: center; padding: 32px 20px;
             color: #1A2A2A;
+            display: flex; flex-direction: column;
+            align-items: center; gap: 14px;
         }
         .hud-placeholder-icon {
-            font-size: 3rem; margin-bottom: 14px;
+            font-size: 3rem;
             color: rgba(0,240,255,0.08);
         }
         .hud-placeholder p {
             font-family: var(--mono); font-size: 0.65rem;
             letter-spacing: 0.15em; color: #1E3535;
+            margin: 0;
         }
+        .hud-quick-btn {
+            padding: 12px 28px;
+            background: rgba(0,240,255,0.1);
+            border: 1px solid rgba(0,240,255,0.4);
+            border-radius: 8px;
+            color: var(--auriga-cyan);
+            font-family: 'Orbitron'; font-size: 0.65rem;
+            letter-spacing: 0.14em;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 0 18px rgba(0,240,255,0.12);
+        }
+        .hud-quick-btn:hover {
+            background: rgba(0,240,255,0.2);
+            box-shadow: 0 0 28px rgba(0,240,255,0.25);
+        }
+        .hud-quick-hint {
+            font-family: var(--mono); font-size: 0.58rem;
+            letter-spacing: 0.1em; color: #1E3535;
+        }
+        /* Camera flip button — appears when device cam is live */
+        .hud-flip-btn {
+            position: absolute; bottom: 14px; right: 14px;
+            z-index: 6;
+            width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(0,240,255,0.35);
+            color: var(--auriga-cyan); font-size: 1.2rem;
+            cursor: pointer; display: none;
+            align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .hud-flip-btn:hover { background: rgba(0,240,255,0.18); }
+        .hud-flip-btn.visible { display: flex; }
     </style>
 </head>
 <body>
@@ -442,10 +479,17 @@
                     </div>
                 </div>
 
+                <!-- Flip camera button (phone only) -->
+                <button class="hud-flip-btn" id="hud-flip-btn" onclick="flipDeviceCamera()" title="Flip camera">⟳</button>
+
                 <!-- Idle placeholder -->
                 <div class="hud-placeholder" id="hud-placeholder">
                     <div class="hud-placeholder-icon">◎</div>
-                    <p>SELECT A CONNECTION TYPE ABOVE AND CONNECT</p>
+                    <p>NO CAMERA CONNECTED</p>
+                    <button class="hud-quick-btn" onclick="quickConnectDeviceCamera()" id="hud-quick-cam-btn">
+                        📷 USE THIS DEVICE'S CAMERA
+                    </button>
+                    <p class="hud-quick-hint">or choose a source type below</p>
                 </div>
 
             </div>
@@ -863,6 +907,7 @@ BLECharacteristic *pChar;
         hudVideo.style.display = 'none';
         hudVideo.srcObject = null;
         hudCanvas.style.display = 'none';
+        document.getElementById('hud-flip-btn').classList.remove('visible');
         if (hudVideoFpsInterval) { clearInterval(hudVideoFpsInterval); hudVideoFpsInterval = null; }
     }
 
@@ -884,6 +929,53 @@ BLECharacteristic *pChar;
     function onFormatChange() {
         const fmt = document.getElementById('wifi-format').value;
         document.getElementById('poll-interval-group').style.display = fmt === 'jpg' ? 'flex' : 'none';
+    }
+
+    /* ── QUICK DEVICE CAMERA (HUD placeholder button) ── */
+    let quickFacing = 'environment'; // start with rear camera
+
+    async function quickConnectDeviceCamera() {
+        stopCamera();
+        setStatus('connecting', 'Requesting device camera…');
+        try {
+            activeStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: quickFacing, width:{ideal:1280}, height:{ideal:720} }
+            });
+            hudVideo.srcObject = activeStream;
+            hudVideo.style.display = 'block';
+            hudCanvas.style.display = 'none';
+            hudActivate('DEVICE CAM');
+            document.getElementById('hud-flip-btn').classList.add('visible');
+
+            const track = activeStream.getVideoTracks()[0];
+            const s = track.getSettings();
+            const label = (track.label || 'Camera').slice(0, 14);
+            document.getElementById('hud-source').textContent = label;
+            if (s.frameRate) document.getElementById('hud-fps').textContent = Math.round(s.frameRate);
+
+            // Mirror to USB tab UI too
+            const video = document.getElementById('usb-video');
+            video.srcObject = activeStream;
+            video.style.display = 'block';
+            document.getElementById('usb-placeholder').style.display = 'none';
+            document.getElementById('usb-live-badge').style.display = 'inline';
+            document.getElementById('usb-badge').style.display = 'inline';
+            document.getElementById('usb-badge').textContent = label + ' · ' + s.width + '×' + s.height;
+            document.getElementById('usb-open-row').style.display = 'flex';
+            setStatus('connected', 'Device camera live — ' + (track.label || '').slice(0, 40));
+
+            if (hudVideo.requestVideoFrameCallback) {
+                const tick = () => { if (activeStream) { hudFrames++; hudVideo.requestVideoFrameCallback(tick); } };
+                hudVideo.requestVideoFrameCallback(tick);
+            }
+        } catch(e) {
+            setStatus('error', 'Camera error: ' + e.message);
+        }
+    }
+
+    async function flipDeviceCamera() {
+        quickFacing = quickFacing === 'environment' ? 'user' : 'environment';
+        await quickConnectDeviceCamera();
     }
 
     /* ── USB CAMERA ── */

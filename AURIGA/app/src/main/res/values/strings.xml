@@ -101,6 +101,8 @@
     <!-- Camera Connect drawer row -->
     <string name="drawer_nav_camera_connect">⊞  Camera Connect</string>
     <string name="drawer_nav_camera_connect_sub">Wi-Fi · Bluetooth LE · USB Serial / PIC · MCU</string>
+    <string name="drawer_nav_stream_laptop">⊞  Stream to Laptop</string>
+    <string name="drawer_nav_stream_laptop_sub">MJPEG server · phone becomes Wi-Fi camera</string>
 
     <!-- Mic FAB content description -->
     <string name="voice_mic_cd">Activate voice navigation</string>

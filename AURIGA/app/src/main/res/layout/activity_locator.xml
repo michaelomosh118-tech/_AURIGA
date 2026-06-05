@@ -385,6 +385,38 @@
                         android:text="@string/drawer_nav_camera_connect_sub" />
                 </LinearLayout>
 
+                <!-- Stream to Laptop row -->
+                <LinearLayout
+                    android:id="@+id/nav_stream_laptop"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/drawer_item_bg"
+                    android:orientation="vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Start MJPEG server — phone streams its camera to a laptop browser">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/drawer_nav_stream_laptop"
+                        android:textSize="14sp"
+                        android:textColor="@color/hud_text"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.04" />
+
+                    <TextView
+                        style="@style/DrawerItemSub"
+                        android:text="@string/drawer_nav_stream_laptop_sub" />
+                </LinearLayout>
+
                 <!-- About row -->
                 <LinearLayout
                     android:id="@+id/nav_about"

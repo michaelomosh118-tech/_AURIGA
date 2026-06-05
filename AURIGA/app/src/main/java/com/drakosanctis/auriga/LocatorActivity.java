@@ -843,6 +843,12 @@ public class LocatorActivity extends ComponentActivity {
             safeStart(CameraConnectActivity.class, "Camera Connect");
         });
 
+        View navStreamLaptop = findViewById(R.id.nav_stream_laptop);
+        if (navStreamLaptop != null) navStreamLaptop.setOnClickListener(v -> {
+            closeDrawer();
+            safeStart(CameraStreamActivity.class, "Stream to Laptop");
+        });
+
         View navAbout = findViewById(R.id.nav_about);
         if (navAbout != null) navAbout.setOnClickListener(v -> {
             closeDrawer();
