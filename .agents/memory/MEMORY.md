@@ -1,2 +1,3 @@
 - [Voice Navigation Architecture](voice-nav-architecture.md) — auriga-voice.js + auriga-voice.css are the voice engine; injected on every page after nav-drawer.js
 - [Jarvis Fusion Architecture](jarvis-fusion.md) — jarvis.js is the AI assistant layer; sits on top of auriga-voice.js, not a replacement; unknown commands route from auriga-voice.js → Jarvis.ask()
+- [Conversational AI Layer](conversational-ai.md) — web: queryAI() in jarvis.js hits free endpoint (7s timeout, offline-safe); Android: AurigaKnowledge.java is fully on-device, no network needed

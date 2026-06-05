@@ -462,10 +462,14 @@ public class AurigaVoiceEngine implements RecognitionListener {
                     "describe the current page, and control voice navigation. " +
                     "Say any of these naturally — you don't need to use exact words.");
 
-        // ── Unrecognised ───────────────────────────────────────────
+        // ── Conversational AI fallback (on-device knowledge base) ────
         } else if (!cmd.isEmpty()) {
-            speak("I didn't catch that. Try saying: open locator, read this, " +
-                    "go back, open menu, or what can you do.");
+            String kbAnswer = AurigaKnowledge.answer(cmd);
+            if (kbAnswer != null) {
+                speak(kbAnswer);
+            } else {
+                speak(AurigaKnowledge.fallback(cmd));
+            }
         }
     }
 

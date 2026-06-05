@@ -698,10 +698,95 @@
       });
     }
 
-    /* 3. Graceful fallback */
-    var fallback = 'I am not sure about that. You can say "help" to hear what I can do, or try rephrasing your question.';
-    speak(fallback, 'fallback');
-    return Promise.resolve(fallback);
+    /* 3. Try conversational AI (free endpoint, no key required) */
+    return queryAI(lower).then(function (aiAnswer) {
+      if (aiAnswer) {
+        speak(aiAnswer, 'ai-' + lower.slice(0, 20));
+        return aiAnswer;
+      }
+      /* 4. Final offline fallback */
+      var fallback = buildOfflineFallback(lower);
+      speak(fallback, 'fallback');
+      return fallback;
+    });
+  }
+
+  /* ── Conversational AI query ──────────────────────────────────────
+   * Tries a free no-key chat completion endpoint. If offline or the
+   * request fails for any reason, returns null so the caller falls
+   * through to the offline fallback — the user always gets a response.
+   *
+   * The system prompt is tuned for a VI accessibility assistant:
+   *   - Always answer in plain spoken English (no markdown, no lists)
+   *   - Lead with the most important fact
+   *   - Keep answers under ~40 words so TTS stays comfortable
+   */
+  var AI_ENDPOINT = 'https://api.freeai.chat/v1/chat/completions';
+  var AI_MODEL    = 'gpt-4o-mini';
+  var AI_SYSTEM   = 'You are Auriga, a voice assistant for blind and low-vision users. ' +
+    'Answer questions concisely in plain spoken English — no bullet points, no markdown. ' +
+    'Keep every answer under 40 words. Lead with the most important fact. ' +
+    'If asked what something is, give a clear, tactile, spatial description.';
+  var AI_TIMEOUT_MS = 7000;
+
+  function queryAI(text) {
+    if (!navigator.onLine) return Promise.resolve(null);
+    return new Promise(function (resolve) {
+      var done = false;
+      var timer = setTimeout(function () {
+        if (!done) { done = true; resolve(null); }
+      }, AI_TIMEOUT_MS);
+
+      var body = JSON.stringify({
+        model: AI_MODEL,
+        messages: [
+          { role: 'system', content: AI_SYSTEM },
+          { role: 'user',   content: text }
+        ],
+        max_tokens: 80,
+        temperature: 0.5
+      });
+
+      fetch(AI_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: body
+      })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        var answer = data &&
+          data.choices &&
+          data.choices[0] &&
+          data.choices[0].message &&
+          data.choices[0].message.content;
+        resolve(answer ? answer.trim() : null);
+      })
+      .catch(function () {
+        if (!done) { done = true; clearTimeout(timer); resolve(null); }
+      });
+    });
+  }
+
+  /* ── Offline fallback answer builder ──────────────────────────────
+   * When both the KB and the AI are unavailable, give a response that
+   * is genuinely useful rather than a dead end.
+   */
+  function buildOfflineFallback(text) {
+    /* Detect question intent and give a directional answer */
+    if (/\bwhat\s+is\b|\bwhat\s+are\b|\bdefine\b|\bexplain\b/i.test(text)) {
+      return 'I do not have that answer stored offline right now. ' +
+        'I will try to look it up when you are connected. ' +
+        'You can also ask me about Auriga features — say "help" to hear what I know.';
+    }
+    if (/\bhow\s+(do|can|to)\b|\bhow\s+does\b/i.test(text)) {
+      return 'That is a good question. I am offline right now so I cannot fetch an answer. ' +
+        'For Auriga help, say "help" or "open help".';
+    }
+    return 'I heard you, but I am not sure how to answer that right now. ' +
+      'Say "help" to hear what I can do, or connect to the internet for broader questions.';
   }
 
   /* ── Morning Briefing (OpenJarvis morning-digest concept) ────────── */
