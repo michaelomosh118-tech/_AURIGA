@@ -211,6 +211,172 @@
             .source-tabs { gap:6px; }
             .source-tab { font-size:0.5rem; padding:7px 12px; }
         }
+
+        /* ══════════════════════════════════════════════════════
+           HUD LIVE PREVIEW — locator-style chrome
+           ══════════════════════════════════════════════════════ */
+        .hud-preview-section {
+            margin-bottom: 28px;
+        }
+        .hud-preview-section h2 {
+            font-family: 'Orbitron'; font-size: 0.58rem; letter-spacing: 0.2em;
+            color: #0057FF; margin-bottom: 8px;
+        }
+        .hud-preview-wrap {
+            position: relative;
+            width: 100%; aspect-ratio: 16/9;
+            min-height: 220px; max-height: 520px;
+            background: #000;
+            border: 1px solid rgba(0,240,255,0.18);
+            border-radius: 10px;
+            overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .hud-preview-wrap video,
+        .hud-preview-wrap canvas {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            object-fit: contain;
+        }
+        .hud-preview-wrap video { display: none; }
+        .hud-preview-wrap canvas { display: none; }
+
+        /* Scanline sweep */
+        .hud-scanline {
+            position: absolute; inset: 0;
+            pointer-events: none; z-index: 2;
+            background: linear-gradient(
+                to bottom,
+                transparent 0%,
+                rgba(0,240,255,0.04) 50%,
+                transparent 100%
+            );
+            background-size: 100% 8px;
+            animation: scanline-drift 6s linear infinite;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+        .hud-preview-wrap.active .hud-scanline { opacity: 1; }
+        @keyframes scanline-drift {
+            0%   { background-position: 0 0; }
+            100% { background-position: 0 100%; }
+        }
+
+        /* L-bracket corners */
+        .hud-frame {
+            position: absolute; inset: 0;
+            pointer-events: none; z-index: 4;
+        }
+        .hud-corner {
+            position: absolute;
+            width: 32px; height: 32px;
+            border-color: var(--auriga-cyan);
+            border-style: solid; border-width: 0;
+            filter: drop-shadow(0 0 6px rgba(0,240,255,0.65));
+            opacity: 0; transition: opacity 0.4s;
+        }
+        .hud-preview-wrap.active .hud-corner { opacity: 1; }
+        .hud-corner.tl { top: 14px; left: 14px;   border-top-width:2px; border-left-width:2px; }
+        .hud-corner.tr { top: 14px; right: 14px;  border-top-width:2px; border-right-width:2px; }
+        .hud-corner.bl { bottom: 14px; left: 14px;  border-bottom-width:2px; border-left-width:2px; }
+        .hud-corner.br { bottom: 14px; right: 14px; border-bottom-width:2px; border-right-width:2px; }
+
+        /* Centre reticle */
+        .hud-reticle {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 80px; height: 80px;
+            transform: translate(-50%, -50%);
+            border: 1px solid rgba(0,240,255,0.45);
+            border-radius: 50%;
+            filter: drop-shadow(0 0 6px rgba(0,240,255,0.4));
+            opacity: 0; transition: opacity 0.4s;
+        }
+        .hud-preview-wrap.active .hud-reticle { opacity: 1; }
+        .hud-reticle::before, .hud-reticle::after {
+            content: ''; position: absolute;
+            background: rgba(0,240,255,0.5);
+        }
+        .hud-reticle::before {
+            top: 50%; left: -10px; right: -10px;
+            height: 1px; transform: translateY(-50%);
+        }
+        .hud-reticle::after {
+            left: 50%; top: -10px; bottom: -10px;
+            width: 1px; transform: translateX(-50%);
+        }
+        .hud-reticle-dot {
+            position: absolute; top: 50%; left: 50%;
+            width: 5px; height: 5px; border-radius: 50%;
+            background: var(--auriga-cyan);
+            transform: translate(-50%,-50%);
+            box-shadow: 0 0 8px var(--auriga-cyan);
+        }
+
+        /* Top readout bar */
+        .hud-topbar-overlay {
+            position: absolute; top: 0; left: 0; right: 0;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 16px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, transparent 100%);
+            pointer-events: none; z-index: 5;
+        }
+        .hud-readout {
+            background: rgba(0,0,0,0.55);
+            border: 1px solid rgba(0,240,255,0.2);
+            border-radius: 6px; padding: 6px 12px;
+            backdrop-filter: blur(8px);
+        }
+        .hud-readout-label {
+            display: block;
+            font-family: 'Orbitron'; font-size: 0.48rem;
+            letter-spacing: 0.22em; color: #0057FF;
+            text-transform: uppercase; margin-bottom: 2px;
+        }
+        .hud-readout-value {
+            font-family: 'Orbitron'; font-size: 1rem; font-weight: 700;
+            color: var(--auriga-cyan);
+            text-shadow: 0 0 8px var(--auriga-cyan);
+            white-space: nowrap;
+        }
+        .hud-readout.right { text-align: right; }
+
+        /* Pulsing LIVE badge */
+        .hud-live-badge {
+            display: none; align-items: center; gap: 6px;
+            padding: 6px 14px; border-radius: 999px;
+            background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(0,240,255,0.35);
+            font-family: 'Orbitron'; font-size: 0.55rem;
+            letter-spacing: 0.2em; color: var(--auriga-cyan);
+            backdrop-filter: blur(8px);
+        }
+        .hud-live-badge.visible { display: flex; }
+        .hud-live-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #00F0B4;
+            box-shadow: 0 0 0 3px rgba(0,240,180,0.2);
+            animation: hud-pulse 1.6s ease-in-out infinite;
+        }
+        @keyframes hud-pulse {
+            0%,100% { box-shadow: 0 0 0 3px rgba(0,240,180,0.2); }
+            50%      { box-shadow: 0 0 0 7px rgba(0,240,180,0.04); }
+        }
+
+        /* Placeholder inside HUD */
+        .hud-placeholder {
+            position: relative; z-index: 3;
+            text-align: center; padding: 40px 20px;
+            color: #1A2A2A;
+        }
+        .hud-placeholder-icon {
+            font-size: 3rem; margin-bottom: 14px;
+            color: rgba(0,240,255,0.08);
+        }
+        .hud-placeholder p {
+            font-family: var(--mono); font-size: 0.65rem;
+            letter-spacing: 0.15em; color: #1E3535;
+        }
     </style>
 </head>
 <body>
@@ -235,6 +401,54 @@
             <button class="source-tab" onclick="switchTab('wifi')" id="tab-wifi"><span class="tab-icon">📡</span>WI-FI / IP CAMERA</button>
             <button class="source-tab" onclick="switchTab('serial')" id="tab-serial"><span class="tab-icon">⚡</span>SERIAL / MCU</button>
             <button class="source-tab" onclick="switchTab('bluetooth')" id="tab-bluetooth"><span class="tab-icon">🔵</span>BLUETOOTH</button>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════
+             SHARED HUD LIVE PREVIEW
+             ══════════════════════════════════════════════════════ -->
+        <div class="hud-preview-section">
+            <h2>LIVE PREVIEW</h2>
+            <div class="hud-preview-wrap" id="hud-preview-wrap">
+
+                <!-- Feed elements -->
+                <video id="hud-video" autoplay playsinline muted></video>
+                <canvas id="hud-canvas"></canvas>
+
+                <!-- Scanline sweep -->
+                <div class="hud-scanline"></div>
+
+                <!-- L-bracket corner HUD chrome -->
+                <div class="hud-frame" aria-hidden="true">
+                    <div class="hud-corner tl"></div>
+                    <div class="hud-corner tr"></div>
+                    <div class="hud-corner bl"></div>
+                    <div class="hud-corner br"></div>
+                    <div class="hud-reticle"><div class="hud-reticle-dot"></div></div>
+                </div>
+
+                <!-- Top readout bar -->
+                <div class="hud-topbar-overlay">
+                    <div class="hud-readout">
+                        <span class="hud-readout-label">Source</span>
+                        <span class="hud-readout-value" id="hud-source">—</span>
+                    </div>
+                    <div class="hud-live-badge" id="hud-live-badge">
+                        <span class="hud-live-dot"></span>
+                        LIVE
+                    </div>
+                    <div class="hud-readout right">
+                        <span class="hud-readout-label">FPS</span>
+                        <span class="hud-readout-value" id="hud-fps">—</span>
+                    </div>
+                </div>
+
+                <!-- Idle placeholder -->
+                <div class="hud-placeholder" id="hud-placeholder">
+                    <div class="hud-placeholder-icon">◎</div>
+                    <p>SELECT A CONNECTION TYPE ABOVE AND CONNECT</p>
+                </div>
+
+            </div>
         </div>
 
         <!-- ── PANEL: USB / BUILT-IN ── -->
@@ -614,6 +828,44 @@ BLECharacteristic *pChar;
     let btBuffer     = new Uint8Array(0);
     let btExpected   = 0;
 
+    /* ── HUD STATE ── */
+    const hudWrap   = document.getElementById('hud-preview-wrap');
+    const hudVideo  = document.getElementById('hud-video');
+    const hudCanvas = document.getElementById('hud-canvas');
+    const hudCtx    = hudCanvas.getContext('2d');
+    let   hudFrames = 0;
+    let   hudFpsVal = 0;
+
+    // Tick FPS every second
+    setInterval(() => {
+        hudFpsVal = hudFrames;
+        hudFrames = 0;
+        const el = document.getElementById('hud-fps');
+        if (el) el.textContent = hudFpsVal > 0 ? hudFpsVal : '—';
+    }, 1000);
+
+    // For USB video we track FPS via requestAnimationFrame
+    let hudVideoFpsInterval = null;
+
+    function hudActivate(sourceLabel) {
+        hudWrap.classList.add('active');
+        document.getElementById('hud-placeholder').style.display = 'none';
+        document.getElementById('hud-live-badge').classList.add('visible');
+        document.getElementById('hud-source').textContent = sourceLabel;
+    }
+
+    function hudDeactivate() {
+        hudWrap.classList.remove('active');
+        document.getElementById('hud-placeholder').style.display = '';
+        document.getElementById('hud-live-badge').classList.remove('visible');
+        document.getElementById('hud-source').textContent = '—';
+        document.getElementById('hud-fps').textContent = '—';
+        hudVideo.style.display = 'none';
+        hudVideo.srcObject = null;
+        hudCanvas.style.display = 'none';
+        if (hudVideoFpsInterval) { clearInterval(hudVideoFpsInterval); hudVideoFpsInterval = null; }
+    }
+
     /* ── HELPERS ── */
     function setStatus(state, text) {
         const dot = document.getElementById('status-dot');
@@ -649,6 +901,13 @@ BLECharacteristic *pChar;
         };
         try {
             activeStream = await navigator.mediaDevices.getUserMedia(constraints);
+            // Route into HUD video element
+            hudVideo.srcObject = activeStream;
+            hudVideo.style.display = 'block';
+            hudCanvas.style.display = 'none';
+            hudActivate('USB CAM');
+
+            // Also mirror to the per-tab preview
             const video = document.getElementById('usb-video');
             video.srcObject = activeStream;
             video.style.display = 'block';
@@ -657,9 +916,30 @@ BLECharacteristic *pChar;
             document.getElementById('usb-badge').style.display = 'inline';
             document.getElementById('usb-open-row').style.display = 'flex';
             const track = activeStream.getVideoTracks()[0];
+            const settings = track.getSettings();
+            const label = track.label.slice(0,22);
             document.getElementById('usb-badge').textContent =
-                track.label.slice(0,28) + ' · ' + track.getSettings().width + '×' + track.getSettings().height;
+                label + ' · ' + settings.width + '×' + settings.height;
+            document.getElementById('hud-source').textContent =
+                label.slice(0,12) || 'USB CAM';
             setStatus('connected', 'Camera connected — ' + track.label.slice(0,40));
+
+            // FPS from video.getVideoTracks frame rate
+            if (settings.frameRate) {
+                document.getElementById('hud-fps').textContent = Math.round(settings.frameRate);
+            }
+            // Count frames via the video's requestVideoFrameCallback if available
+            if (hudVideo.requestVideoFrameCallback) {
+                let lastTs = 0;
+                const tick = (ts) => {
+                    if (activeStream) {
+                        if (ts - lastTs >= 1000) { lastTs = ts; }
+                        hudFrames++;
+                        hudVideo.requestVideoFrameCallback(tick);
+                    }
+                };
+                hudVideo.requestVideoFrameCallback(tick);
+            }
         } catch(e) {
             setStatus('error', 'Camera error: ' + e.message);
             alert('Camera access denied or unavailable.\n\n' + e.message);
@@ -676,6 +956,7 @@ BLECharacteristic *pChar;
         document.getElementById('usb-open-row').style.display = 'none';
         const wImg = document.getElementById('wifi-img'); wImg.src = ''; wImg.style.display = 'none';
         setStatus('', 'No camera connected');
+        hudDeactivate();
     }
 
     /* ── WIFI / IP CAMERA ── */
@@ -694,14 +975,36 @@ BLECharacteristic *pChar;
             document.getElementById('wifi-live-badge').style.display = 'inline';
             document.getElementById('wifi-badge').style.display = 'inline';
             document.getElementById('wifi-badge').textContent = 'MJPEG · ' + url.slice(0,30);
-            img.onload = () => setStatus('connected', 'MJPEG stream active · ' + url.slice(0,40));
-            img.onerror = () => setStatus('error', 'Stream error — check URL and CORS');
+            // Show MJPEG in the shared HUD by mirroring the <img> to hud-canvas each animation frame
+            hudCanvas.style.display = 'block';
+            hudVideo.style.display = 'none';
+            hudActivate('MJPEG');
+            let mjpegRunning = true;
+            const drawMjpeg = () => {
+                if (!mjpegRunning || !wifiPoller && !wsConn && !mjpegRunning) return;
+                if (img.naturalWidth > 0) {
+                    hudCanvas.width  = img.naturalWidth;
+                    hudCanvas.height = img.naturalHeight;
+                    hudCtx.drawImage(img, 0, 0);
+                    hudFrames++;
+                }
+                requestAnimationFrame(drawMjpeg);
+            };
+            requestAnimationFrame(drawMjpeg);
+            img.onload = () => {
+                setStatus('connected', 'MJPEG stream active · ' + url.slice(0,40));
+                mjpegRunning = true;
+            };
+            img.onerror = () => { setStatus('error', 'Stream error — check URL and CORS'); mjpegRunning = false; };
         } else if (fmt === 'jpg') {
             const canvas = document.getElementById('wifi-canvas');
             const ctx = canvas.getContext('2d');
             canvas.style.display = 'block';
             document.getElementById('wifi-placeholder').style.display = 'none';
             document.getElementById('wifi-live-badge').style.display = 'inline';
+            hudCanvas.style.display = 'block';
+            hudVideo.style.display = 'none';
+            hudActivate('SNAPSHOT');
             const interval = parseInt(document.getElementById('poll-interval').value) || 200;
             let frameCount = 0;
             wifiPoller = setInterval(async () => {
@@ -711,6 +1014,10 @@ BLECharacteristic *pChar;
                     const bitmap = await createImageBitmap(blob);
                     canvas.width = bitmap.width; canvas.height = bitmap.height;
                     ctx.drawImage(bitmap, 0, 0);
+                    // Mirror to HUD
+                    hudCanvas.width = bitmap.width; hudCanvas.height = bitmap.height;
+                    hudCtx.drawImage(bitmap, 0, 0);
+                    hudFrames++;
                     frameCount++;
                     if (frameCount === 1) setStatus('connected', 'Snapshot poll active · ' + url.slice(0,30));
                 } catch(e) { setStatus('error', 'Fetch error: ' + e.message); }
@@ -720,6 +1027,9 @@ BLECharacteristic *pChar;
             const ctx = canvas.getContext('2d');
             canvas.style.display = 'block';
             document.getElementById('wifi-placeholder').style.display = 'none';
+            hudCanvas.style.display = 'block';
+            hudVideo.style.display = 'none';
+            hudActivate('WS-JPEG');
             wsConn = new WebSocket(url);
             wsConn.binaryType = 'arraybuffer';
             wsConn.onopen = () => {
@@ -731,6 +1041,10 @@ BLECharacteristic *pChar;
                 const bitmap = await createImageBitmap(blob);
                 canvas.width = bitmap.width; canvas.height = bitmap.height;
                 ctx.drawImage(bitmap, 0, 0);
+                // Mirror to HUD
+                hudCanvas.width = bitmap.width; hudCanvas.height = bitmap.height;
+                hudCtx.drawImage(bitmap, 0, 0);
+                hudFrames++;
             };
             wsConn.onerror = () => setStatus('error', 'WebSocket error — check URL');
             wsConn.onclose = () => setStatus('', 'WebSocket closed');
@@ -784,6 +1098,9 @@ BLECharacteristic *pChar;
             document.getElementById('serial-live-badge').style.display = 'inline';
             document.getElementById('serial-placeholder').style.display = 'none';
             document.getElementById('serial-canvas').style.display = 'block';
+            hudCanvas.style.display = 'block';
+            hudVideo.style.display = 'none';
+            hudActivate('SERIAL');
             readSerialStream();
         } catch(e) {
             serialLog('err', 'Error: ' + e.message);
@@ -919,6 +1236,9 @@ BLECharacteristic *pChar;
             document.getElementById('bt-placeholder').style.display = 'none';
             document.getElementById('bt-canvas').style.display = 'block';
             document.getElementById('bt-live-badge').style.display = 'inline';
+            hudCanvas.style.display = 'block';
+            hudVideo.style.display = 'none';
+            hudActivate('BT · ' + (btDevice.name || 'BLE CAM').slice(0,10));
             btDevice.addEventListener('gattserverdisconnected', () => {
                 setStatus('error', 'Bluetooth disconnected');
                 document.getElementById('bt-live-badge').style.display = 'none';
@@ -981,6 +1301,11 @@ BLECharacteristic *pChar;
             const bitmap = await createImageBitmap(blob);
             canvas.width = bitmap.width; canvas.height = bitmap.height;
             ctx.drawImage(bitmap, 0, 0);
+            // Mirror to shared HUD canvas
+            hudCanvas.width  = bitmap.width;
+            hudCanvas.height = bitmap.height;
+            hudCtx.drawImage(bitmap, 0, 0);
+            hudFrames++;
         } catch(_) {}
     }
 
