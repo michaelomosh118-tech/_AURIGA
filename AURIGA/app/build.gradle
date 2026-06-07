@@ -293,6 +293,11 @@ dependencies {
     // activity is destroyed.
     implementation 'androidx.activity:activity:1.8.2'
 
+    // ZXing — offline barcode/QR decoder for LabelReaderEngine (Session 14).
+    // Core-only (no Android UI layer needed — we call the decoder API directly).
+    // Covers EAN-8/13, UPC-A/E, QR Code, Code 128/39, Data Matrix, ITF, PDF-417.
+    implementation 'com.google.zxing:core:3.5.2'
+
     // Redundant 'org.json:json' removed as it's built into Android
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
