@@ -37,9 +37,6 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -256,14 +253,21 @@ public class AurigaCoreService extends Service implements LifecycleOwner {
     // ─────────────────────────────────────────────────────────────────────────
 
     private void initEngines() {
+        // OutputLayer and CommandRouter have no external dependencies — init first.
         outputLayer    = new OutputLayer(this);
         commandRouter  = new CommandRouter();
+
+        // Perception engines — no Context or no inter-engine deps.
         passiveHazard  = new PassiveHazardEngine(this);
         stairSense     = new StairSenseEngine();
-        trafficSense   = new TrafficSenseEngine(this);
+        trafficSense   = new TrafficSenseEngine();   // stateful, no Context arg
+        colorSense     = new ColorSenseEngine();     // stateless
+
+        // CrossingGuard depends on colorSense + trafficSense — init after both.
         crossingGuard  = new CrossingGuardEngine(colorSense, trafficSense, outputLayer);
+
+        // Safety and identification engines.
         emergencySOS   = new EmergencySOSEngine(this, outputLayer);
-        colorSense     = new ColorSenseEngine();
         faceVault      = new FaceVaultEngine(this);
         pillGuard      = new PillGuardEngine(this);
         cashLens       = new CashLensEngine(this);
@@ -272,11 +276,6 @@ public class AurigaCoreService extends Service implements LifecycleOwner {
         sceneDescriber = new SceneDescriberEngine(this);
         godsEye        = new GodsEyeOrchestrator();
         yoloDetector   = YoloDetector.tryCreate(this);
-
-        // Wire CrossingGuardEngine deps that couldn't be set in constructor
-        // (colorSense / trafficSense were null when crossingGuard was first
-        //  constructed — rebuilt here with the fully-initialised instances)
-        crossingGuard  = new CrossingGuardEngine(colorSense, trafficSense, outputLayer);
 
         Log.i(TAG, "YoloDetector available: " + (yoloDetector != null));
     }
