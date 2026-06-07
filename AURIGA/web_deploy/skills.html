@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Skills Directory | Auriga Ecosystem</title>
+  <link rel="icon" type="image/png" href="logo.png"/>
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#0A0A0F"/>
+  <meta name="description" content="All voice commands and skills available in Auriga. Say any phrase to activate a skill."/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="nav-drawer.css"/>
+  <link rel="stylesheet" href="auriga-voice.css"/>
+  <style>
+    :root {
+      --space: #0A0A0F;
+      --deep: #05060A;
+      --cobalt: #0057FF;
+      --cyan: #00F0FF;
+      --amber: #FFB300;
+      --green: #00E676;
+      --red: #FF3B30;
+      --text: #FFFFFF;
+      --muted: #7AA3C8;
+      --glass: rgba(5,10,24,0.80);
+      --stroke: rgba(0,240,255,0.18);
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%;background:var(--deep);color:var(--text);font-family:'Inter',system-ui,sans-serif;overflow-x:hidden}
+    .skip-link{position:absolute;top:-100px;left:20px;background:var(--amber);color:#000;padding:12px 24px;z-index:9999;text-decoration:none;font-family:'Orbitron',sans-serif;font-weight:700;border-radius:4px}
+    .skip-link:focus{top:20px}
+    *:focus-visible{outline:3px solid var(--amber);outline-offset:3px;border-radius:4px}
+
+    /* ── Header ──────────────────────────────────────────────────── */
+    .page-header {
+      padding: 80px 24px 40px;
+      text-align: center;
+      background: linear-gradient(180deg,rgba(0,87,255,0.12) 0%,transparent 100%);
+      border-bottom: 1px solid var(--stroke);
+    }
+    .page-header h1 {
+      font-family:'Orbitron',sans-serif;
+      font-size: clamp(1.4rem,4vw,2.4rem);
+      font-weight:900;
+      letter-spacing:3px;
+      background: linear-gradient(135deg,var(--cyan),var(--cobalt));
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+      background-clip:text;
+      margin-bottom:12px;
+    }
+    .page-header p {
+      color:var(--muted);
+      font-size:.95rem;
+      max-width:520px;
+      margin:0 auto;
+      line-height:1.6;
+    }
+    .page-header .tip {
+      margin-top:18px;
+      display:inline-block;
+      background:rgba(0,240,255,0.07);
+      border:1px solid var(--stroke);
+      border-radius:8px;
+      padding:10px 18px;
+      font-size:.82rem;
+      color:var(--cyan);
+      font-family:'Share Tech Mono',monospace;
+    }
+
+    /* ── Search ──────────────────────────────────────────────────── */
+    .search-wrap {
+      max-width:720px;
+      margin:32px auto 0;
+      padding:0 20px;
+    }
+    .search-input {
+      width:100%;
+      background:rgba(255,255,255,0.05);
+      border:1px solid var(--stroke);
+      border-radius:10px;
+      padding:14px 20px;
+      color:var(--text);
+      font-size:1rem;
+      font-family:'Inter',sans-serif;
+      outline:none;
+      transition:border-color .2s;
+    }
+    .search-input:focus{border-color:var(--cyan)}
+    .search-input::placeholder{color:var(--muted)}
+
+    /* ── Category filters ─────────────────────────────────────────── */
+    .filter-row {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      max-width:720px;
+      margin:16px auto 0;
+      padding:0 20px;
+    }
+    .filter-btn {
+      background:transparent;
+      border:1px solid var(--stroke);
+      border-radius:20px;
+      padding:6px 16px;
+      color:var(--muted);
+      font-size:.82rem;
+      cursor:pointer;
+      transition:all .2s;
+    }
+    .filter-btn.active,.filter-btn:hover{background:rgba(0,240,255,0.1);border-color:var(--cyan);color:var(--cyan)}
+
+    /* ── Skills grid ─────────────────────────────────────────────── */
+    .skills-container {
+      max-width:960px;
+      margin:40px auto 80px;
+      padding:0 20px;
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+      gap:20px;
+    }
+    .skill-card {
+      background:var(--glass);
+      border:1px solid var(--stroke);
+      border-radius:14px;
+      padding:22px 20px;
+      transition:border-color .2s,transform .15s;
+      cursor:default;
+    }
+    .skill-card:hover{border-color:rgba(0,240,255,0.4);transform:translateY(-2px)}
+    .skill-card:focus-within{border-color:var(--amber);outline:none}
+
+    .skill-category {
+      font-family:'Share Tech Mono',monospace;
+      font-size:.68rem;
+      letter-spacing:2px;
+      text-transform:uppercase;
+      margin-bottom:8px;
+      opacity:.6;
+    }
+    .skill-name {
+      font-family:'Orbitron',sans-serif;
+      font-size:.95rem;
+      font-weight:700;
+      margin-bottom:8px;
+      color:var(--cyan);
+    }
+    .skill-desc {
+      font-size:.82rem;
+      color:var(--muted);
+      line-height:1.5;
+      margin-bottom:14px;
+    }
+    .skill-examples {
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .skill-example {
+      background:rgba(0,87,255,0.1);
+      border:1px solid rgba(0,87,255,0.25);
+      border-radius:6px;
+      padding:7px 12px;
+      font-family:'Share Tech Mono',monospace;
+      font-size:.75rem;
+      color:rgba(255,255,255,0.85);
+      line-height:1.4;
+      cursor:pointer;
+      transition:background .15s;
+    }
+    .skill-example:hover{background:rgba(0,87,255,0.2)}
+    .skill-example:focus{outline:2px solid var(--amber);outline-offset:2px}
+
+    /* ── Stats bar ───────────────────────────────────────────────── */
+    .stats-bar {
+      text-align:center;
+      padding:12px;
+      font-size:.8rem;
+      color:var(--muted);
+      font-family:'Share Tech Mono',monospace;
+    }
+
+    /* ── No results ──────────────────────────────────────────────── */
+    .no-results {
+      grid-column:1/-1;
+      text-align:center;
+      padding:60px 20px;
+      color:var(--muted);
+    }
+    .no-results span {font-size:2rem;display:block;margin-bottom:12px}
+
+    /* ── High-contrast mode ──────────────────────────────────────── */
+    body.high-contrast {
+      background:#000;
+      --text:#fff;
+      --muted:#eee;
+      --glass:rgba(0,0,0,0.95);
+      --stroke:rgba(255,255,255,0.5);
+    }
+    body.high-contrast .skill-card{border-width:2px}
+    body.high-contrast .skill-example{background:#111;border-color:#666;color:#fff}
+
+    @media(max-width:480px){
+      .skills-container{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#skills-list">Skip to skills</a>
+
+  <!-- Nav drawer injected by nav-drawer.js -->
+
+  <header class="page-header" role="banner">
+    <h1>SKILLS DIRECTORY</h1>
+    <p>All voice commands available in Auriga. Tap any example phrase to speak it, or say it aloud while Auriga is listening.</p>
+    <div class="tip" aria-label="Voice tip">Say "open skills page" any time to return here</div>
+  </header>
+
+  <div class="search-wrap" role="search">
+    <label for="skill-search" class="sr-only">Search skills</label>
+    <input id="skill-search" class="search-input" type="search"
+      placeholder="Search skills… (e.g. timer, weather, calculator)"
+      aria-label="Search all skills"
+      autocomplete="off" spellcheck="false"/>
+  </div>
+
+  <div class="filter-row" role="toolbar" aria-label="Filter by category">
+    <button class="filter-btn active" data-cat="all">All</button>
+    <button class="filter-btn" data-cat="timers">⏱ Timers &amp; Alarms</button>
+    <button class="filter-btn" data-cat="reminders">🔔 Reminders</button>
+    <button class="filter-btn" data-cat="math">🔢 Math</button>
+    <button class="filter-btn" data-cat="weather">🌤 Weather</button>
+    <button class="filter-btn" data-cat="location">📍 Location</button>
+    <button class="filter-btn" data-cat="home">🏠 Home</button>
+    <button class="filter-btn" data-cat="utility">🎲 Utility</button>
+    <button class="filter-btn" data-cat="news">📰 News</button>
+    <button class="filter-btn" data-cat="system">⚙ System</button>
+    <button class="filter-btn" data-cat="memory">🧠 Memory</button>
+  </div>
+
+  <div class="stats-bar" id="stats-bar" aria-live="polite"></div>
+
+  <main>
+    <div class="skills-container" id="skills-list" role="list" aria-label="Available skills">
+    </div>
+  </main>
+
+  <!-- Auriga voice overlay -->
+  <div id="av-container" aria-live="polite"></div>
+
+  <script src="nav-drawer.js" defer></script>
+  <script src="auriga-announce.js" defer></script>
+  <script src="auriga-memory.js" defer></script>
+  <script src="jarvis.js" defer></script>
+  <script src="auriga-llm.js" defer></script>
+  <script src="auriga-swipe.js" defer></script>
+  <script src="auriga-voice.js" defer></script>
+  <script src="auriga-skills.js" defer></script>
+  <script src="auriga-voice-nav.js" defer></script>
+  <script>
+  (function () {
+    'use strict';
+
+    /* ── Master skill data (mirrors auriga-skills.js categories) ── */
+    var SKILLS = [
+      /* TIMERS & ALARMS */
+      { cat:'timers', name:'Set timer', desc:'Start a countdown timer. Speaks halfway and final warnings aloud.',
+        examples:['set a timer for 5 minutes','timer for 1 hour 30 minutes','countdown for 45 seconds','set a pasta timer for 10 minutes'] },
+      { cat:'timers', name:'Cancel timer', desc:'Cancel all running timers.',
+        examples:['cancel timer','stop the timer','clear all timers'] },
+      { cat:'timers', name:'Check timers', desc:'Hear how much time is left on your timers.',
+        examples:['list timers','how much time is left','check my timers'] },
+      { cat:'timers', name:'Set alarm', desc:'Set an alarm for a specific time. Uses real system alarms that fire even when screen is off.',
+        examples:['set alarm at 7 AM','wake me at 6:30','alarm at quarter past 8','set alarm for midnight'] },
+      { cat:'timers', name:'Cancel alarm', desc:'Cancel all active alarms.',
+        examples:['cancel alarm','delete all alarms','turn off the alarm'] },
+
+      /* REMINDERS */
+      { cat:'reminders', name:'Set reminder', desc:'Remind yourself to do something after a duration.',
+        examples:['remind me to take my medicine in 2 hours','set a reminder to call John in 30 minutes','remind me about the meeting in 1 hour'] },
+      { cat:'reminders', name:'List reminders', desc:'Hear all pending reminders.',
+        examples:['list reminders','any pending reminders','show my reminders'] },
+      { cat:'reminders', name:'Clear reminders', desc:'Cancel all pending reminders.',
+        examples:['clear all reminders','delete my reminders','cancel reminders'] },
+      { cat:'reminders', name:'Stopwatch', desc:'Track elapsed time with lap support.',
+        examples:['start stopwatch','lap stopwatch','how long has it been','stop the stopwatch','reset stopwatch'] },
+      { cat:'reminders', name:'Countdown', desc:'Count down aloud from any number.',
+        examples:['count down from 10','countdown from 5'] },
+
+      /* MATH */
+      { cat:'math', name:'Calculator', desc:'Arithmetic in plain English — no app needed.',
+        examples:['what is 24 times 7','what is 15 percent of 200','square root of 144','what is 100 divided by 4','what is 8 squared'] },
+      { cat:'math', name:'Unit converter', desc:'Convert between units of temperature, distance, weight, and volume.',
+        examples:['convert 5 miles to kilometres','convert 100 Fahrenheit to Celsius','convert 80 kg to pounds','convert 3 litres to gallons'] },
+      { cat:'math', name:'Random number', desc:'Generate a random number, roll dice, or flip a coin.',
+        examples:['random number','number between 1 and 100','roll a dice','flip a coin'] },
+
+      /* WEATHER */
+      { cat:'weather', name:'Current weather', desc:'Gets weather using your GPS location via Open-Meteo. Free, no API key, works anywhere.',
+        examples:["what's the weather","how hot is it outside","will it rain today","weather forecast","is it raining"] },
+
+      /* LOCATION */
+      { cat:'location', name:'GPS location', desc:'Reads your exact GPS coordinates, accuracy, and movement speed.',
+        examples:['where am I','my GPS coordinates','what is my location','latitude and longitude'] },
+      { cat:'location', name:'Compass heading', desc:'Reads compass bearing and converts to a cardinal direction.',
+        examples:['which direction am I facing','compass heading','what direction am I heading'] },
+
+      /* HOME AUTOMATION */
+      { cat:'home', name:'Smart lights', desc:'Control any smart lights. Dispatches an event your home hub can receive.',
+        examples:['turn on the lights','turn off the bedroom lights','dim the lights','set lights to 50 percent','brighten the kitchen lights'] },
+      { cat:'home', name:'Thermostat', desc:'Adjust the thermostat by voice.',
+        examples:['set thermostat to 22 degrees','make it warmer','set the heat to 72','make it cooler'] },
+      { cat:'home', name:'Door locks', desc:'Lock or unlock smart doors.',
+        examples:['lock the front door','unlock the back door','is the door locked','check door locks'] },
+
+      /* UTILITY */
+      { cat:'utility', name:'Spell a word', desc:'Spells any word letter by letter.',
+        examples:['how do you spell necessary','spell the word beautiful','spelling of immediately'] },
+      { cat:'utility', name:'Battery status', desc:'Hear your current battery percentage and charging status.',
+        examples:['battery level','how much charge do I have','what is my battery'] },
+
+      /* NEWS */
+      { cat:'news', name:'News headlines', desc:'Fetches the top 5 headlines from BBC News. Cached for 1 hour.',
+        examples:["what's in the news","latest headlines","what's happening today","top stories","news briefing"] },
+
+      /* SYSTEM */
+      { cat:'system', name:'Font size', desc:'Increase or decrease text size on all Auriga pages.',
+        examples:['make text bigger','increase font size','smaller text','reset font size'] },
+      { cat:'system', name:'High contrast', desc:'Toggle high-contrast mode for easier visibility.',
+        examples:['enable high contrast','turn on high contrast','high contrast off','toggle contrast'] },
+      { cat:'system', name:'Speech rate', desc:'Make the voice faster or slower.',
+        examples:['speak faster','talk slower','speed up','slow down','normal speech rate'] },
+      { cat:'system', name:'Volume control', desc:'Adjust media volume by voice.',
+        examples:['volume up','volume down','louder','quieter','mute sound','max volume'] },
+
+      /* MEMORY */
+      { cat:'memory', name:'Memory recall', desc:'Recall facts you have told Auriga.',
+        examples:['what do you know about me','do you remember my name','my profile','what is my location'] },
+      { cat:'memory', name:'Forget me', desc:'Erase all stored memory and profile data.',
+        examples:['forget about me','erase my data','clear my memory','delete my profile'] },
+      { cat:'memory', name:'Morning briefing', desc:'Full spoken digest: time, date, battery, weather, and a daily tip.',
+        examples:['briefing','morning briefing','daily briefing','daily digest'] }
+    ];
+
+    var container = document.getElementById('skills-list');
+    var searchEl  = document.getElementById('skill-search');
+    var statsEl   = document.getElementById('stats-bar');
+    var activeFilter = 'all';
+
+    /* Category colours */
+    var CAT_COLORS = {
+      timers:'#00F0FF', reminders:'#FFB300', math:'#00E676',
+      weather:'#87CEEB', location:'#FF9800', home:'#AB47BC',
+      utility:'#F06292', news:'#42A5F5', system:'#78909C', memory:'#EF5350'
+    };
+
+    function renderSkills(filter, query) {
+      container.innerHTML = '';
+      var q = (query || '').trim().toLowerCase();
+      var shown = 0;
+
+      SKILLS.forEach(function (skill) {
+        if (filter !== 'all' && skill.cat !== filter) return;
+        if (q && !skill.name.toLowerCase().includes(q)
+              && !skill.desc.toLowerCase().includes(q)
+              && !skill.examples.some(function (e) { return e.toLowerCase().includes(q); })) return;
+
+        shown++;
+        var card = document.createElement('div');
+        card.className = 'skill-card';
+        card.setAttribute('role', 'listitem');
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-label', skill.name + ': ' + skill.desc);
+
+        var color = CAT_COLORS[skill.cat] || '#00F0FF';
+        card.innerHTML =
+          '<div class="skill-category" style="color:' + color + '">' + catLabel(skill.cat) + '</div>' +
+          '<div class="skill-name">' + esc(skill.name) + '</div>' +
+          '<div class="skill-desc">' + esc(skill.desc) + '</div>' +
+          '<div class="skill-examples">' +
+            skill.examples.map(function (ex) {
+              return '<button class="skill-example" tabindex="0" aria-label="Try: ' + esc(ex) + '">&ldquo;' + esc(ex) + '&rdquo;</button>';
+            }).join('') +
+          '</div>';
+
+        /* Clicking an example speaks it via Jarvis */
+        card.querySelectorAll('.skill-example').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var phrase = btn.textContent.replace(/[""]/g, '').trim();
+            trySpeak(phrase);
+          });
+          btn.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); }
+          });
+        });
+
+        container.appendChild(card);
+      });
+
+      if (shown === 0) {
+        container.innerHTML = '<div class="no-results" role="status"><span>🔍</span>No skills match "<strong>' + esc(q || filter) + '</strong>". Try a different search.</div>';
+      }
+      if (statsEl) {
+        statsEl.textContent = shown + ' of ' + SKILLS.length + ' skills shown.';
+      }
+    }
+
+    function trySpeak(phrase) {
+      if (window.Jarvis && window.Jarvis.ask) {
+        window.Jarvis.ask(phrase);
+      } else if ('speechSynthesis' in window) {
+        var u = new SpeechSynthesisUtterance('Sending: ' + phrase);
+        u.rate = 0.9;
+        window.speechSynthesis.speak(u);
+      }
+    }
+
+    function catLabel(cat) {
+      var labels = {
+        timers:'⏱ Timers & Alarms', reminders:'🔔 Reminders', math:'🔢 Math & Conversion',
+        weather:'🌤 Weather', location:'📍 Location & GPS', home:'🏠 Home Automation',
+        utility:'🎲 Utility', news:'📰 News', system:'⚙ System Controls', memory:'🧠 Memory'
+      };
+      return labels[cat] || cat;
+    }
+
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    /* ── Filter buttons ──────────────────────────────────────────── */
+    document.querySelectorAll('.filter-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        activeFilter = btn.getAttribute('data-cat');
+        renderSkills(activeFilter, searchEl.value);
+        if (window.Jarvis && window.Jarvis.speak) {
+          window.Jarvis.speak('Showing ' + btn.textContent.trim() + ' skills.', 'filter');
+        }
+      });
+    });
+
+    /* ── Search ──────────────────────────────────────────────────── */
+    var searchTimer;
+    searchEl.addEventListener('input', function () {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () {
+        renderSkills(activeFilter, searchEl.value);
+      }, 220);
+    });
+
+    /* ── Initial render ──────────────────────────────────────────── */
+    renderSkills('all', '');
+
+    /* ── Page announcement ───────────────────────────────────────── */
+    document.addEventListener('jarvis:ready', function () {
+      setTimeout(function () {
+        if (window.Jarvis && window.Jarvis.speak) {
+          window.Jarvis.speak(
+            'Skills directory. ' + SKILLS.length + ' skills are available. '
+            + 'Search by speaking or typing, or tap any example phrase to activate a skill. '
+            + 'Use the category buttons to filter by type.',
+            'skills-page-announce'
+          );
+        }
+      }, 800);
+    });
+
+    /* ── High contrast restore ───────────────────────────────────── */
+    if (localStorage.getItem('auriga-high-contrast') === '1') {
+      document.body.classList.add('high-contrast');
+    }
+    var scale = parseFloat(localStorage.getItem('auriga-font-scale') || '0');
+    if (scale > 0.1) document.documentElement.style.fontSize = (scale * 16) + 'px';
+
+  })();
+  </script>
+</body>
+</html>

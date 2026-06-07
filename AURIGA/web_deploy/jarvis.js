@@ -897,7 +897,10 @@
     'calibration-library.html': 'Calibration Library. Device-specific distance profiles for improved accuracy.',
     'feedback.html':          'Send Feedback. Report bugs, suggest ideas, or ask for help.',
     'about.html':             'About Auriga. Mission and contact information.',
-    'assistant.html':         'Jarvis Assistant. Your AI-powered voice interface for the entire Auriga platform.'
+    'assistant.html':         'Jarvis Assistant. Your AI-powered voice interface for the entire Auriga platform.',
+    'chat.html':              'Chat. Type or speak with the Auriga AI assistant. Full conversation history is shown on screen.',
+    'skills.html':            'Skills Directory. Over 26 voice skills available. Search by keyword or filter by category. Tap any example phrase to activate it.',
+    'camera-connect.html':    'Camera Connect. Link an external camera or Raspberry Pi camera stream to Auriga.'
   };
 
   function currentPage() {

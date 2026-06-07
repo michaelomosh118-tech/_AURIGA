@@ -312,6 +312,33 @@ public final class AurigaMemoryStore {
         });
     }
 
+    /* ── Synchronous profile context (call from background thread only) ── */
+
+    public static String getProfileContext(Context ctx) {
+        try {
+            SQLiteDatabase d = db(ctx).getReadableDatabase();
+            Cursor c = d.rawQuery("SELECT key, value FROM " + T_PROF, null);
+            List<String> parts = new ArrayList<>();
+            while (c.moveToNext()) {
+                String key = c.getString(0);
+                String val = c.getString(1);
+                switch (key) {
+                    case "name":        parts.add("The user's name is " + val); break;
+                    case "location":    parts.add("They live in " + val); break;
+                    case "age":         parts.add("They are " + val + " years old"); break;
+                    case "occupation":  parts.add("They work as a " + val); break;
+                    case "guide_dog":   parts.add("They use a guide dog"); break;
+                    case "dog_name":    parts.add("Their guide dog is named " + val); break;
+                    case "uses_cane":   parts.add("They use a white cane"); break;
+                    case "pref_length": parts.add("They prefer " + val + " answers"); break;
+                    case "device":      parts.add("Their device is a " + val); break;
+                }
+            }
+            c.close();
+            return parts.isEmpty() ? "" : String.join(". ", parts) + ".";
+        } catch (Exception e) { return ""; }
+    }
+
     /* ── Clear all ─────────────────────────────────────────────── */
 
     public static void clear(Context ctx) {

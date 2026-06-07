@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
+/* OpenClaw-style skill engine — all non-navigation commands go here first */
+
 /**
  * AurigaVoiceEngine — Android voice navigation layer.
  *
@@ -68,6 +70,9 @@ public class AurigaVoiceEngine implements RecognitionListener {
     private TextToSpeech tts;
     private boolean ttsReady = false;
     private boolean listening = false;
+
+    /* OpenClaw-style skill engine: handles all non-navigation commands */
+    private AurigaSkillEngine skillEngine;
 
     public AurigaVoiceEngine(Activity activity, Listener listener) {
         this.activity = activity;
@@ -230,6 +235,12 @@ public class AurigaVoiceEngine implements RecognitionListener {
             if (ttsReady && tts != null) {
                 tts.setLanguage(Locale.getDefault());
                 tts.setSpeechRate(1.05f);
+                /* Wire skill engine once TTS is ready */
+                if (skillEngine == null) {
+                    skillEngine = new AurigaSkillEngine(activity, tts);
+                } else {
+                    skillEngine.updateTts(tts);
+                }
             }
         });
     }
@@ -473,6 +484,10 @@ public class AurigaVoiceEngine implements RecognitionListener {
                     "about, help, and support. I can open or close the menu, go back, " +
                     "describe the current page, and control voice navigation. " +
                     "Say any of these naturally — you don't need to use exact words.");
+
+        // ── OpenClaw-style skill engine (timers, alarms, weather, etc.) ──
+        } else if (skillEngine != null && skillEngine.dispatch(cmd)) {
+            /* skill engine handled it and will speak the reply itself */
 
         // ── Conversational AI fallback (on-device knowledge base) ────
         } else if (!cmd.isEmpty()) {
