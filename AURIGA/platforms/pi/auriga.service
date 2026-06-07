@@ -1,0 +1,73 @@
+[Unit]
+Description=Auriga Spatial Intelligence — Raspberry Pi Node
+Documentation=https://github.com/drakosanctis/auriga
+After=multi-user.target
+# Start after the sound system is ready (needed for espeak-ng ALSA output)
+After=sound.target
+# If the Pi Camera Module is used, the camera device should be available
+After=dev-video0.device
+# Soft dependency on network — Auriga works fully offline so we don't
+# hard-require a network connection (no Wants= or Requires=network.target)
+
+[Service]
+Type=simple
+
+# ── Identity ──────────────────────────────────────────────────────────────────
+# Run as the default Pi user so GPIO and camera permissions are inherited.
+# Change to a dedicated service user for production security hardening:
+#   sudo useradd -r -s /bin/false auriga
+#   sudo adduser auriga gpio && sudo adduser auriga video && sudo adduser auriga audio
+User=pi
+Group=pi
+
+# ── Supplementary groups for hardware access ──────────────────────────────────
+# gpio  — RPi.GPIO (haptic motors on GPIO 17, 18, 27)
+# video — /dev/video0 (Pi Camera Module / USB webcam)
+# audio — ALSA /dev/snd (espeak-ng TTS output)
+SupplementaryGroups=gpio video audio
+
+# ── Working directory and entry point ─────────────────────────────────────────
+WorkingDirectory=/opt/auriga
+ExecStart=/usr/bin/python3 /opt/auriga/platforms/pi/auriga_pi.py \
+    --camera 0 \
+    --model  /opt/auriga/models/yolov8n.onnx \
+    --width  640 \
+    --height 480
+
+# ── Restart policy ────────────────────────────────────────────────────────────
+# Restart on any non-zero exit so a crash recovery is automatic.
+# RestartSec gives the kernel a moment to release camera/GPIO resources
+# before the next launch attempt.
+Restart=always
+RestartSec=5s
+
+# ── Resource limits ───────────────────────────────────────────────────────────
+# Pi Zero 2W has 512MB RAM. ONNX YOLOv8n uses ~220MB peak; leave headroom
+# for the OS. Raise to 800M on Pi 4B.
+MemoryMax=512M
+
+# OOM score: prefer killing Auriga over the kernel or SSH if memory is tight.
+OOMScoreAdjust=200
+
+# Nice level: give the analysis thread a slight priority boost over
+# background tasks (0 = normal, −5 = slightly elevated)
+Nice=-5
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+# Logs appear in journald. View with:
+#   journalctl -u auriga -f
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=auriga
+
+# ── Environment ───────────────────────────────────────────────────────────────
+# Tell OpenCV not to try to open a display (we run headless).
+Environment=DISPLAY=
+# Force Python to flush stdout/stderr immediately (so journald captures all output)
+Environment=PYTHONUNBUFFERED=1
+# ALSA: default card 0 (USB speaker / 3.5mm). Override if your hardware differs:
+# Environment=ALSA_CARD=1
+Environment=HOME=/home/pi
+
+[Install]
+WantedBy=multi-user.target
