@@ -13,6 +13,12 @@
 4. [Feature Gap Analysis — What No One Has Built Yet](#4-feature-gap-analysis--what-no-one-has-built-yet)
 5. [What Already Exists in Auriga](#5-what-already-exists-in-auriga)
 6. [Complete Feature Specification — The Full Build](#6-complete-feature-specification--the-full-build)
+   - 6.0 Accessibility & Onboarding Layer *(new — must build before all other modules)*
+   - 6.1 Core Navigation Layer
+   - 6.2 Identification Layer
+   - 6.3 Safety Layer
+   - 6.4 Connectivity & Wearable Layer
+   - 6.5 AI Companion & Butler Layer *(AurigaButler™ added)*
 7. [System Architecture](#7-system-architecture)
 8. [Module Interface Contracts](#8-module-interface-contracts)
 9. [Cross-Platform Deployment Matrix](#9-cross-platform-deployment-matrix)
@@ -24,7 +30,7 @@
 15. [Accessibility Standards Compliance](#15-accessibility-standards-compliance)
 16. [Testing Strategy](#16-testing-strategy)
 17. [Success Metrics & Benchmarks](#17-success-metrics--benchmarks)
-18. [OpenClaw Parallel Build Prompt Set](#18-openclaw-parallel-build-prompt-set)
+18. [Ordered Session Build List](#18-ordered-session-build-list)
 
 ---
 
@@ -191,6 +197,46 @@ Analysis sourced from logical inference of documented user complaints across Red
 **P23: Braille display output via serial**
 **P24: Voice-controlled phone dialing / SMS reading**
 
+#### TIER 1 — Critical Onboarding Gaps (Discovered via Blind User UX Audit, 2026-06)
+
+The following gaps were identified by walking through the complete first-run experience from a blind user's perspective. These block adoption before the user ever reaches any feature.
+
+**P25: Keyboard barrier on first screen**
+> *"You built an app for blind people and the first thing it makes me do is type."*
+- Severity: Critical — kills adoption at install
+- Current state: VoiceSetupActivity shows an EditText and expects typing for assistant name
+- Auriga response: Replace with SpeechRecognizer-first name capture; EditText kept as fallback only
+
+**P26: TTS and TalkBack speak simultaneously on first launch**
+> *"Two voices started at once and I couldn't understand either."*
+- Severity: High — confusing and inaccessible
+- Current state: VoiceSetupActivity initialises TTS async; TalkBack reads the screen before TTS is ready, then both speak
+- Auriga response: Detect AccessibilityManager.isTouchExplorationEnabled(); if TalkBack is running, suppress competing TTS on the setup screen and use AccessibilityEvent announcements instead
+
+**P27: No spoken welcome explaining what the app is or how to use it**
+> *"I opened it and had no idea what was happening."*
+- Severity: High — user has no orientation context
+- Current state: LocatorActivity opens silently; detection starts but is not explained
+- Auriga response: One-time boot announcement after TTS ready: spoken welcome + instructions + command list hint
+
+**P28: Drawer menu not reachable by TalkBack swipe**
+> *"I swiped through the whole screen and couldn't find the menu."*
+- Severity: Critical — all features behind this menu are invisible to blind users
+- Current state: Hamburger button is a floating FrameLayout pill; TalkBack sometimes skips floating views
+- Auriga response: contentDescription="Menu, double tap to open" + importantForAccessibility="yes" on the pill; also wire long-press anywhere on camera view to open drawer
+
+**P29: Calibration walk requires seeing a pose diagram**
+> *"The diagram showed me how to hold the phone but I couldn't see the diagram."*
+- Severity: High — bad calibration = inaccurate distance readings for all features
+- Current state: CalibrationWalkActivity shows visual poses; no audio description of target orientation
+- Auriga response: SmartCalibrationEngine (see Section 6.0.4) — auto-detect device model from Build.MODEL and apply library preset; geometry-based alignment with beep-on-correct-orientation for the walk poses
+
+**P30: Voice commands are not discoverable; users don't know they exist**
+> *"Nobody told me I could just talk to it."*
+- Severity: High — the app's best accessibility feature is invisible
+- Current state: Wake word and long-press commands exist but are not announced
+- Auriga response: AurigaButler proactive tip engine (see Section 6.5.3) + spoken reminder on every launch for first 5 uses
+
 ---
 
 ## 4. FEATURE GAP ANALYSIS — WHAT NO ONE HAS BUILT YET
@@ -301,13 +347,122 @@ This section documents confirmed implemented functionality to avoid duplicating 
 | `auriga-memory.js` | RAG memory store | ✅ Complete |
 | `sw.js` | Service worker (offline cache) | ✅ Complete |
 
-### 5.3 Not Yet Implemented (This Blueprint)
+### 5.3 Partially Built (In Progress)
+
+| Class | Function | Status |
+|---|---|---|
+| `ButlerCommandRegistry.java` | 50+ voice command registry with categories + tips | 🔧 Scaffold created |
+
+### 5.4 Not Yet Implemented (This Blueprint)
 
 All items in Section 6 that are not listed above.
 
 ---
 
 ## 6. COMPLETE FEATURE SPECIFICATION — THE FULL BUILD
+
+### 6.0 Accessibility & Onboarding Layer ⚠️ BUILD THIS FIRST
+
+> **These fixes are prerequisites for all other modules.** A blind user who cannot get through onboarding will never reach any feature listed below. This section must be completed before Session 1 of the module build chain.
+
+#### 6.0.1 Fix A — Voice-First Assistant Naming (VoiceSetupActivity)
+
+**Problem:** First screen on a VI app requires typing. Keyboard is a barrier.
+
+**Files to modify:** `VoiceSetupActivity.java`, `activity_voice_setup.xml`
+
+**Specification:**
+- On `onCreate`: check `AccessibilityManager.isTouchExplorationEnabled()`. If TalkBack is active, do NOT compete with it via TTS. Use `view.announceForAccessibility()` instead.
+- Show a large, full-width **"TAP TO SPEAK YOUR NAME"** button above the EditText. `contentDescription` = "Speak your assistant name. Double tap to start listening."
+- Tapping it starts `SpeechRecognizer` in single-utterance mode. On result: populate EditText and auto-call `confirm()` if the recognised name passes validation (1–24 letters/spaces).
+- If SpeechRecognizer returns empty or error: focus EditText and speak "I didn't catch that. You can type a name instead."
+- Skip button speaks "Skipping. Your assistant will be called Auriga." then exits.
+- EditText kept as fallback — always visible below the mic button.
+- Remove the `windowSoftInputMode="adjustResize"` from the manifest entry — keyboard should not auto-open on this screen.
+- TTS race condition fix: delay TTS welcome message by 1200ms after `onCreate` to let TalkBack finish its initial traversal.
+
+#### 6.0.2 Fix B — Boot Announcement (LocatorActivity)
+
+**Problem:** App opens silently. User with no sight has no idea what just happened.
+
+**File to modify:** `LocatorActivity.java` → `initTts()`
+
+**Specification:**
+- After TTS initialises successfully, check SharedPreferences key `auriga_boot_welcomed` (boolean, default false).
+- If false: after 1500ms delay, speak the following **one time ever**:
+  > *"Welcome to Auriga. I am your spatial navigation assistant. Point your camera forward and I will tell you what is ahead, how far it is, and which direction to move. Long press anywhere on the screen, or say [AssistantName] Auriga, to give me a command. Say help for a list of everything I can do."*
+- Set `auriga_boot_welcomed = true`.
+- On all subsequent launches: speak a shorter boot confirmation (3 seconds after start):
+  > *"Auriga ready. [N] targets active."* (or "all objects" if no filter set)
+- This announcement must NOT overlap with detection speech. Add a 3-second grace period before the detection TTS loop begins on first boot.
+
+#### 6.0.3 Fix C — TalkBack-Safe Drawer Navigation (activity_locator.xml)
+
+**Problem:** Floating hamburger pill is sometimes skipped by TalkBack's focus traversal.
+
+**File to modify:** `activity_locator.xml`, `LocatorActivity.java`
+
+**Specification in XML:**
+- Add to the menu pill Button:
+  ```xml
+  android:importantForAccessibility="yes"
+  android:contentDescription="Open menu. Double tap to access all features."
+  android:accessibilityTraversalBefore="@id/locator_preview"
+  ```
+- Add to DrawerLayout root: `android:focusableInTouchMode="true"`
+
+**Specification in Java:**
+- In `LocatorActivity.onCreate()`, after the camera starts: register a long-press `GestureDetector` on the full `locator_frame` FrameLayout. Long press fires `drawerLayout.openDrawer(Gravity.START)`.
+- When drawer opens, call `drawerLayout.announceForAccessibility("Menu open. Swipe to navigate options. Double tap to select.")`.
+- When drawer closes, return focus to the camera frame: `locatorFrame.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_FOCUSED)`.
+- Add `contentDescription` to every interactive row in the drawer XML (each `LinearLayout` with `onClick`).
+
+#### 6.0.4 SmartCalibrationEngine — Auto-Calibration from Device Library
+
+**Problem:** Calibration walk requires visual pose matching. Blind users cannot see the diagram.
+
+**New file:** `SmartCalibrationEngine.java`
+
+**Specification — Part 1: Auto-detection from library**
+- On `onCreate` of `CalibrationWalkActivity`, call `SmartCalibrationEngine.tryAutoCalibrate(context)`.
+- `tryAutoCalibrate()`: read `Build.MANUFACTURER + " " + Build.MODEL` (e.g. `"Samsung Galaxy S24 Ultra"`). Also read `Build.PRODUCT` as codename fallback.
+- Load `calibration_library.json` from assets (it is already there via the `copyWebDeployToAssets` Gradle task).
+- Parse JSON and match against `model` field (case-insensitive contains match), then `codename` field as fallback.
+- If match found:
+  - Extract `camera.fov_horizontal_deg`, `camera.fov_vertical_deg`, `camera.offset_from_screen_center_mm`.
+  - Store to SharedPreferences under keys: `calib_fov_h`, `calib_fov_v`, `calib_offset_x`, `calib_offset_y`, `calib_source` = `"library"`, `calib_model` = matched model name.
+  - Set `calibration_walk_completed = true` (so feedback is unblocked).
+  - Speak: *"Your device [model name] was found in the calibration library. Calibration applied automatically. You don't need to do the walk."*
+  - Return `true`. `CalibrationWalkActivity` exits immediately.
+- If no match found: return `false`. Proceed to Part 2.
+
+**Specification — Part 2: Geometry-based alignment walk (replaces visual poses)**
+- When no library match, launch the walk in **audio-guided mode** instead of visual-diagram mode.
+- Each step uses `SensorManager` TYPE_ROTATION_VECTOR to get real-time pitch, roll, and azimuth.
+- For each target pose (e.g. "hold phone flat, face up" = pitch 0°, roll 0°):
+  - Speak the instruction: *"Hold the phone flat, face up, in front of you."*
+  - Continuously read sensor. Compute deviation: `sqrt((targetPitch - currentPitch)² + (targetRoll - currentRoll)²)`.
+  - When deviation < 5°: play `ToneGenerator` `TONE_PROP_ACK` beep (short, 880Hz) → *"Good. Hold still."* → wait 1 second for stable reading → record sensor values.
+  - If deviation 5°–15°: speak directional hint every 1.5 seconds: *"Tilt left 8 degrees"*, *"Tilt forward 12 degrees"* etc.
+  - If deviation > 15°: speak heading only: *"Tilt left"*, *"Tilt back"*.
+- The 10 calibration poses translated to audio instructions:
+
+| Step | Old visual | Audio instruction | Target pitch/roll |
+|---|---|---|---|
+| 1 | Phone flat, face up | "Hold phone flat, screen facing up" | pitch 0°, roll 0° |
+| 2 | Portrait, upright | "Hold phone upright in front of you, screen facing you" | pitch 90°, roll 0° |
+| 3 | Tilt forward 30° | "Tilt the top of the phone 30 degrees away from you" | pitch 60°, roll 0° |
+| 4 | Landscape left | "Rotate phone sideways to the left" | pitch 90°, roll -90° |
+| 5 | Landscape right | "Rotate phone sideways to the right" | pitch 90°, roll 90° |
+| 6 | Upright, step forward | "Hold upright and take one step forward" | pitch 90°, roll 0° (motion) |
+| 7 | Upright, bright light | "Point phone at bright light source overhead" | pitch 45°, roll 0° |
+| 8 | Upright, low light | "Move to a darker area or cover camera briefly" | (lux reading) |
+| 9 | Upright, near surface | "Hold phone 30cm from any flat surface" | pitch 90°, dist est |
+| 10 | Full upright, still | "Stand still, hold phone upright for 5 seconds" | pitch 90°, roll 0° (stable) |
+
+- On completion: compute FOV from recorded stable-pose sensor data using the existing `TriangulationEngine` geometry. Store to SharedPreferences. Set `calib_source = "geometry_walk"`.
+
+---
 
 ### 6.1 Core Navigation Layer (Extend Existing)
 
@@ -473,6 +628,169 @@ All items in Section 6 that are not listed above.
 - Powers SceneDescriber, conversational responses, complex command parsing
 - Loaded on-demand, unloaded when not in use (memory management)
 - Requires: ≥3GB RAM device, Android 12+; graceful degradation on lower-end hardware
+
+---
+
+#### 6.5.3 AurigaButler™ — System-Wide Voice Assistant
+
+> **The vision:** Auriga is not just a navigation tool. It is a full-time AI butler that handles everything a blind user needs across the entire phone — like Alexa or Siri but fully offline, with no cloud, no account, and no subscription. The user should feel they never need to touch the screen again.
+
+**New files:** `AurigaButlerService.java`, `AurigaAccessibilityService.java`, `ButlerCommandRegistry.java` (scaffold exists)
+
+**Design principle:** The Butler is a foreground service that is always listening. When the wake word fires (via existing `AurigaVoiceService`), Butler takes command, executes the action, and speaks the result. It can operate in any app — not just Auriga — because it uses Android's AccessibilityService API to read and interact with any screen.
+
+##### AurigaButlerService.java — Command Execution Engine
+
+**Service type:** Foreground, always-on  
+**Notification:** "Auriga Butler active — say [Name] Auriga for help"  
+**SpeechRecognizer:** Inherits wake events from `AurigaVoiceService` via `LocalBroadcastManager`. Does NOT run its own always-on mic — piggybacks on the existing wake service to avoid double mic use.
+
+**Command categories (50+ commands, see `ButlerCommandRegistry.java`):**
+
+| Category | Example commands |
+|---|---|
+| **Auriga Navigation** | "navigate", "what's ahead", "start camera", "crossing mode", "stair mode" |
+| **Identification** | "read label", "identify pill", "who is this", "what money is this", "describe scene" |
+| **Safety** | "emergency", "SOS", "help me", "call for help" |
+| **System** | "go home", "go back", "recent apps", "open [app name]", "lock screen", "torch" |
+| **Volume / Media** | "volume up", "pause music", "next song", "mute" |
+| **Time / Info** | "what time is it", "what's the date", "battery level", "signal strength" |
+| **Communication** | "call [name]", "send message to [name]", "read my messages", "answer", "reject" |
+| **Help / Tutorial** | "help", "what can you do", "tutorial", "tip", "list commands" |
+| **Feature Discovery** | "what else can you do", "surprise me" → random unused feature tip |
+
+**Command dispatch flow:**
+1. Receive spoken text from wake event broadcast
+2. Pass to `ButlerCommandRegistry.match(spoken)` → get best `ButlerCommand`
+3. Play earcon C7 (command accepted chime) via `ToneGenerator`
+4. Execute `ActionCode` (see below)
+5. Speak result via `OutputLayer`
+6. If no match: play earcon C8 (low buzz) + speak "I didn't understand. Say help for commands."
+
+**ActionCode execution map:**
+
+```
+SYSTEM_GO_HOME      → AccessibilityService.performGlobalAction(GLOBAL_ACTION_HOME)
+SYSTEM_GO_BACK      → AccessibilityService.performGlobalAction(GLOBAL_ACTION_BACK)
+SYSTEM_RECENT_APPS  → AccessibilityService.performGlobalAction(GLOBAL_ACTION_RECENTS)
+SYSTEM_OPEN_APP     → PackageManager.getLaunchIntentForPackage(resolveAppName(arg))
+SYSTEM_TORCH        → CameraManager.setTorchMode(toggle)
+SYSTEM_VOLUME_UP    → AudioManager.adjustVolume(ADJUST_RAISE, FLAG_SHOW_UI)
+SYSTEM_MUTE         → AudioManager.setStreamMute(STREAM_MUSIC, toggle)
+SYSTEM_LOCK_SCREEN  → DevicePolicyManager.lockNow() [requires admin] or PowerManager.goToSleep()
+INFO_TIME           → new SimpleDateFormat("h:mm a").format(new Date())
+INFO_DATE           → new SimpleDateFormat("EEEE, MMMM d, yyyy").format(new Date())
+INFO_BATTERY_PERCENT → BatteryManager.getIntProperty(BATTERY_PROPERTY_CAPACITY) + "%"
+INFO_SIGNAL         → ConnectivityManager / TelephonyManager signal strength
+COMM_CALL           → Intent(Intent.ACTION_CALL, Uri.parse("tel:" + resolveContact(arg)))
+COMM_SEND_SMS       → Intent(Intent.ACTION_SENDTO, "smsto:" + resolveContact(arg)) + putExtra SMS_BODY + dictated text
+COMM_ANSWER_CALL    → AccessibilityService KEYCODE_HEADSETHOOK or KeyEvent.KEYCODE_CALL
+MEDIA_PLAY          → AudioManager sendBroadcast(Intent(Intent.ACTION_MEDIA_BUTTON, KEYCODE_MEDIA_PLAY))
+MEDIA_NEXT          → same with KEYCODE_MEDIA_NEXT
+AURIGA_NAVIGATE     → startActivity(Intent(context, LocatorActivity))
+AURIGA_SOS          → bind to EmergencySOSEngine.trigger(currentEnvDescription)
+HELP_LIST_COMMANDS  → speak ButlerCommandRegistry.buildHelpText()
+HELP_TUTORIAL       → startActivity(Intent(context, TutorialActivity))
+HELP_FEATURE_TIPS   → speak ButlerCommandRegistry.randomFeatureTip()
+```
+
+**App name resolution (`resolveAppName(String arg)`):**
+- Query `PackageManager.getInstalledApplications()`
+- Filter by `ApplicationInfo.loadLabel()` containing the spoken word (case-insensitive)
+- If multiple matches: speak "I found [N] apps matching [name]. Did you mean [first]? Say yes or no."
+- Cache results in a `HashMap<String, String>` for 60 seconds
+
+**Contact resolution (`resolveContact(String arg)`):**
+- Query `ContactsContract.Contacts` with `DISPLAY_NAME LIKE '%arg%'`
+- If multiple matches: speak top 3 options with "Say one, two, or three."
+- Requires READ_CONTACTS permission (requested at runtime)
+
+**Proactive feature tip engine:**
+- On every app launch (after boot announcement): check SharedPreferences for `butler_tip_last_shown_at` (timestamp).
+- If >24 hours since last tip: wait 10 seconds then speak one `randomFeatureTip()`.
+- Track which tips have been shown; cycle through all before repeating.
+- User can say "stop tips" → set `butler_tips_enabled = false`.
+- User can say "tip" at any time → immediate random tip.
+
+##### AurigaAccessibilityService.java — Cross-App Control
+
+**Type:** `AccessibilityService` (requires user to enable in Settings → Accessibility → Auriga)  
+**New file:** `res/xml/accessibility_service_config.xml`
+
+**Manifest entry:**
+```xml
+<service
+    android:name=".AurigaAccessibilityService"
+    android:exported="true"
+    android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+    <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService" />
+    </intent-filter>
+    <meta-data
+        android:name="android.accessibilityservice"
+        android:resource="@xml/accessibility_service_config" />
+</service>
+```
+
+**`accessibility_service_config.xml`:**
+```xml
+<accessibility-service
+    android:accessibilityEventTypes="typeWindowStateChanged|typeViewClicked|typeViewFocused"
+    android:accessibilityFeedbackType="feedbackSpoken"
+    android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows"
+    android:canRetrieveWindowContent="true"
+    android:canPerformGestures="true"
+    android:description="@string/accessibility_service_description"
+    android:notificationTimeout="100" />
+```
+
+**Capabilities:**
+- `performGlobalAction(GLOBAL_ACTION_BACK / HOME / RECENTS / NOTIFICATIONS)` — system-level navigation
+- `getRootInActiveWindow()` → traverse AccessibilityNodeInfo tree to find nodes by text/description
+- `findNodeByText(String text)` → `node.performAction(ACTION_CLICK)` — tap any visible button by label
+- `findNodeByViewId(String resourceId)` → same
+- `readScreenContent()` → collect all visible text from the window tree → return as joined string for Butler to speak
+- Called by `AurigaButlerService` via a bound service connection or `LocalBroadcastManager`
+
+**Setup guidance (spoken to user on first launch):**
+> *"For me to control other apps, you need to enable Auriga in your phone's Accessibility settings. I'll open the settings now. Find Auriga in the list and turn it on. Say done when finished."*
+
+**Graceful degradation:** Every cross-app action that requires the AccessibilityService is wrapped in a null-check. If the service is not enabled, Butler speaks: *"I can't do that yet. Please enable Auriga in your Accessibility settings. Say 'open accessibility settings' and I will take you there."*
+
+##### AurigaTutorialEngine™ — Voice-Guided Interactive Tutorial
+
+**New file:** `AurigaTutorialEngine.java` + `TutorialActivity.java`
+
+**Goal:** A blind user who opens the tutorial can learn every Auriga feature using only their voice, with zero screen interaction required.
+
+**Design:**
+- Chapters are a sequential list. Each chapter has: title, 3–5 spoken steps, and a list of voice phrases the user says to continue.
+- `TutorialActivity` is a full-screen dark background with a single centred text label (for low-vision users) showing the current step. The content is entirely driven by TTS.
+- Navigation: say "next" → advance, "repeat" → hear again, "skip chapter" → jump to next chapter, "stop tutorial" → exit and speak "You can restart the tutorial any time by saying tutorial."
+- Progress is saved per chapter to SharedPrefs key `tutorial_chapter_[name]_done`. Completed chapters are skipped on re-launch.
+
+**Chapters:**
+
+| # | Chapter | What it covers |
+|---|---|---|
+| 1 | Welcome to Auriga | What the app is, offline promise, wake word |
+| 2 | Navigation Basics | Point camera forward, what the announcements mean, distance and bearing |
+| 3 | Voice Commands | Wake word, long press, command categories, "say help" |
+| 4 | Object Targets | How to narrow detection to specific objects |
+| 5 | DrakoVoice Reader | Point at text, auto-read mode, paragraph navigation |
+| 6 | Face Vault | Enrolling a person, identifying them |
+| 7 | Pill Guard | Identifying medicine, safety caution |
+| 8 | Cash Lens | Identifying banknotes, switching currency |
+| 9 | Emergency SOS | Setting emergency contact, triggering SOS |
+| 10 | AurigaButler | All cross-phone commands: calling, messaging, opening apps |
+| 11 | Crossing Mode | When and how to use it, what the announcements mean |
+| 12 | Spatial Memory | Recording a route, replaying it |
+| 13 | Tips & Tricks | Earcon meanings, haptic patterns, battery tips |
+
+**Tutorial discovery:**
+- After first boot welcome message: *"Would you like a guided voice tutorial? Say 'yes' to start, or 'skip' to go straight to navigation."*
+- Butler's `HELP_TUTORIAL` command launches it at any time.
+- Drawer row "Voice Tutorial" launches it from the menu.
 
 ---
 
@@ -1009,6 +1327,19 @@ Auriga must never be held hostage by:
 ### Phase 0 — Foundation (DONE)
 ✅ TriangulationEngine, YOLOv8n, OCR, voice engine, calibration, PWA, web feedback
 
+### Phase 0.5 — Accessibility & Butler Foundation ⚠️ DO THIS BEFORE PHASE 1
+**Goal:** A blind user can install, onboard, and discover features without any sighted assistance.
+**Sprint:** 2–3 sessions
+
+- [ ] Fix A: VoiceSetupActivity — voice-first name capture (SpeechRecognizer replaces keyboard-first)
+- [ ] Fix B: LocatorActivity — boot announcement (first-run welcome + subsequent short confirmations)
+- [ ] Fix C: activity_locator.xml + LocatorActivity — TalkBack-safe drawer (contentDescriptions, long-press trigger, focus restore)
+- [ ] SmartCalibrationEngine — auto-detect device model from Build.MODEL, match to calibration_library.json, apply FOV preset; fallback to geometry-based audio walk with beep-on-alignment
+- [ ] AurigaButlerService — command execution engine (50+ commands, dispatches to AccessibilityService + system intents)
+- [ ] AurigaAccessibilityService + accessibility_service_config.xml — cross-app control (home, back, recents, tap by label, read screen)
+- [ ] TutorialActivity + AurigaTutorialEngine — 13-chapter voice-guided tutorial, no screen interaction required
+- **Deliverable:** A blind user can install and use all existing features without help
+
 ### Phase 1 — Safety Completeness (Sprint: 4 weeks)
 **Goal:** No VI user gets hurt using Auriga.
 - [ ] StairSenseEngine (stair/edge detection)
@@ -1429,9 +1760,459 @@ Before any public release:
 
 ---
 
-## 18. OPENCLAW PARALLEL BUILD PROMPT SET
+## 18. ORDERED SESSION BUILD LIST
 
-### 18.1 Phase 1 — Architecture Contract Prompt (Run First, Alone)
+> **How to use:** Paste one session prompt at a time into Replit Agent. Wait for it to finish and verify before moving to the next. Each session references only files that exist by that point. Sessions within the same Phase that are marked *(parallel)* can be run simultaneously in separate Agent sessions if desired.
+
+---
+
+### PHASE 0.5 — Accessibility & Butler (Run These First)
+
+---
+
+#### SESSION A — Fix A: Voice-First Onboarding
+```
+Read AURIGA/app/src/main/java/com/drakosanctis/auriga/VoiceSetupActivity.java
+Read AURIGA/app/src/main/res/layout/activity_voice_setup.xml
+Read AURIGA/app/src/main/AndroidManifest.xml
+
+Make the following changes exactly as specified in Section 6.0.1 of AURIGA/docs/AURIGA_FULL_BUILD_BLUEPRINT.md:
+
+1. activity_voice_setup.xml: Add a full-width Button with id="voice_speak_name_btn",
+   text="TAP TO SPEAK YOUR NAME", contentDescription="Speak your assistant name. Double tap to start listening."
+   Place it ABOVE the existing EditText. Style it with background @color/auriga_cyan, textColor @color/deep_space.
+
+2. VoiceSetupActivity.java:
+   - Import SpeechRecognizer, RecognizerIntent, RecognitionListener, AccessibilityManager.
+   - Add field: SpeechRecognizer nameRecognizer.
+   - In onCreate(): check AccessibilityManager.isTouchExplorationEnabled(). If true, suppress TTS
+     and use nameInput.announceForAccessibility() for all user guidance instead.
+   - Delay TTS welcome message by 1200ms using Handler.postDelayed().
+   - Wire voice_speak_name_btn: on click, start SpeechRecognizer in RECOGNIZER_EXTRA_MAX_RESULTS=1
+     single-utterance mode. On result: populate nameInput.setText(result) and call confirm().
+     On error or empty result: speak/announce "I didn't catch that. You can type a name instead."
+     and request nameInput focus.
+   - Remove windowSoftInputMode from the VoiceSetupActivity manifest entry so keyboard does not
+     auto-open.
+   - Keep existing EditText, confirm button, and skip button unchanged.
+
+Output: modified VoiceSetupActivity.java, activity_voice_setup.xml, AndroidManifest.xml (one line change only).
+```
+
+---
+
+#### SESSION B — Fix B + C: Boot Announcement & TalkBack Drawer
+```
+Read AURIGA/app/src/main/java/com/drakosanctis/auriga/LocatorActivity.java (lines 780-810)
+Read AURIGA/app/src/main/res/layout/activity_locator.xml (lines 1-120)
+Read AURIGA/app/src/main/java/com/drakosanctis/auriga/AurigaVoiceEngine.java
+Read AURIGA/app/src/main/java/com/drakosanctis/auriga/TargetStore.java
+
+Make the following changes exactly as specified in Sections 6.0.2 and 6.0.3 of AURIGA/docs/AURIGA_FULL_BUILD_BLUEPRINT.md:
+
+FIX B — LocatorActivity.java initTts():
+After tts.setLanguage() succeeds, add:
+  - SharedPreferences check for "auriga_boot_welcomed" (key, boolean, default false).
+  - If false: Handler.postDelayed(1500ms) → speak the full welcome message (use AurigaVoiceEngine.getAssistantName() for [AssistantName]), set auriga_boot_welcomed=true, set a boolean firstBoot=true on the activity.
+  - If firstBoot: delay the detection TTS loop by 3 additional seconds (add a boolean detectionGraceActive guarded by a CountDownTimer or Handler).
+  - If true (returning user): Handler.postDelayed(3000ms) → speak short confirmation "Auriga ready. [N] targets active" using TargetStore.read(this).size().
+
+FIX C — activity_locator.xml:
+On the menu pill Button: add android:importantForAccessibility="yes",
+android:contentDescription="Open menu. Double tap to access all features."
+On every clickable drawer row LinearLayout: add android:contentDescription matching the row's function.
+On the DrawerLayout root: add android:focusableInTouchMode="true".
+
+FIX C — LocatorActivity.java:
+In wireMenuToggle(): after setting onClickListener, also register a GestureDetector on locator_frame
+for long-press → drawerLayout.openDrawer(Gravity.START).
+After openDrawer(): call drawerLayout.announceForAccessibility("Menu open. Swipe to navigate options.").
+After closeDrawer(): call locatorFrame.sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_FOCUSED).
+
+Output: modified LocatorActivity.java and activity_locator.xml only.
+```
+
+---
+
+#### SESSION C — SmartCalibrationEngine
+```
+Read AURIGA/app/src/main/java/com/drakosanctis/auriga/CalibrationManager.java
+Read AURIGA/app/src/main/java/com/drakosanctis/auriga/CalibrationWalkActivity.java
+Read AURIGA/app/src/main/java/com/drakosanctis/auriga/TriangulationEngine.java (first 80 lines)
+
+Create: AURIGA/app/src/main/java/com/drakosanctis/auriga/SmartCalibrationEngine.java
+
+Implement exactly as specified in Section 6.0.4 of AURIGA/docs/AURIGA_FULL_BUILD_BLUEPRINT.md:
+
+Part 1 — Library auto-match:
+- tryAutoCalibrate(Context ctx): static method.
+- Read Build.MANUFACTURER + " " + Build.MODEL and Build.PRODUCT.
+- Open assets/data/calibration_library.json (already exists via Gradle asset copy).
+- Parse JSON array "profiles". For each profile: case-insensitive contains-match on "model" field,
+  then "codename" as fallback.
+- If match: extract camera.fov_horizontal_deg, fov_vertical_deg, offset x/y. Write to SharedPrefs
+  (keys: calib_fov_h, calib_fov_v, calib_offset_x, calib_offset_y, calib_source="library").
+  Set calibration_walk_completed=true in auriga_prefs. Return true.
+- If no match: return false.
+
+Part 2 — Geometry audio walk:
+- startAudioWalk(Context ctx, TextToSpeech tts): initialise SensorManager TYPE_ROTATION_VECTOR.
+- Walk through 10 poses (as specified in the blueprint table). For each pose:
+  (a) Speak the audio instruction.
+  (b) Register SensorEventListener. Every 200ms: compute deviation from target pitch/roll.
+  (c) Deviation < 5°: ToneGenerator.startTone(TONE_PROP_ACK, 200), speak "Good. Hold still.",
+      record stable reading after 1 second, advance to next pose.
+  (d) Deviation 5–15°: speak directional hint (e.g. "tilt left 8 degrees") every 1500ms.
+  (e) Deviation > 15°: speak heading only ("tilt left") every 1000ms.
+- After all 10 poses: derive FOV from geometry, store to SharedPrefs with calib_source="geometry_walk",
+  set calibration_walk_completed=true.
+
+Also modify CalibrationWalkActivity.onCreate() to call SmartCalibrationEngine.tryAutoCalibrate(this)
+first. If it returns true, speak result and finish() immediately.
+
+Output: SmartCalibrationEngine.java (new), CalibrationWalkActivity.java (modified onCreate only).
+```
+
+---
+
+#### SESSION D — AurigaAccessibilityService
+```
+Read AURIGA/app/src/main/AndroidManifest.xml
+
+Create TWO files:
+
+1. AURIGA/app/src/main/res/xml/accessibility_service_config.xml
+   Exact content as specified in Section 6.5.3 of AURIGA/docs/AURIGA_FULL_BUILD_BLUEPRINT.md.
+
+2. AURIGA/app/src/main/java/com/drakosanctis/auriga/AurigaAccessibilityService.java
+   Extends AccessibilityService.
+   Fields: static AurigaAccessibilityService instance (singleton for Butler to call).
+   onServiceConnected(): set instance = this. Speak "Auriga Accessibility Service connected."
+   onAccessibilityEvent(): handle TYPE_WINDOW_STATE_CHANGED to track current app package name.
+   Public methods:
+     - static boolean isAvailable(): return instance != null.
+     - boolean goHome(): performGlobalAction(GLOBAL_ACTION_HOME).
+     - boolean goBack(): performGlobalAction(GLOBAL_ACTION_BACK).
+     - boolean showRecents(): performGlobalAction(GLOBAL_ACTION_RECENTS).
+     - boolean pullNotifications(): performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS).
+     - boolean tapNodeByText(String text): getRootInActiveWindow(), traverse tree, find first node
+       where getText() or getContentDescription() contains text (case-insensitive), call
+       node.performAction(ACTION_CLICK). Return true if found.
+     - String readScreenContent(): collect all non-empty getText() and getContentDescription() from
+       all visible nodes, join with ". ", return.
+   onInterrupt(): no-op.
+
+Also add to AndroidManifest.xml: the service entry with BIND_ACCESSIBILITY_SERVICE permission
+and meta-data pointing to accessibility_service_config.xml (exactly as in blueprint Section 6.5.3).
+
+Output: accessibility_service_config.xml (new), AurigaAccessibilityService.java (new),
+AndroidManifest.xml (add service entry only).
+```
+
+---
+
+#### SESSION E — AurigaButlerService
+```
+Read AURIGA/app/src/main/java/com/drakosanctis/auriga/ButlerCommandRegistry.java
+Read AURIGA/app/src/main/java/com/drakosanctis/auriga/AurigaAccessibilityService.java
+Read AURIGA/app/src/main/java/com/drakosanctis/auriga/AurigaVoiceEngine.java
+Read AURIGA/app/src/main/java/com/drakosanctis/auriga/AurigaVoiceService.java
+Read AURIGA/app/src/main/AndroidManifest.xml
+
+Create: AURIGA/app/src/main/java/com/drakosanctis/auriga/AurigaButlerService.java
+
+Implement exactly as specified in Section 6.5.3 of AURIGA/docs/AURIGA_FULL_BUILD_BLUEPRINT.md:
+
+- Extends Service. Foreground. Notification channel "auriga_butler".
+- Registers a LocalBroadcastReceiver for AurigaVoiceEngine.ACTION_WAKE_WORD to receive spoken commands.
+- On wake event: extract the spoken text from the intent. Pass to ButlerCommandRegistry.match().
+  Play ToneGenerator TONE_PROP_ACK (C7 earcon) if matched, TONE_PROP_NACK if not.
+- Execute the matched ActionCode using the full execution map in Section 6.5.3.
+- For SYSTEM_* actions: call AurigaAccessibilityService.instance methods. If null: speak
+  "Please enable Auriga in Accessibility settings."
+- For SYSTEM_OPEN_APP: query PackageManager.getInstalledApplications(), match app label to arg,
+  launch via getLaunchIntentForPackage().
+- For COMM_CALL: startActivity(Intent(ACTION_CALL, tel:) with REQUIRE_CONTACTS resolveContact()).
+- For INFO_TIME/DATE/BATTERY: query system, format, speak via TextToSpeech.
+- For AURIGA_* actions: fire explicit intents to the relevant activities (LocatorActivity, ReaderActivity, etc).
+- For HELP_LIST_COMMANDS: speak ButlerCommandRegistry.buildHelpText() (split into 3 chunks with 2s pause between to avoid overwhelming).
+- Proactive tip engine: on start, check butler_tip_last_shown_at. If >24h, Handler.postDelayed(10000) → speak randomFeatureTip(), update timestamp.
+- static start(Context) / stop(Context) helpers.
+
+Also add to AndroidManifest.xml:
+- Service entry: android:name=".AurigaButlerService" foregroundServiceType="microphone"
+- Permissions: CALL_PHONE, SEND_SMS, READ_CONTACTS, QUERY_ALL_PACKAGES (for app launch)
+
+Also modify LocatorActivity.onCreate() to call AurigaButlerService.start(this).
+
+Output: AurigaButlerService.java (new), AndroidManifest.xml (additions only), LocatorActivity.java (one line in onCreate).
+```
+
+---
+
+#### SESSION F — TutorialActivity + AurigaTutorialEngine
+```
+Read AURIGA/app/src/main/java/com/drakosanctis/auriga/AurigaVoiceEngine.java
+Read AURIGA/app/src/main/AndroidManifest.xml
+
+Create TWO files:
+
+1. AURIGA/app/src/main/java/com/drakosanctis/auriga/AurigaTutorialEngine.java
+   All 13 chapters as specified in Section 6.5.3 of the blueprint.
+   Each chapter: String title, String[] steps (TTS script per step), String[] advancePhrases.
+   Methods:
+     - List<TutorialChapter> getChapters(): return ordered chapter list.
+     - boolean isChapterDone(Context ctx, String chapterName): read SharedPrefs.
+     - void markChapterDone(Context ctx, String chapterName): write SharedPrefs.
+     - TutorialChapter getNextIncompleteChapter(Context ctx): iterate, return first undone.
+
+2. AURIGA/app/src/main/java/com/drakosanctis/auriga/TutorialActivity.java
+   Extends Activity. Full-screen dark background. Single centred TextView showing step text (for low-vision).
+   TextToSpeech for all content. SpeechRecognizer for navigation ("next", "repeat", "skip chapter", "stop tutorial").
+   Flow: load next incomplete chapter from AurigaTutorialEngine. Speak chapter title. Iterate steps.
+   After each step: listen for voice navigation phrase (timeout 8 seconds → auto-advance to next step).
+   On chapter complete: markChapterDone(). Speak "[Chapter] complete. Say next chapter to continue."
+   On all chapters done: speak "Tutorial complete. Say help at any time for commands." → finish().
+   Volume keys also advance (onKeyDown KEYCODE_VOLUME_UP → next, KEYCODE_VOLUME_DOWN → repeat).
+
+Also add to AndroidManifest.xml: TutorialActivity entry with AurigaDocTheme.
+
+Output: AurigaTutorialEngine.java (new), TutorialActivity.java (new), AndroidManifest.xml (add activity).
+```
+
+---
+
+### PHASE 1 — Safety Modules (Run After Phase 0.5 is Complete)
+
+---
+
+#### SESSION 1 — Interface Contracts
+```
+Read AURIGA/docs/AURIGA_FULL_BUILD_BLUEPRINT.md Section 8.
+
+Create: AURIGA/app/src/main/java/com/drakosanctis/auriga/AurigaInterfaces.java
+
+One file containing ALL interface declarations as inner interfaces in a single public class AurigaInterfaces:
+IFrameProvider, IZoneAnalyser (ZoneMap inner class, Zone enum), IDepthProxy,
+IStairSenseEngine (StairResult, StairDirection enum), ITrafficSenseEngine (TrafficResult, TrafficLightState enum),
+IFaceVaultEngine (FaceMatch), IPillGuardEngine (PillResult), ICashLensEngine (CashResult),
+ISpatialMemoryEngine (LandmarkMatch, ReplayCallback), IOutputLayer (OutputPriority, HapticPattern, HapticZone enums),
+IEmergencySOSEngine, IPassiveHazardEngine (HazardType enum), ICommandRouter (SkillHandler).
+Package: com.drakosanctis.auriga. No implementations. No explanations.
+```
+
+---
+
+#### SESSION 2 — OutputLayer
+```
+Read AurigaInterfaces.java, HapticManager.java, DrakoVoice.java
+Build OutputLayer.java — implements IOutputLayer. Spec: Section 8 of blueprint.
+```
+
+---
+
+#### SESSION 3 — CommandRouter
+```
+Read AurigaInterfaces.java, AurigaVoiceEngine.java, AurigaSkillEngine.java
+Build CommandRouter.java — implements ICommandRouter. Spec: Section 8 of blueprint.
+```
+
+---
+
+#### SESSION 4 — ColorSenseEngine *(parallel with 5, 6)*
+```
+Read AurigaInterfaces.java, ImageProcessor.java
+Build ColorSenseEngine.java. Spec: Section 6.2.5 + Section 8 of blueprint.
+```
+
+---
+
+#### SESSION 5 — StairSenseEngine *(parallel with 4, 6)*
+```
+Read AurigaInterfaces.java, ImageProcessor.java, TriangulationEngine.java (first 80 lines)
+Build StairSenseEngine.java — implements IStairSenseEngine. Spec: Section 6.1.2 + Section 8 of blueprint.
+```
+
+---
+
+#### SESSION 6 — TrafficSenseEngine *(parallel with 4, 5)*
+```
+Read AurigaInterfaces.java, ColorSenseEngine.java, ImageProcessor.java
+Build TrafficSenseEngine.java — implements ITrafficSenseEngine. Spec: Section 6.1.3 + Section 8 of blueprint.
+```
+
+---
+
+#### SESSION 7 — CrossingGuardEngine
+```
+Read AurigaInterfaces.java, TrafficSenseEngine.java, ColorSenseEngine.java, OutputLayer.java
+Build CrossingGuardEngine.java. Spec: Section 6.3.3 of blueprint.
+```
+
+---
+
+#### SESSION 8 — EmergencySOSEngine
+```
+Read AurigaInterfaces.java, OutputLayer.java, HapticManager.java
+Build EmergencySOSEngine.java — implements IEmergencySOSEngine. Spec: Section 6.3.1 of blueprint.
+```
+
+---
+
+#### SESSION 9 — PassiveHazardEngine
+```
+Read AurigaInterfaces.java
+Build PassiveHazardEngine.java — implements IPassiveHazardEngine. Spec: Section 6.3.2 of blueprint.
+```
+
+---
+
+#### SESSION 10 — GodsEyeOrchestrator (complete the existing stub)
+```
+Read GodsEyeOrchestrator.java, Detection.java, TriangulationEngine.java, AurigaInterfaces.java
+Rewrite GodsEyeOrchestrator.java per Section 8 of blueprint. Keep PathLog and addPoint() intact.
+```
+
+---
+
+### PHASE 2 — Identification Suite
+
+---
+
+#### SESSION 11 — PillGuardEngine + PillDatabase *(parallel with 12, 13)*
+```
+Read AurigaInterfaces.java, ReaderActivity.java
+Build PillDatabase.java + PillGuardEngine.java. Spec: Section 6.2.1 + Section 8 of blueprint.
+```
+
+---
+
+#### SESSION 12 — FaceVaultEngine + FaceDatabase *(parallel with 11, 13)*
+```
+Read AurigaInterfaces.java
+Build FaceDatabase.java + FaceVaultEngine.java. Spec: Section 6.2.2 + Section 8 of blueprint.
+```
+
+---
+
+#### SESSION 13 — CashLensEngine *(parallel with 11, 12)*
+```
+Read AurigaInterfaces.java
+Build CashLensEngine.java — implements ICashLensEngine. Spec: Section 6.2.3 + Section 8 of blueprint.
+```
+
+---
+
+#### SESSION 14 — LabelReaderEngine
+```
+Read AurigaInterfaces.java, ReaderActivity.java
+Build LabelReaderEngine.java. Add ZXing to build.gradle. Spec: Section 6.2.4 of blueprint.
+```
+
+---
+
+### PHASE 3 — Memory & Intelligence
+
+---
+
+#### SESSION 15 — SpatialMemoryEngine + SpatialDatabase
+```
+Read AurigaInterfaces.java
+Build SpatialDatabase.java + SpatialMemoryEngine.java. Spec: Section 6.1.4 + Section 8 of blueprint.
+```
+
+---
+
+#### SESSION 16 — SceneDescriberEngine
+```
+Read AurigaInterfaces.java, YoloDetector.java, Detection.java, TriangulationEngine.java (first 80 lines)
+Build SceneDescriberEngine.java. Spec: Section 6.2.6 of blueprint.
+```
+
+---
+
+#### SESSION 17 — AurigaCoreService (Integration — final Android session)
+```
+Read AurigaInterfaces.java, OutputLayer.java, CommandRouter.java, StairSenseEngine.java,
+TrafficSenseEngine.java, GodsEyeOrchestrator.java, PassiveHazardEngine.java,
+CrossingGuardEngine.java, EmergencySOSEngine.java, AurigaVoiceEngine.java, AurigaButlerService.java
+
+Build AurigaCoreService.java. Android foreground Service with CameraX analysis loop.
+Full spec: Section 18 integration prompt below.
+
+Wire ALL modules. Register Butler commands for all Auriga features in CommandRouter.
+Register in AndroidManifest.xml as foreground service with CAMERA + RECORD_AUDIO permissions.
+```
+
+---
+
+### PHASE 4 — Platforms
+
+---
+
+#### SESSION 18 — AurigaPi (Raspberry Pi)
+```
+Read platforms/pc/auriga_pc.py
+Build platforms/pi/auriga_pi.py. Full spec: Section 9.3 of blueprint.
+Also create platforms/pi/auriga.service (systemd unit file).
+```
+
+---
+
+#### SESSION 19 — ESP32 Haptic Node *(parallel with 20)*
+```
+Build platforms/mcu/esp32_haptic_node/esp32_haptic_node.ino. Full spec: Section 6.4.1 of blueprint.
+BLE GATT server. 3-byte protocol: zone, intensity, pattern.
+```
+
+---
+
+#### SESSION 20 — Arduino Haptic Belt *(parallel with 19)*
+```
+Build platforms/mcu/arduino_haptic_belt/arduino_haptic_belt.ino. Full spec: Section 6.4.1 of blueprint.
+ArduinoBLE library. Same 3-byte protocol as ESP32.
+```
+
+---
+
+### After Session 20 — Tag and Release
+
+```bash
+git add .
+git commit -m "feat: complete Phases 0.5 through 4"
+git tag v1.0.0
+git push origin main --tags
+```
+
+GitHub Actions builds APK automatically. Release page will have download link within ~10 minutes.
+
+---
+
+### 18.1 AurigaCoreService Integration Prompt (Session 17 detail)
+
+```
+I have 12 Java module implementations for the Auriga Android spatial navigation system.
+[paste all .java files from sessions 1–16]
+
+Wire them into AurigaCoreService.java (Android Service, HandlerThread):
+
+onCreate():
+  - Init OutputLayer, CommandRouter, PassiveHazardEngine, EmergencySOSEngine, AurigaButlerService
+  - Start PassiveHazardEngine → callback calls OutputLayer.speak(hazardType.name(), EMERGENCY)
+  - Register all CommandRouter skills (one per module with natural language triggers matching ButlerCommandRegistry)
+
+onStartCommand():
+  - Start CameraX ImageAnalysis. Frame gate: process every 150ms max.
+  - Each frame: run StairSenseEngine + TrafficSenseEngine in parallel (2-thread ExecutorService)
+  - Merge in GodsEyeOrchestrator.mergeDetections()
+  - getNavigationInstruction(mergedScene) → if changed since last frame → OutputLayer.speak(instruction, NORMAL)
+  - CrossingGuardEngine.submitFrame() on every frame when crossing mode active
+
+onDestroy():
+  - Shutdown OutputLayer, stop PassiveHazardEngine, release CameraX, stop AurigaButlerService
+
+Output: AurigaCoreService.java only.
+```
 
 ```
 You are a senior Android architect (Java, SDK 34, min SDK 24).
@@ -1539,21 +2320,43 @@ AURIGA/
 ├── app/
 │   └── src/main/java/com/drakosanctis/auriga/
 │       ├── [all existing .java files]
-│       ├── StairSenseEngine.java          [Phase 1]
-│       ├── TrafficSenseEngine.java        [Phase 1]
-│       ├── CrossingGuardEngine.java       [Phase 1]
-│       ├── EmergencySOSEngine.java        [Phase 1]
-│       ├── PassiveHazardEngine.java       [Phase 1]
-│       ├── PillGuardEngine.java           [Phase 2]
-│       ├── FaceVaultEngine.java           [Phase 2]
-│       ├── CashLensEngine.java            [Phase 2]
-│       ├── LabelReaderEngine.java         [Phase 2]
-│       ├── ColorSenseEngine.java          [Phase 2]
-│       ├── SpatialMemoryEngine.java       [Phase 3]
-│       ├── SceneDescriberEngine.java      [Phase 3]
-│       ├── OutputLayer.java               [Phase 1]
-│       ├── CommandRouter.java             [Phase 1]
-│       └── AurigaCoreService.java         [Phase 3, integration]
+│       │
+│       │   ── Phase 0.5: Accessibility & Butler ──
+│       ├── SmartCalibrationEngine.java    [Phase 0.5 — Session C]
+│       ├── AurigaAccessibilityService.java [Phase 0.5 — Session D]
+│       ├── AurigaButlerService.java       [Phase 0.5 — Session E]
+│       ├── ButlerCommandRegistry.java     [Phase 0.5 — scaffold exists]
+│       ├── AurigaTutorialEngine.java      [Phase 0.5 — Session F]
+│       ├── TutorialActivity.java          [Phase 0.5 — Session F]
+│       │
+│       │   ── Phase 1: Safety ──
+│       ├── AurigaInterfaces.java          [Phase 1 — Session 1]
+│       ├── OutputLayer.java               [Phase 1 — Session 2]
+│       ├── CommandRouter.java             [Phase 1 — Session 3]
+│       ├── ColorSenseEngine.java          [Phase 1 — Session 4]
+│       ├── StairSenseEngine.java          [Phase 1 — Session 5]
+│       ├── TrafficSenseEngine.java        [Phase 1 — Session 6]
+│       ├── CrossingGuardEngine.java       [Phase 1 — Session 7]
+│       ├── EmergencySOSEngine.java        [Phase 1 — Session 8]
+│       ├── PassiveHazardEngine.java       [Phase 1 — Session 9]
+│       │
+│       │   ── Phase 2: Identification ──
+│       ├── PillDatabase.java              [Phase 2 — Session 11]
+│       ├── PillGuardEngine.java           [Phase 2 — Session 11]
+│       ├── FaceDatabase.java              [Phase 2 — Session 12]
+│       ├── FaceVaultEngine.java           [Phase 2 — Session 12]
+│       ├── CashLensEngine.java            [Phase 2 — Session 13]
+│       ├── LabelReaderEngine.java         [Phase 2 — Session 14]
+│       │
+│       │   ── Phase 3: Memory & Intelligence ──
+│       ├── SpatialDatabase.java           [Phase 3 — Session 15]
+│       ├── SpatialMemoryEngine.java       [Phase 3 — Session 15]
+│       ├── SceneDescriberEngine.java      [Phase 3 — Session 16]
+│       └── AurigaCoreService.java         [Phase 3 — Session 17, integration]
+│
+│   ── res additions ──
+│   └── src/main/res/xml/
+│       └── accessibility_service_config.xml  [Phase 0.5 — Session D]
 ├── platforms/
 │   ├── pc/
 │   │   ├── auriga_pc.py
