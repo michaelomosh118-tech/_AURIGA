@@ -1,0 +1,82 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      release_id: ${{ steps.create_release.outputs.id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREV_TAG=$(git tag --sort=-creatordate | sed -n '2p' || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            LOG=$(git log ${PREV_TAG}..HEAD --oneline --no-merges | head -30)
+          else
+            LOG=$(git log --oneline --no-merges | head -30)
+          fi
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          echo "$LOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: "Auriga ${{ steps.version.outputs.VERSION }}"
+          body: |
+            ## Auriga Ecosystem — ${{ steps.version.outputs.VERSION }}
+
+            ### Download
+            | Platform | File | Notes |
+            |---|---|---|
+            | Android (all phones) | `AurigaNavi-*-debug.apk` | Enable "Install unknown apps" in settings |
+            | Android (signed) | `AurigaNavi-*-release-signed.apk` | Release build, if signing configured |
+            | Linux PC | `AurigaPC-Linux` | Run `chmod +x AurigaPC-Linux && ./AurigaPC-Linux` |
+            | Windows PC | `AurigaPC-Windows.exe` | Run directly |
+
+            ### Install on Android
+            1. Download the `.apk` file to your phone
+            2. Settings → Security → Install unknown apps → allow your browser/Files app
+            3. Open the downloaded `.apk` and tap Install
+            4. Launch **Auriga** — no account, no internet needed
+
+            ### What changed
+            ```
+            ${{ steps.changelog.outputs.CHANGELOG }}
+            ```
+
+            ### Notes
+            - All features work fully offline
+            - No Google account, no SIM card, no internet required for core navigation
+            - Source: [AURIGA/docs/AURIGA_FULL_BUILD_BLUEPRINT.md](AURIGA/docs/AURIGA_FULL_BUILD_BLUEPRINT.md)
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.VERSION, '-beta') || contains(steps.version.outputs.VERSION, '-alpha') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-android:
+    needs: create-release
+    uses: ./.github/workflows/build-android.yml
+    secrets: inherit
+
+  build-pc:
+    needs: create-release
+    uses: ./.github/workflows/build-pc.yml
+    secrets: inherit

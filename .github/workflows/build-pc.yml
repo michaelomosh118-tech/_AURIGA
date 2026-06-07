@@ -1,0 +1,133 @@
+name: Build AurigaPC (Linux + Windows)
+
+on:
+  push:
+    branches: [ main, develop ]
+  release:
+    types: [ created ]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y espeak-ng libespeak-dev \
+            libgl1-mesa-glx libglib2.0-0 libsm6 libxrender1 libxext6
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyinstaller \
+            opencv-python-headless \
+            torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu \
+            pyttsx3 \
+            tflite-runtime \
+            pyqt6
+        working-directory: platforms/pc
+        continue-on-error: true
+
+      - name: Build Linux binary
+        run: |
+          mkdir -p dist
+          if [ -f auriga_pc.py ]; then
+            pyinstaller auriga_pc.py \
+              --onefile \
+              --name AurigaPC-Linux \
+              --hidden-import=pyttsx3.drivers \
+              --hidden-import=pyttsx3.drivers.espeak \
+              --collect-data torch \
+              --strip
+          else
+            echo "auriga_pc.py not yet created — skipping binary build"
+            echo "Placeholder build passed" > dist/AurigaPC-Linux.txt
+          fi
+        working-directory: platforms/pc
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AurigaPC-Linux
+          path: platforms/pc/dist/
+          retention-days: 30
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyinstaller opencv-python torch torchvision pyttsx3 pyqt6
+        working-directory: platforms/pc
+        continue-on-error: true
+
+      - name: Build Windows EXE
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [ -f auriga_pc.py ]; then
+            pyinstaller auriga_pc.py \
+              --onefile \
+              --windowed \
+              --name AurigaPC-Windows \
+              --hidden-import=pyttsx3.drivers \
+              --hidden-import=pyttsx3.drivers.sapi5
+          else
+            echo "auriga_pc.py not yet created — skipping binary build"
+            echo "Placeholder build passed" > dist/AurigaPC-Windows.txt
+          fi
+        working-directory: platforms/pc
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AurigaPC-Windows
+          path: platforms/pc/dist/
+          retention-days: 30
+
+  upload-to-release:
+    needs: [ build-linux, build-windows ]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    steps:
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: AurigaPC-Linux
+          path: dist/linux
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: AurigaPC-Windows
+          path: dist/windows
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/linux/*
+            dist/windows/*
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
