@@ -164,6 +164,20 @@
             android:exported="false"
             android:foregroundServiceType="microphone" />
 
+        <!-- AurigaCoreService: master foreground service that owns every engine
+             (OutputLayer, CommandRouter, PassiveHazardEngine, StairSenseEngine,
+             TrafficSenseEngine, CrossingGuardEngine, EmergencySOSEngine,
+             ColorSenseEngine, FaceVaultEngine, PillGuardEngine, CashLensEngine,
+             LabelReaderEngine, SpatialMemoryEngine, SceneDescriberEngine,
+             GodsEyeOrchestrator, YoloDetector) and runs the CameraX analysis
+             loop. foregroundServiceType="camera|microphone" is required on
+             Android 14+ for services that access the camera or mic while
+             running in the background. Session 17 — Phase 3 integration. -->
+        <service
+            android:name=".AurigaCoreService"
+            android:exported="false"
+            android:foregroundServiceType="camera|microphone" />
+
         <!-- Camera Stream: turns the phone into a wireless MJPEG camera server
              so any laptop running camera-connect.html (Wi-Fi → MJPEG) can
              receive the live feed over the local network. Uses a plain Java
