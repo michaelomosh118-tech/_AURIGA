@@ -1,0 +1,151 @@
+GO AHEAD, ALSO I HAD A RECOMMENDATION...JUST LIKE JARVIS, IT SHOULD ALLOW THE USRS TO ACCESS EVERYTHING VIA VOICE COMMANDS, WITH THE TOOL HELPIG THEM IN ALL OTHER APPS, BESIDES AURIGA ITSELF. IT SSHOULD SEEM LIKE A BUTTLER, HELPING THEM SELECT CERTAIN APPS, OPEN APPS, SEN MESSAGES.. AND SO ON.MORE OF LIKE ALEXA OR SIRI, WITH A LARGE RANDE OF COMMANDS AND SMART OFFLINE ANALYSIS OF THE COMMANDS. I THINK YOU SHOULD ALSO ADD AN ACTIVE TUTORIAL ON HOW TO USE EVERYTHING WITHIN THE APP AND GIVE THE ALTERNATIVE TO UST USE THE VOICE COMMANDS. THE BUTTLER SHOULD ALSO BE ABLE TO TELL THE USER OF CERTAIN FEATURES IT HAS AND REMIND THEM THAT THERE ARE SOME FEATRES THEY WOULD LIKE... ON THE PART OF THE CALLIBERTION WALK, I AED HE CALLIBERATION LIRARY, SO WHY NOT HAVE THE SYSTEM EITHER INFORM THE USER TO INPUT THEIR PHONE ODEL SO THAT IT USES THE LIBRARY DATA OR THE SYSTEM ENQUIRE THIS FROM THE PHONE ITSELF N DO THE SELECTION OF CALLIBERATION DATA BUT IN TERMS OF ALIGNMENT, WHY NOT HAVE THE SYSTEM USE THE SAME GEOMETRY IN THE DISTANCE N BEARING CALCULATION TO GET THE ORIENTATION OF THE PHONE OR PERSON COOTRARY TO ANOTHER ITEM IN THE FRAME THEN BEEP TO INFORM THEM THAT THEYRE AT THE CORRECT ORIENTATION/ FACING THE CORRECT DIRECTION. IF ON ACCOUNT A USER IS SUPPOSED TO MOVE TO THE LEFT/RIGHT FROM THE POINT OF CORRECT ORIENTATION, THE WE CAN JUST HAVE THE BUTTLER TELL THEM THIS UNTIL THEY HEAR THE BEEP
+
+
+Show more
+1 hour ago
+
+4 messages & 18 actions
+DONT BUILD YET, THE MOST YOU SHOULD DO UNLESS I SAY SO IS TO MODIFY THE BLUEPRINT
+
+1 hour ago
+
+Show less
+
+Planning blueprint document updates (5 seconds)
+Understood. No more building. Let me read the blueprint structure first, then update it with all the new specs.
+
+
+3 actions
+Good. Let me read the key sections of the blueprint that need updating before I edit.
+
+
+3 actions
+Good. I need to read a few more sections before editing — specifically where Section 6 ends and Section 12 (roadmap) lives.
+
+
+6 actions
+Now I have everything I need. I'll make all the blueprint updates in one batch — TOC, pain points, new module specs, roadmap, and session list — all at once since they target different parts of the file.
+
+
+2 actions
+Now I'll batch all remaining blueprint edits — pain points, new module specs, roadmap, and session list — all in parallel.
+
+
+4 actions
+Continuing with the remaining blueprint edits — Section 6.5 (Butler), roadmap Phase 0.5, and the full ordered session list.
+
+
+2 actions
+Continuing — roadmap update and full session list in one batch.
+
+
+2 actions
+Final blueprint update — replacing Section 18 with the complete ordered session list including all new sessions.
+
+
+2 actions
+Finally, let me update Appendix A to reflect all the new files in the directory structure.
+
+
+2 actions
+Blueprint is done. Here's what was added:
+
+What Changed in the Blueprint
+Section 3 — Pain Points
+Added P25–P30: the 6 onboarding gaps from the blind user audit (keyboard barrier, TTS/TalkBack clash, silent launch, hidden drawer, visual calibration, undiscoverable voice commands)
+
+Section 5 — Existing
+Added ButlerCommandRegistry.java as partially built (the scaffold already exists from earlier this session)
+
+Section 6.0 — NEW: Accessibility & Onboarding Layer (marked ⚠️ BUILD THIS FIRST)
+
+Fix A spec — voice-first name capture with SpeechRecognizer
+Fix B spec — boot announcement (first-run welcome + returning-user short version)
+Fix C spec — TalkBack-safe drawer with long-press trigger and focus restoration
+SmartCalibrationEngine spec — two-part: auto-detect device model from Build.MODEL against the calibration library, then geometry-based audio walk with sensor + beep alignment if no match found
+Section 6.5.3 — NEW: AurigaButler™
+Full spec for: AurigaButlerService, AurigaAccessibilityService, AurigaTutorialEngine, TutorialActivity — 50+ commands, cross-app control, 13-chapter voice tutorial, proactive tip engine
+
+Section 12 — Roadmap
+Added Phase 0.5 before Phase 1 — the accessibility and Butler foundation that makes the app usable by a blind person before any new modules are needed
+
+Section 18 — Renamed and Rewritten
+Full ordered session list: Sessions A–F (Phase 0.5) then Sessions 1–20 (Phases 1–4). Each is a self-contained copy-paste prompt. Parallel sessions are marked.
+
+Appendix A — Directory structure
+Updated with all new files, phased and labelled by session number.
+
+The blueprint is now at ~2,350 lines and fully reflects everything discussed. When you're ready to build, start with Session A — it's the first prompt in Section 18.
+
+Next, I can generate a one-page printable quick-reference card of all 26 session prompts in order (A through 20) so you have a build checklist you can tick off as you go. Would you like me to do that?
+
+
+Checkpoint made
+55 minutes ago
+
+Worked for 10 minutes
+NOW I WANT YOU TO DO 3 THINGS: 1. GIMME THE CHANGED SESSIONS BASED ON THE NEW SUGGESTIONS I MADE. 2. HELP ME PUSH FOM THE REPLIT SHELL CUZ IM GETTING THIS ERROR; The push was rejected by the remote. This is usually because the remote has commits that aren't in the local repository.. 3. EXECUTE SESSION 1 .
+
+55 minutes ago
+
+Strategizing next steps execution (23 seconds)
+Three things at once. Starting git diagnosis and building Session 1 simultaneously.
+
+
+3 actions
+Good — git situation is clear: local is 3 commits ahead of remote (not behind), so a regular push should work. Let me push and give you the sessions summary simultaneously. Session 1 (AurigaInterfaces.java) is already done above.
+
+
+2 actions
+Git write ops are blocked for me directly — you need to run these yourself in the Replit Shell. Here's the exact fix plus the sessions update and Session 1 confirmation.
+
+2. GIT FIX — Run these in the Replit Shell tab
+Your local is actually 3 commits ahead of remote. The error you saw earlier was likely a timing clash with Replit's auto-checkpoint system committing to origin simultaneously. Run these two lines:
+
+git pull --rebase origin main
+git push origin main
+
+If you see a conflict during rebase, run:
+
+git rebase --abort
+git pull origin main --no-rebase
+git push origin main
+
+3. SESSION 1 — DONE ✅
+AurigaInterfaces.java is written and saved at:
+
+AURIGA/app/src/main/java/com/drakosanctis/auriga/AurigaInterfaces.java
+
+What it contains — complete interface set including all new Phase 0.5 additions:
+
+Interface / Type	Purpose
+Zone, StairDirection, TrafficLightState, OutputPriority, HapticPattern, HapticZone, HazardType, ButlerActionCode	All shared enums
+ZoneMap, StairResult, TrafficResult, FaceMatch, PillResult, CashResult, ColorResult, LandmarkMatch, CalibrationProfile	All result value classes
+HazardCallback, ReplayCallback, SkillHandler, ButlerActionHandler, CalibrationAlignmentCallback, TutorialStepCallback	All callback interfaces
+IFrameProvider, IZoneAnalyser, IDepthProxy	Frame/perception layer
+IStairSenseEngine, ITrafficSenseEngine, IColorSenseEngine	Navigation modules
+IFaceVaultEngine, IPillGuardEngine, ICashLensEngine	Identification modules
+ISpatialMemoryEngine	Memory module
+IOutputLayer, ICommandRouter	Output & command layer
+IEmergencySOSEngine, IPassiveHazardEngine	Safety modules
+IButlerService, ISmartCalibrationEngine, ITutorialEngine	NEW Phase 0.5 modules
+1. CHANGED SESSIONS — What's New vs the Original List
+The original list had Sessions 1–20. Here is what changed:
+
+NEW — Phase 0.5 (didn't exist before, insert before Session 1):
+Session	What it builds	Why it's new
+A	VoiceSetupActivity — voice-first name capture	Blind user audit finding P25/P26
+B	LocatorActivity boot announcement + TalkBack drawer	Blind user audit finding P27/P28
+C	SmartCalibrationEngine — auto-calibration from device model + geometry walk with beeps	Blind user audit finding P29 + your calibration library idea
+D	AurigaAccessibilityService — cross-app control	Required foundation for Butler
+E	AurigaButlerService — 50+ voice commands, system-wide	Your Alexa/Siri/Jarvis butler request
+F	TutorialActivity + AurigaTutorialEngine — 13-chapter voice tutorial	Your active tutorial request
+CHANGED — existing sessions updated:
+Session	Original	Updated
+1	AurigaInterfaces (10 interfaces)	AurigaInterfaces (16 interfaces + new Phase 0.5 contracts for Butler, SmartCalib, Tutorial) ✅ DONE
+10	Was Session 16 — GodsEyeOrchestrator	Moved up to Session 10 (after safety modules, before identification)
+All sessions	Referenced 10 module interfaces	Now reference full AurigaInterfaces.java including Butler enums
+UNCHANGED — Sessions 2–9, 11–20 are identical to the list I gave you earlier.
+The complete copy-paste prompts for every session (A through 20) are in Section 18 of AURIGA/docs/AURIGA_FULL_BUILD_BLUEPRINT.md.
+
+Next, I can execute Session A (voice-first VoiceSetupActivity fix) — the first Phase 0.5 build. Want me to proceed
