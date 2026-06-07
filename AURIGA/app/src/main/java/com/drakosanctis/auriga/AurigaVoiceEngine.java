@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -68,8 +69,9 @@ public class AurigaVoiceEngine implements RecognitionListener {
 
     private SpeechRecognizer recognizer;
     private TextToSpeech tts;
-    private boolean ttsReady = false;
-    private boolean listening = false;
+    private boolean ttsReady  = false;
+    private boolean listening  = false;
+    private boolean systemMuted = false;
 
     /* OpenClaw-style skill engine: handles all non-navigation commands */
     private AurigaSkillEngine skillEngine;
@@ -135,9 +137,13 @@ public class AurigaVoiceEngine implements RecognitionListener {
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
             intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
             intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 5);
+            // Silence the "mic-on" ding for the window between startListening()
+            // and onReadyForSpeech() — same guard used by AurigaVoiceService.
+            muteSystem();
             recognizer.startListening(intent);
             if (listener != null) listener.onListeningStarted();
         } catch (Throwable t) {
+            unmuteSystem();
             listening = false;
             AurigaVoiceService.startListening(activity); // restore wake service
             if (listener != null) listener.onListeningStopped();
@@ -199,6 +205,7 @@ public class AurigaVoiceEngine implements RecognitionListener {
 
     /** Call from {@code onDestroy} to release all resources. */
     public void shutdown() {
+        unmuteSystem(); // always clean up before releasing resources
         try {
             if (recognizer != null) {
                 recognizer.cancel();
@@ -215,6 +222,35 @@ public class AurigaVoiceEngine implements RecognitionListener {
         } catch (Throwable ignored) {}
         ttsReady = false;
         listening = false;
+    }
+
+    // ── System audio mute helpers ────────────────────────────────────
+    // Suppress the SpeechRecognizer "mic-on" ding for the short window
+    // between startListening() and onReadyForSpeech(). Min SDK is 24
+    // so ADJUST_MUTE / ADJUST_UNMUTE are always available.
+
+    private void muteSystem() {
+        if (systemMuted) return;
+        try {
+            AudioManager am = (AudioManager) activity.getSystemService(Context.AUDIO_SERVICE);
+            if (am != null) {
+                am.adjustStreamVolume(AudioManager.STREAM_SYSTEM,
+                        AudioManager.ADJUST_MUTE, 0);
+                systemMuted = true;
+            }
+        } catch (Throwable ignored) {}
+    }
+
+    private void unmuteSystem() {
+        if (!systemMuted) return;
+        try {
+            AudioManager am = (AudioManager) activity.getSystemService(Context.AUDIO_SERVICE);
+            if (am != null) {
+                am.adjustStreamVolume(AudioManager.STREAM_SYSTEM,
+                        AudioManager.ADJUST_UNMUTE, 0);
+                systemMuted = false;
+            }
+        } catch (Throwable ignored) {}
     }
 
     // ── Init ────────────────────────────────────────────────────────
@@ -247,7 +283,10 @@ public class AurigaVoiceEngine implements RecognitionListener {
 
     // ── RecognitionListener ─────────────────────────────────────────
 
-    @Override public void onReadyForSpeech(Bundle params) {}
+    @Override public void onReadyForSpeech(Bundle params) {
+        // Recognizer is fully initialised — safe to lift the ding suppression.
+        unmuteSystem();
+    }
     @Override public void onBeginningOfSpeech() {}
     @Override public void onRmsChanged(float rmsdB) {}
     @Override public void onBufferReceived(byte[] buffer) {}
@@ -255,6 +294,9 @@ public class AurigaVoiceEngine implements RecognitionListener {
 
     @Override
     public void onError(int error) {
+        // Always unmute so we don't leave STREAM_SYSTEM permanently silenced
+        // if the recognizer bails out before onReadyForSpeech fires.
+        unmuteSystem();
         listening = false;
         mainHandler.post(() -> {
             try {
@@ -268,6 +310,7 @@ public class AurigaVoiceEngine implements RecognitionListener {
 
     @Override
     public void onResults(Bundle results) {
+        unmuteSystem(); // safety net — should already be clear
         listening = false;
         if (listener != null) listener.onListeningStopped();
         AurigaVoiceService.startListening(activity);
