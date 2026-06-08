@@ -15,7 +15,7 @@ app/src/main/assets/yolov8n.tflite             (~6 MB, int8 quantised)
 ```
 
 `YoloDetector` looks for `yolov8n_float32.tflite` first, then falls
-back to `yolov8n.tflite`. Either works -- it inspects the input
+back to `yolov8n.tflite`. Either works — it inspects the input
 tensor's data type at load time and adapts.
 
 If neither file is present the activity boots into a friendly
@@ -25,7 +25,8 @@ ships and runs even without the model.
 
 ## How to obtain the model
 
-The official Ultralytics export is the easiest path:
+Export directly from Ultralytics (produces the exact tensor shape
+`[1, 640, 640, 3]` → `[1, 84, 8400]` the detector expects):
 
 ```bash
 pip install ultralytics
@@ -43,9 +44,8 @@ cp yolov8n_saved_model/yolov8n_int8.tflite \
    AURIGA/app/src/main/assets/yolov8n.tflite
 ```
 
-Pre-quantised community builds also work -- any model that takes
-`[1, 640, 640, 3]` input and emits `[1, 84, 8400]` YOLOv8 output
-will run.
+Any model that takes `[1, 640, 640, 3]` input and emits `[1, 84, 8400]`
+YOLOv8 output will run.
 
 ## Class labels
 
@@ -57,7 +57,7 @@ order of the standard Ultralytics export.
 
 `*.tflite` is added to `.gitignore` to keep the repo small. CI
 release builds resolve the model from a bucket (or a pre-staged
-runner cache) at build time -- see the build script in
+runner cache) at build time — see the build script in
 `.github/workflows/` for the exact path.
 
 ---
@@ -68,56 +68,110 @@ runner cache) at build time -- see the build script in
 Drop **one** of the following files into this directory to enable it.
 Neither is committed to the repo (`*.bin` is gitignored).
 
-## Option A — Gemma 2B Q4  (~1.5 GB, preferred)
-Richer, more conversational answers. Requires a device with ≥4 GB RAM
-(Snapdragon 778G / Dimensity 1200 or better recommended).
+## Format note
+
+The old MediaPipe `.bin` flatbuffer format is no longer produced by
+current tooling. Current releases use `.tflite` format, which
+`tasks-genai:0.10.14` (the version wired in `build.gradle`) accepts
+identically via `setModelPath()`. **Download the `.tflite` file and
+rename it to the `.bin` filename MindEngine expects** — MediaPipe
+reads the file by content, not by extension.
+
+---
+
+## Option A — Gemma 2 2B IT  (q8, ~2.52 GB, preferred)
+
+Richer, more conversational answers. Requires a device with ≥4 GB RAM.
+
+**Prerequisites:** a Hugging Face account and accepted Gemma licence at
+<https://huggingface.co/litert-community/Gemma2-2B-IT>
 
 ```bash
-# Using the MediaPipe model conversion CLI:
-pip install mediapipe
+# Install the HuggingFace CLI if you don't have it
+pip install huggingface_hub
 
-# Download Gemma 2 2B IT from https://www.kaggle.com/models/google/gemma-2
-# Then convert to MediaPipe flatbuffer format:
-python -m mediapipe.tasks.python.genai.converter.convert_checkpoint \
-  --backend=cpu \
-  --logtostderr \
-  --input_ckpt=gemma2_2b_it \
-  --dtype=q4 \
-  --output_dir=. \
-  --output_name=gemma2b_q4.bin
+# Log in (creates ~/.cache/huggingface/token)
+huggingface-cli login
 
-cp gemma2b_q4.bin AURIGA/app/src/main/assets/gemma2b_q4.bin
+# Download (2.52 GB — use a metered connection carefully)
+huggingface-cli download litert-community/Gemma2-2B-IT \
+  Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite \
+  --local-dir .
+
+# Rename to the filename MindEngine expects
+mv Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite \
+   AURIGA/app/src/main/assets/gemma2b_q4.bin
 ```
 
-Alternatively, grab a pre-converted `.bin` from the
-[MediaPipe LLM Inference guide](https://ai.google.dev/edge/mediapipe/solutions/genai/llm_inference/android).
+**Verified file** (as of 2025-06-08, from HuggingFace LFS metadata):
 
-## Option B — Qwen 2.5 0.5B Q8  (~400 MB, fast)
-Lighter model; good for weather/news/factual Q&A on mid-range devices.
+| Field    | Value |
+|----------|-------|
+| Filename | `Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite` |
+| Size     | 2,709,032,880 bytes (2,583.5 MB) |
+| SHA-256  | `29ff136fd298e611296e10e9b511c86f42d1291b5b8bfc18c42178e733b679a9` |
+
+Verify after download:
 
 ```bash
-# From HuggingFace: Qwen/Qwen2.5-0.5B-Instruct
-pip install mediapipe
-
-python -m mediapipe.tasks.python.genai.converter.convert_checkpoint \
-  --backend=cpu \
-  --logtostderr \
-  --input_ckpt=Qwen/Qwen2.5-0.5B-Instruct \
-  --dtype=q8 \
-  --output_dir=. \
-  --output_name=qwen2_5_0_5b_q8.bin
-
-cp qwen2_5_0_5b_q8.bin AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin
+# Linux / macOS
+sha256sum Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite
+# expected: 29ff136fd298e611296e10e9b511c86f42d1291b5b8bfc18c42178e733b679a9
 ```
+
+---
+
+## Option B — Qwen 2.5 0.5B  (q8, ~519 MB, fast)
+
+Lighter model; good for Q&A on mid-range devices. Apache-2.0 licence —
+**no login required**.
+
+```bash
+# Install the HuggingFace CLI if you don't have it
+pip install huggingface_hub
+
+# Download (~519 MB)
+huggingface-cli download litert-community/Qwen2.5-0.5B-Instruct \
+  Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite \
+  --local-dir .
+
+# Rename to the filename MindEngine expects
+mv Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite \
+   AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin
+```
+
+**Verified file** (as of 2025-06-08, from HuggingFace LFS metadata):
+
+| Field    | Value |
+|----------|-------|
+| Filename | `Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite` |
+| Size     | 544,011,416 bytes (518.8 MB) |
+| SHA-256  | `54806eb754fe80fe6ed42d055ea56099ae0a273a52bda6437290cc00c501000b` |
+
+Verify after download:
+
+```bash
+# Linux / macOS
+sha256sum Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite
+# expected: 54806eb754fe80fe6ed42d055ea56099ae0a273a52bda6437290cc00c501000b
+```
+
+Direct download URL (no auth needed, verified HTTP 200):
+
+```
+https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite
+```
+
+---
 
 ## Enabling the MediaPipe AAR (required for LLM)
 
 `MindEngine` loads `LlmInference` via reflection so the project compiles
-without the AAR. To actually run the LLM, uncomment this line in
-`app/build.gradle` under `dependencies {}`:
+without the AAR. To actually run the LLM, ensure this line is present
+(and uncommented) in `app/build.gradle` under `dependencies {}`:
 
 ```groovy
-// implementation 'com.google.mediapipe:tasks-genai:0.10.14'
+implementation 'com.google.mediapipe:tasks-genai:0.10.14'
 ```
 
 ## Graceful degradation
@@ -131,3 +185,12 @@ and `AurigaVoiceEngine` stays on the three-tier rule-based fallback:
 
 So the APK builds, installs, and ships without any model file.
 The LLM is a progressive enhancement.
+
+## Deprecation notice
+
+As of 2025, Google has deprecated the Android and iOS implementations
+of the MediaPipe LLM Inference API in favour of
+[LiteRT-LM](https://ai.google.dev/edge/litert). The `tasks-genai:0.10.14`
+dependency still functions, but future projects should target LiteRT-LM.
+The model files listed above (`litert-community` on Hugging Face) are
+compatible with both APIs.
