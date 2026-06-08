@@ -76,6 +76,10 @@ public class AurigaVoiceEngine implements RecognitionListener {
     /* OpenClaw-style skill engine: handles all non-navigation commands */
     private AurigaSkillEngine skillEngine;
 
+    /* AurigaMind — on-device LLM final fallback */
+    private KnowledgeCache knowledgeCache;
+    private MindEngine     mindEngine;   // null until model is loaded (or no model)
+
     public AurigaVoiceEngine(Activity activity, Listener listener) {
         this.activity = activity;
         this.listener = listener;
@@ -222,6 +226,7 @@ public class AurigaVoiceEngine implements RecognitionListener {
         } catch (Throwable ignored) {}
         ttsReady = false;
         listening = false;
+        if (mindEngine != null) { mindEngine.close(); mindEngine = null; }
     }
 
     // ── System audio mute helpers ────────────────────────────────────
@@ -277,6 +282,16 @@ public class AurigaVoiceEngine implements RecognitionListener {
                 } else {
                     skillEngine.updateTts(tts);
                 }
+                /* Boot AurigaMind — KnowledgeCache warms up immediately;
+                   MindEngine loads the LLM model in the background (5–30 s).
+                   Both are null-safe — the dispatch chain handles missing model. */
+                if (knowledgeCache == null) {
+                    knowledgeCache = new KnowledgeCache(activity);
+                    knowledgeCache.warmUp();
+                }
+                final TextToSpeech ttsRef = tts;
+                MindEngine.createAsync(activity, knowledgeCache, ttsRef,
+                        engine -> mindEngine = engine);
             }
         });
     }
@@ -532,12 +547,30 @@ public class AurigaVoiceEngine implements RecognitionListener {
         } else if (skillEngine != null && skillEngine.dispatch(cmd)) {
             /* skill engine handled it and will speak the reply itself */
 
-        // ── Conversational AI fallback (on-device knowledge base) ────
+        // ── Conversational Q&A — three-tier fallback ──────────────────
+        //   Tier 1: AurigaKnowledge rule-based KB  (instant, fully offline)
+        //   Tier 2: MindEngine on-device LLM        (2–10 s, offline after first load)
+        //           grounded by KnowledgeCache      (weather/news/Wikipedia)
+        //   Tier 3: AurigaKnowledge.fallback()      (always-available safety net)
         } else if (!cmd.isEmpty()) {
             String kbAnswer = AurigaKnowledge.answer(cmd);
-            String reply = kbAnswer != null ? kbAnswer : AurigaKnowledge.fallback(cmd);
-            speak(reply);
-            AurigaMemoryStore.store(activity, "assistant", reply, "voice");
+            if (kbAnswer != null) {
+                // Rule-based KB matched — fast path
+                speak(kbAnswer);
+                AurigaMemoryStore.store(activity, "assistant", kbAnswer, "voice");
+            } else if (mindEngine != null) {
+                // LLM is loaded — stream the answer via MindEngine
+                // (MindEngine speaks directly; we just store the query for memory)
+                AurigaMemoryStore.store(activity, "assistant", "[MindEngine responding]", "voice");
+                mindEngine.ask(cmd, null);
+            } else {
+                // No LLM yet (still loading or no model file) — rule-based fallback
+                // but try KnowledgeCache context first for weather/news accuracy
+                String ctxStr = knowledgeCache != null ? knowledgeCache.getContext(cmd) : "";
+                String reply  = !ctxStr.isEmpty() ? ctxStr : AurigaKnowledge.fallback(cmd);
+                speak(reply);
+                AurigaMemoryStore.store(activity, "assistant", reply, "voice");
+            }
         }
     }
 
