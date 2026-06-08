@@ -192,6 +192,37 @@ public class HardwareHAL implements SensorEventListener {
         return pitchInitialized;
     }
 
+    // ---------------------------------------------------------------
+    // H_c persistence — DracoAID virtual-snap calibration result
+    // ---------------------------------------------------------------
+
+    private static final String PREFS_HAL       = "auriga_hardware_hal";
+    private static final String KEY_HC          = "draco_aid_hc_metres";
+    private static final float  HC_UNSET        = -1f;
+
+    /**
+     * Persist the camera height solved by DracoAIDEngine so the
+     * physics-based LUT survives app restarts. The value is stored
+     * in a dedicated SharedPreferences file so it does not collide
+     * with the user-facing prefs in MainActivity.PREFS_NAME.
+     */
+    public void storeHc(float hcMetres) {
+        if (hcMetres <= 0f) return;
+        context.getSharedPreferences(PREFS_HAL, Context.MODE_PRIVATE)
+               .edit().putFloat(KEY_HC, hcMetres).apply();
+    }
+
+    /**
+     * Returns the last DracoAID-solved H_c, or {@code -1} if no
+     * auto-calibration has run on this device yet. The caller should
+     * immediately regenerate the FiducialLUT dynamic table if this
+     * returns a positive value.
+     */
+    public float loadStoredHc() {
+        return context.getSharedPreferences(PREFS_HAL, Context.MODE_PRIVATE)
+                      .getFloat(KEY_HC, HC_UNSET);
+    }
+
     private String getBackCameraId(CameraManager manager) throws CameraAccessException {
         for (String id : manager.getCameraIdList()) {
             Integer facing = manager.getCameraCharacteristics(id).get(CameraCharacteristics.LENS_FACING);

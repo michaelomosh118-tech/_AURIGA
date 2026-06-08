@@ -266,6 +266,69 @@ public class FiducialLUT {
         // Implementation for persisting the data (e.g., to SharedPreferences or a file).
     }
 
+    /**
+     * generateDynamicTable: The DracoAID(TM) core.
+     *
+     * Replaces the synthetic defaults (or any previously-loaded profile)
+     * with a physics-derived LUT built entirely from the camera's known
+     * focal length and the solved camera height H_c.
+     *
+     * Math: For a camera at height H_c (metres) held level, a ground
+     * point at horizontal distance D appears at pixel row:
+     *
+     *   pixelRow = horizonRow + focalLengthPx * H_c / D
+     *
+     * A 20 cm reference marker at distance D has pixel width:
+     *
+     *   pixelWidth = 0.20 * focalLengthPx / D
+     *
+     * Both quantities decrease as D increases, satisfying FiducialLUT's
+     * strict-monotone requirement. No physical marker, no walk needed.
+     *
+     * @param hcMetres      Camera height above the floor in metres,
+     *                      as solved by DracoAIDEngine (0.5 – 2.5 m).
+     * @param focalLengthPx Focal length in pixels for the current
+     *                      preview resolution, from HardwareHAL.
+     * @param frameHeight   Preview frame height in pixels.
+     */
+    public void generateDynamicTable(float hcMetres, float focalLengthPx, int frameHeight) {
+        if (hcMetres <= 0f || focalLengthPx <= 0f || frameHeight <= 0) return;
+
+        float horizonRow = frameHeight / 2.0f;
+
+        // Sample distances: dense near (where sub-metre precision matters
+        // most for obstacle avoidance) and sparser beyond 4 m.
+        float[] distances = {
+            0.30f, 0.50f, 0.70f, 1.00f, 1.25f, 1.50f,
+            1.75f, 2.00f, 2.50f, 3.00f, 3.50f, 4.00f,
+            5.00f, 6.00f, 8.00f, 10.0f
+        };
+
+        List<TrainingPoint> pts = new ArrayList<>(distances.length);
+        float prevRow = Float.MAX_VALUE;
+        float prevWidth = Float.MAX_VALUE;
+
+        for (float d : distances) {
+            float pixelRow   = horizonRow + focalLengthPx * hcMetres / d;
+            float pixelWidth = 0.20f * focalLengthPx / d;
+
+            // Guard monotonicity before calling loadProfile's sanitiser —
+            // if H_c is very small the near-distance rows may exceed the
+            // frame and become non-monotone, which loadProfile would drop.
+            if (pixelRow >= prevRow || pixelWidth >= prevWidth) continue;
+            // Guard rows inside the frame (below horizon only).
+            if (pixelRow <= horizonRow || pixelRow >= frameHeight) continue;
+
+            pts.add(new TrainingPoint(d, pixelWidth, pixelRow));
+            prevRow   = pixelRow;
+            prevWidth = pixelWidth;
+        }
+
+        if (pts.size() >= 2) {
+            loadProfile(pts, "dynamic-hc");
+        }
+    }
+
     // ---------------------------------------------------------------
     // Query paths
     // ---------------------------------------------------------------

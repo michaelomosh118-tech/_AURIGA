@@ -1,3 +1,4 @@
 - [Voice Navigation Architecture](voice-nav-architecture.md) — auriga-voice.js + auriga-voice.css are the voice engine; injected on every page after nav-drawer.js
 - [Jarvis Fusion Architecture](jarvis-fusion.md) — jarvis.js is the AI assistant layer; sits on top of auriga-voice.js, not a replacement; unknown commands route from auriga-voice.js → Jarvis.ask()
 - [Conversational AI Layer](conversational-ai.md) — chat.html streaming LLM + auriga-memory.js RAG + auriga-llm.js WebGPU model; always-on mic + swipe gestures in auriga-swipe.js
+- [SIE Distance Engine](sie-distance-engine.md) — DracoAID auto-calibrates H_c from person bbox; FiducialLUT.generateDynamicTable() builds physics LUT; TriangulationEngine feeds LocatorActivity
