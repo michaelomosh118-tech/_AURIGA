@@ -562,7 +562,8 @@
     chatRecog = new SR();
     chatRecog.lang = 'en-US';
     chatRecog.interimResults = true;
-    chatRecog.continuous = false;
+    /* Stay open in always-on mode — one session, no repeated activation clicks */
+    chatRecog.continuous = alwaysOn;
     chatRecog.maxAlternatives = 3;
 
     chatRecog.onresult = function (e) {

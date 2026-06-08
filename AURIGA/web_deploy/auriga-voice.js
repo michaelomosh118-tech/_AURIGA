@@ -493,7 +493,9 @@
     recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
     recognition.interimResults = true;
-    recognition.continuous = false;
+    /* In always-on mode keep the session open — no repeated activation clicks.
+       In single-shot mode end after each utterance as normal. */
+    recognition.continuous = alwaysOn;
     recognition.maxAlternatives = 3;
 
     recognition.onresult = function (e) {
