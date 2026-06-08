@@ -164,15 +164,17 @@ https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/Qwen2
 
 ---
 
-## Enabling the MediaPipe AAR (required for LLM)
+## MediaPipe AAR status
 
-`MindEngine` loads `LlmInference` via reflection so the project compiles
-without the AAR. To actually run the LLM, ensure this line is present
-(and uncommented) in `app/build.gradle` under `dependencies {}`:
+**Already active.** As of the current `app/build.gradle`, line 308 reads:
 
 ```groovy
 implementation 'com.google.mediapipe:tasks-genai:0.10.14'
 ```
+
+No action needed — the dependency is live. `MindEngine` loads
+`LlmInference` via reflection at runtime, so the APK compiles and runs
+even when no model file is present (graceful degradation below).
 
 ## Graceful degradation
 
