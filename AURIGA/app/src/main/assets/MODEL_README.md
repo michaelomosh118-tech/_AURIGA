@@ -65,8 +65,9 @@ runner cache) at build time — see the build script in
 # AurigaMind — on-device LLM models
 
 `MindEngine` powers the Auriga personal assistant (Alexa/Siri-style Q&A).
-Drop **one** of the following files into this directory to enable it.
-Neither is committed to the repo (`*.bin` is gitignored).
+**Bundle both files.** MindEngine tries Gemma first; if it isn't present
+(or the device has insufficient RAM) it falls back to Qwen automatically.
+Neither file is committed to the repo (`*.bin` is gitignored).
 
 ## Format note
 
