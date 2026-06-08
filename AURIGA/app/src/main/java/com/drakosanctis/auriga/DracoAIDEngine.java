@@ -147,6 +147,73 @@ public class DracoAIDEngine {
         return committedHc > 0f;
     }
 
+    /**
+     * Feed an H_c estimate produced by {@link MoveNetSolver}.
+     *
+     * MoveNet provides sub-pixel keypoint coordinates, so its readings are
+     * meaningfully more precise than YOLO bbox corners. Two tiers:
+     *
+     *   confidence ≥ FAST_PATH_SCORE (0.70):
+     *       Commit immediately — no stability gate. One well-posed frame is
+     *       enough. This is what makes convergence "1–2 frames."
+     *
+     *   confidence ≥ MIN_SCORE (0.30):
+     *       Add to the shared hcBuffer alongside YOLO readings. The 5-sample
+     *       stability gate still applies, but mixed MoveNet + YOLO readings
+     *       fill it faster than YOLO alone.
+     *
+     * In both cases we first check for drift against the committed value
+     * (same logic as processFrame) so a bad frame cannot poison the LUT.
+     *
+     * @param hcMetres   Camera height estimate from MoveNet, metres.
+     * @param confidence Geometric mean of nose + ankle keypoint scores (0–1).
+     * @param frameH     Frame height in pixels (needed for commit()).
+     */
+    public void feedMoveNetHc(float hcMetres, float confidence, int frameH) {
+        if (hcMetres < HC_MIN_M || hcMetres > HC_MAX_M) return;
+
+        // Drift check vs. existing commitment.
+        if (committedHc > 0f) {
+            float drift = Math.abs(hcMetres - committedHc) / committedHc;
+            if (drift > REDRIFT_THRESHOLD) {
+                long now = System.currentTimeMillis();
+                if ((now - lastCalTime) > RECAL_INTERVAL_MS) {
+                    hcBuffer.clear();
+                    Log.d(TAG, "MoveNet drift " + String.format("%.0f", drift * 100)
+                            + "% — re-accumulating");
+                } else {
+                    return; // Too soon to re-calibrate; ignore.
+                }
+            } else {
+                // Within tolerance — refresh storage if fast-path, else skip.
+                if (confidence >= MoveNetSolver.FAST_PATH_SCORE) {
+                    // Gently update the committed value toward the new reading.
+                    committedHc = (committedHc * 0.8f) + (hcMetres * 0.2f);
+                    hal.storeHc(committedHc);
+                }
+                return;
+            }
+        }
+
+        // Fast path: high-confidence reading → commit without stability gate.
+        if (confidence >= MoveNetSolver.FAST_PATH_SCORE) {
+            Log.i(TAG, "MoveNet fast-path commit H_c=" + String.format("%.2f", hcMetres)
+                    + "m conf=" + String.format("%.2f", confidence));
+            commit(hcMetres, frameH);
+            return;
+        }
+
+        // Normal accumulation path.
+        hcBuffer.add(hcMetres);
+        if (hcBuffer.size() >= STABILITY_WINDOW) {
+            float median = median(hcBuffer);
+            if (isStable(hcBuffer, median)) {
+                commit(median, frameH);
+            }
+            while (hcBuffer.size() > STABILITY_WINDOW) hcBuffer.remove(0);
+        }
+    }
+
     // ---------------------------------------------------------------
     // Private helpers
     // ---------------------------------------------------------------

@@ -173,6 +173,8 @@ public class LocatorActivity extends ComponentActivity {
     private FiducialLUT           lut;
     private TriangulationEngine   triangulation;
     private DracoAIDEngine        dracoAID;
+    // MoveNet pose solver — fast-path H_c; null when model not bundled.
+    private MoveNetSolver         moveNetSolver;
 
     // Frame dimensions updated each inference cycle so helpers have them.
     private volatile int lastFrameWidth  = 640;
@@ -276,6 +278,10 @@ public class LocatorActivity extends ComponentActivity {
             lockOnBeep = new ToneGenerator(AudioManager.STREAM_MUSIC, 65);
         } catch (Throwable ignored) { }
 
+        // MoveNet Lightning — fast-path H_c solver (optional; graceful if absent).
+        // Runs synchronously on the analysis thread alongside YOLO; model is ~12 MB.
+        moveNetSolver = MoveNetSolver.tryCreate(this);
+
         ensureCameraPermissionAndStart();
     }
 
@@ -313,6 +319,9 @@ public class LocatorActivity extends ComponentActivity {
         }
         if (hal != null) {
             try { hal.stopPitchSensor(); } catch (Throwable ignored) {}
+        }
+        if (moveNetSolver != null) {
+            try { moveNetSolver.close(); } catch (Throwable ignored) {}
         }
         if (lockOnBeep != null) {
             try { lockOnBeep.release(); } catch (Throwable ignored) {}
@@ -584,6 +593,20 @@ public class LocatorActivity extends ComponentActivity {
                 List<Detection> dets = detector.detect(bmp);
 
                 // ── DracoAID auto-calibration ─────────────────────
+                // MoveNet runs first — it's faster and more precise than
+                // the YOLO bbox path. If it commits a fast-path H_c,
+                // processFrame() will see isCalibrated()==true and skip
+                // its own accumulation for this frame, saving CPU.
+                if (moveNetSolver != null && dracoAID != null) {
+                    try {
+                        MoveNetSolver.Result mnr = moveNetSolver.solve(bmp, fH);
+                        if (mnr != null) {
+                            dracoAID.feedMoveNetHc(mnr.hcMetres, mnr.confidence, fH);
+                        }
+                    } catch (Throwable t) {
+                        Log.w(TAG, "MoveNet solve failed", t);
+                    }
+                }
                 if (dracoAID != null) {
                     dracoAID.processFrame(dets, fW, fH);
                 }
