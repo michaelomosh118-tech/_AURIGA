@@ -305,7 +305,7 @@ dependencies {
     // Also add to android.aaptOptions: noCompress '*.bin'  to prevent
     // the asset compressor from mangling the large model flatbuffer.
     //
-    // implementation 'com.google.mediapipe:tasks-genai:0.10.14'
+    implementation 'com.google.mediapipe:tasks-genai:0.10.14'
 
     // Redundant 'org.json:json' removed as it's built into Android
     testImplementation 'junit:junit:4.13.2'
