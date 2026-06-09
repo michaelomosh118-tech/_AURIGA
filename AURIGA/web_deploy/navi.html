@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auriga NAVI — Spatial Intelligence for Android</title>
+  <meta name="description" content="Auriga NAVI by DrakoSanctis. 80-class object detection, route memory, crossing guard, label reader. 100% on-device. Free.">
+  <meta name="theme-color" content="#0A0A0F">
+  <link rel="icon" type="image/png" href="logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Grotesk:wght@300;400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollToPlugin.min.js"></script>
+  <style>
+    :root {
+      --black:     #07070B;
+      --cyan:      #00F0FF;
+      --cyan-dim:  rgba(0, 240, 255, 0.15);
+      --cyan-glow: rgba(0, 240, 255, 0.06);
+      --amber:     #FFB300;
+      --white:     #F0F4FF;
+      --dim:       rgba(240, 244, 255, 0.45);
+      --border:    rgba(0, 240, 255, 0.12);
+      --mono:      'Share Tech Mono', monospace;
+      --head:      'Orbitron', sans-serif;
+      --body:      'Space Grotesk', sans-serif;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      font-size: clamp(14px, 1.1vw, 17px);
+      scroll-behavior: auto;
+      overflow: hidden;
+    }
+
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: var(--body);
+      overflow: hidden;
+      height: 100dvh;
+      cursor: default;
+    }
+
+    /* ── SCROLLABLE WRAPPER ─────────────────────────────────────── */
+    #scroll-root {
+      overflow-y: scroll;
+      overflow-x: hidden;
+      height: 100dvh;
+      scroll-snap-type: none;
+    }
+
+    /* ── GRID TEXTURE ───────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,240,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,240,255,0.035) 1px, transparent 1px);
+      background-size: 72px 72px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV BAR ────────────────────────────────────────────────── */
+    .nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.4rem 3rem;
+      background: linear-gradient(180deg, rgba(7,7,11,0.95) 0%, transparent 100%);
+    }
+    .nav-brand {
+      font-family: var(--head);
+      font-size: 0.65rem;
+      letter-spacing: 0.35em;
+      color: var(--cyan);
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 2.5rem;
+    }
+    .nav-link {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      color: var(--dim);
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+    .nav-link:hover { color: var(--white); }
+    .nav-cta {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 0.5rem 1.2rem;
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      background: transparent;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+      cursor: pointer;
+    }
+    .nav-cta:hover { background: var(--cyan); color: var(--black); }
+
+    /* ── PANELS ─────────────────────────────────────────────────── */
+    .panel {
+      position: relative;
+      height: 100dvh;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    /* ── SECTION LABEL ──────────────────────────────────────────── */
+    .sec-label {
+      font-family: var(--mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.4em;
+      color: var(--cyan);
+      text-transform: uppercase;
+      opacity: 0.7;
+      display: block;
+      margin-bottom: 1.4rem;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       SECTION 0 — HERO
+    ═══════════════════════════════════════════════════════════ */
+    #s0 { flex-direction: column; }
+
+    .hero-inner {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 3rem;
+      max-width: 900px;
+    }
+
+    /* L-bracket corners — the reticle motif */
+    .reticle {
+      position: absolute;
+      inset: -1.5rem;
+      pointer-events: none;
+    }
+    .rc {
+      position: absolute;
+      width: 2.2rem;
+      height: 2.2rem;
+    }
+    .rc::before, .rc::after {
+      content: '';
+      position: absolute;
+      background: var(--cyan);
+    }
+    .rc::before { width: 100%; height: 2px; }
+    .rc::after  { width: 2px;  height: 100%; }
+
+    .rc.tl { top: 0; left: 0; }
+    .rc.tl::before { top: 0; left: 0; }
+    .rc.tl::after  { top: 0; left: 0; }
+
+    .rc.tr { top: 0; right: 0; }
+    .rc.tr::before { top: 0; right: 0; left: auto; }
+    .rc.tr::after  { top: 0; right: 0; left: auto; }
+
+    .rc.bl { bottom: 0; left: 0; }
+    .rc.bl::before { bottom: 0; top: auto; left: 0; }
+    .rc.bl::after  { bottom: 0; top: auto; left: 0; }
+
+    .rc.br { bottom: 0; right: 0; }
+    .rc.br::before { bottom: 0; top: auto; right: 0; left: auto; }
+    .rc.br::after  { bottom: 0; top: auto; right: 0; left: auto; }
+
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.5em;
+      color: var(--dim);
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+    }
+    .hero-eyebrow span { color: var(--cyan); }
+
+    .hero-h1 {
+      font-family: var(--head);
+      font-weight: 900;
+      font-size: clamp(3.2rem, 8vw, 8rem);
+      line-height: 0.9;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+      color: var(--white);
+      margin-bottom: 0.15em;
+    }
+    .hero-h1 .line-cyan { color: var(--cyan); }
+
+    .hero-sub {
+      font-family: var(--body);
+      font-weight: 300;
+      font-size: clamp(0.95rem, 1.5vw, 1.35rem);
+      color: var(--dim);
+      max-width: 600px;
+      line-height: 1.65;
+      margin: 2rem auto 0;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 0;
+      margin-top: 3rem;
+      border: 1px solid var(--border);
+    }
+    .hero-stat {
+      padding: 0.8rem 2rem;
+      border-right: 1px solid var(--border);
+      text-align: center;
+    }
+    .hero-stat:last-child { border-right: none; }
+    .hs-val {
+      font-family: var(--head);
+      font-size: clamp(1.1rem, 2vw, 1.8rem);
+      font-weight: 700;
+      color: var(--cyan);
+      display: block;
+      line-height: 1;
+    }
+    .hs-lbl {
+      font-family: var(--mono);
+      font-size: 0.52rem;
+      letter-spacing: 0.3em;
+      color: var(--dim);
+      text-transform: uppercase;
+      display: block;
+      margin-top: 0.35rem;
+    }
+
+    .hero-cta {
+      margin-top: 3rem;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+    .btn-primary {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      padding: 0.85rem 2rem;
+      background: var(--cyan);
+      color: var(--black);
+      text-decoration: none;
+      font-weight: 700;
+      transition: opacity 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-ghost {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      padding: 0.85rem 2rem;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      text-decoration: none;
+      transition: border-color 0.2s, color 0.2s;
+      cursor: pointer;
+      background: transparent;
+    }
+    .btn-ghost:hover { border-color: var(--cyan); color: var(--white); }
+
+    /* Scan line */
+    .scan-line {
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--cyan) 50%, transparent 100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* scroll indicator */
+    .scroll-hint {
+      position: absolute;
+      bottom: 2.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .scroll-hint span {
+      font-family: var(--mono);
+      font-size: 0.5rem;
+      letter-spacing: 0.4em;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+    .scroll-arrow {
+      width: 1px;
+      height: 2.5rem;
+      background: linear-gradient(180deg, var(--cyan), transparent);
+      animation: scrollArrow 2s ease-in-out infinite;
+    }
+    @keyframes scrollArrow {
+      0%, 100% { opacity: 0.3; transform: scaleY(0.6); }
+      50%       { opacity: 1;   transform: scaleY(1); }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       SECTION 1 — THE GAP
+    ═══════════════════════════════════════════════════════════ */
+    #s1 .inner {
+      max-width: 820px;
+      padding: 3rem;
+    }
+    .gap-h2 {
+      font-family: var(--head);
+      font-weight: 900;
+      font-size: clamp(1.6rem, 3.5vw, 3.2rem);
+      text-transform: uppercase;
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      color: var(--white);
+      margin-bottom: 2.2rem;
+    }
+    .gap-h2 em {
+      font-style: normal;
+      color: var(--amber);
+    }
+    .gap-body {
+      font-size: clamp(0.9rem, 1.2vw, 1.1rem);
+      line-height: 1.75;
+      color: var(--dim);
+      max-width: 640px;
+      margin-bottom: 2.5rem;
+    }
+    .gap-body strong { color: var(--white); font-weight: 500; }
+    .gap-conclusion {
+      font-family: var(--head);
+      font-size: clamp(0.75rem, 1vw, 0.95rem);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      padding-left: 1.5rem;
+      border-left: 2px solid var(--cyan);
+      line-height: 1.5;
+    }
+
+    .gap-orbs {
+      position: absolute;
+      right: 8%;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+      pointer-events: none;
+    }
+    .gap-orb {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      opacity: 0.5;
+    }
+    .gap-orb-price {
+      font-family: var(--head);
+      font-size: clamp(1.4rem, 2vw, 2rem);
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      min-width: 120px;
+      text-align: right;
+    }
+    .gap-orb-price.cross {
+      color: #555;
+      text-decoration: line-through;
+      text-decoration-color: var(--amber);
+    }
+    .gap-orb-price.free { color: var(--cyan); }
+    .gap-orb-name {
+      font-family: var(--mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.25em;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 900px) { .gap-orbs { display: none; } }
+
+    /* ═══════════════════════════════════════════════════════════
+       SECTION 2 — CAPABILITIES
+    ═══════════════════════════════════════════════════════════ */
+    #s2 .inner {
+      width: 100%;
+      max-width: 1200px;
+      padding: 3rem;
+    }
+    #s2 .inner > header {
+      margin-bottom: 3rem;
+      display: flex;
+      align-items: baseline;
+      gap: 2rem;
+    }
+    .cap-h2 {
+      font-family: var(--head);
+      font-weight: 900;
+      font-size: clamp(1.4rem, 2.5vw, 2.4rem);
+      text-transform: uppercase;
+      letter-spacing: -0.01em;
+      color: var(--white);
+    }
+    .cap-count {
+      font-family: var(--mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.3em;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+
+    .cap-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+    @media (max-width: 900px) {
+      .cap-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 560px) {
+      .cap-grid { grid-template-columns: 1fr; }
+    }
+
+    .cap-card {
+      background: var(--black);
+      padding: 1.8rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      transition: background 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .cap-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: var(--cyan);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s ease;
+    }
+    .cap-card:hover::before { transform: scaleX(1); }
+    .cap-card:hover { background: var(--cyan-glow); }
+
+    .cap-index {
+      font-family: var(--mono);
+      font-size: 0.5rem;
+      letter-spacing: 0.3em;
+      color: rgba(0,240,255,0.35);
+      text-transform: uppercase;
+    }
+    .cap-name {
+      font-family: var(--head);
+      font-size: clamp(0.65rem, 0.9vw, 0.85rem);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      line-height: 1.3;
+    }
+    .cap-desc {
+      font-size: clamp(0.75rem, 0.85vw, 0.88rem);
+      color: var(--dim);
+      line-height: 1.6;
+      font-weight: 300;
+    }
+    .cap-spec {
+      font-family: var(--mono);
+      font-size: 0.5rem;
+      letter-spacing: 0.2em;
+      color: rgba(0,240,255,0.5);
+      text-transform: uppercase;
+      margin-top: auto;
+      padding-top: 0.8rem;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       SECTION 3 — ARCHITECTURE
+    ═══════════════════════════════════════════════════════════ */
+    #s3 .inner {
+      max-width: 1100px;
+      padding: 3rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6rem;
+      align-items: center;
+    }
+    @media (max-width: 800px) {
+      #s3 .inner { grid-template-columns: 1fr; gap: 3rem; }
+    }
+    .arch-h2 {
+      font-family: var(--head);
+      font-weight: 900;
+      font-size: clamp(1.5rem, 3vw, 2.8rem);
+      text-transform: uppercase;
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      color: var(--white);
+      margin-bottom: 1.5rem;
+    }
+    .arch-body {
+      font-size: clamp(0.85rem, 1.1vw, 1rem);
+      line-height: 1.8;
+      color: var(--dim);
+      margin-bottom: 2rem;
+      font-weight: 300;
+    }
+    .arch-body strong { color: var(--white); font-weight: 500; }
+
+    .arch-models {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 2.5rem;
+    }
+    .arch-model {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      font-family: var(--mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.15em;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+    .arch-model::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--cyan);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .arch-footer {
+      font-family: var(--head);
+      font-size: clamp(0.7rem, 0.9vw, 0.85rem);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      line-height: 1.6;
+    }
+
+    .arch-right {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+    .arch-stat-row {
+      background: var(--black);
+      padding: 1.6rem 1.8rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .asr-val {
+      font-family: var(--head);
+      font-size: clamp(1.6rem, 3vw, 2.8rem);
+      font-weight: 900;
+      color: var(--cyan);
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .asr-lbl {
+      font-family: var(--mono);
+      font-size: 0.52rem;
+      letter-spacing: 0.3em;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       SECTION 4 — COMPARISON
+    ═══════════════════════════════════════════════════════════ */
+    #s4 .inner {
+      max-width: 1000px;
+      width: 100%;
+      padding: 3rem;
+    }
+    .cmp-headline {
+      display: flex;
+      align-items: baseline;
+      gap: 1.5rem;
+      margin-bottom: 3.5rem;
+      flex-wrap: wrap;
+    }
+    .cmp-zero {
+      font-family: var(--head);
+      font-weight: 900;
+      font-size: clamp(4rem, 12vw, 11rem);
+      line-height: 0.85;
+      color: var(--cyan);
+      letter-spacing: -0.04em;
+    }
+    .cmp-vs-block {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .cmp-vs {
+      font-family: var(--mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.4em;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+    .cmp-them {
+      font-family: var(--head);
+      font-weight: 700;
+      font-size: clamp(1.4rem, 3vw, 2.8rem);
+      line-height: 1;
+      color: rgba(240,244,255,0.25);
+      letter-spacing: -0.02em;
+      text-transform: uppercase;
+      text-decoration: line-through;
+      text-decoration-color: var(--amber);
+    }
+    .cmp-them-sub {
+      font-family: var(--mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.3em;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+
+    .cmp-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .cmp-table thead tr {
+      border-bottom: 1px solid var(--border);
+    }
+    .cmp-table th {
+      font-family: var(--mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      padding: 0.6rem 1.2rem;
+      text-align: left;
+      color: var(--dim);
+      font-weight: 400;
+    }
+    .cmp-table th.us { color: var(--cyan); }
+    .cmp-table td {
+      padding: 0.85rem 1.2rem;
+      font-size: 0.82rem;
+      color: var(--dim);
+      border-bottom: 1px solid rgba(0,240,255,0.05);
+    }
+    .cmp-table td:first-child {
+      font-family: var(--mono);
+      font-size: 0.55rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(240,244,255,0.3);
+    }
+    .cmp-table td.us {
+      color: var(--white);
+      font-weight: 500;
+    }
+    .cmp-table td.us .check {
+      color: var(--cyan);
+      margin-right: 0.5rem;
+    }
+    .cmp-table td.them { color: rgba(240,244,255,0.3); }
+    .cmp-table tr:hover td { background: var(--cyan-glow); }
+
+    /* ═══════════════════════════════════════════════════════════
+       SECTION 5 — DRAKOSANCTIS + CTA
+    ═══════════════════════════════════════════════════════════ */
+    #s5 {
+      flex-direction: column;
+      justify-content: center;
+    }
+    #s5 .inner {
+      max-width: 900px;
+      padding: 3rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+    .cta-logo {
+      font-family: var(--head);
+      font-size: 0.6rem;
+      letter-spacing: 0.5em;
+      color: var(--dim);
+      text-transform: uppercase;
+      margin-bottom: 2.5rem;
+    }
+    .cta-h2 {
+      font-family: var(--head);
+      font-weight: 900;
+      font-size: clamp(2rem, 5vw, 5rem);
+      text-transform: uppercase;
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+      color: var(--white);
+      margin-bottom: 2rem;
+    }
+    .cta-body {
+      max-width: 560px;
+      font-size: clamp(0.85rem, 1.1vw, 1rem);
+      line-height: 1.75;
+      color: var(--dim);
+      font-weight: 300;
+      margin-bottom: 3rem;
+    }
+    .cta-body strong { color: var(--white); font-weight: 500; }
+    .cta-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 3.5rem;
+    }
+    .cta-contact {
+      font-family: var(--mono);
+      font-size: 0.58rem;
+      letter-spacing: 0.25em;
+      color: var(--dim);
+      text-transform: uppercase;
+      margin-bottom: 4rem;
+    }
+    .cta-contact a {
+      color: var(--cyan);
+      text-decoration: none;
+    }
+    .cta-contact a:hover { text-decoration: underline; }
+
+    .cta-footer {
+      position: absolute;
+      bottom: 2rem;
+      left: 0; right: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 3rem;
+    }
+    .cta-foot-copy {
+      font-family: var(--mono);
+      font-size: 0.5rem;
+      letter-spacing: 0.25em;
+      color: rgba(240,244,255,0.2);
+      text-transform: uppercase;
+    }
+    .cta-foot-nav {
+      display: flex;
+      gap: 2rem;
+    }
+    .cta-foot-nav a {
+      font-family: var(--mono);
+      font-size: 0.5rem;
+      letter-spacing: 0.2em;
+      color: rgba(240,244,255,0.2);
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .cta-foot-nav a:hover { color: var(--cyan); }
+
+    /* ── SECTION PROGRESS DOTS ──────────────────────────────── */
+    .progress-dots {
+      position: fixed;
+      right: 2.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--border);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.3s, transform 0.3s;
+    }
+    .dot:hover { transform: scale(1.6); }
+    .dot.active {
+      background: var(--cyan);
+      border-color: var(--cyan);
+      transform: scale(1.4);
+    }
+
+    /* Initial anim states are set by GSAP, not CSS.
+       This prevents content from being invisible if JS is slow or blocked. */
+
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <a class="nav-brand" href="index.html">DrakoSanctis</a>
+    <div class="nav-right">
+      <a class="nav-link" href="#s2" data-scroll="2">Capabilities</a>
+      <a class="nav-link" href="#s4" data-scroll="4">Compare</a>
+      <a class="nav-link" href="index.html">Ecosystem</a>
+      <a class="nav-cta" href="mailto:drakosanctis@gmail.com">Early Access</a>
+    </div>
+  </nav>
+
+  <!-- PROGRESS DOTS -->
+  <div class="progress-dots" aria-hidden="true">
+    <div class="dot active" data-target="0"></div>
+    <div class="dot" data-target="1"></div>
+    <div class="dot" data-target="2"></div>
+    <div class="dot" data-target="3"></div>
+    <div class="dot" data-target="4"></div>
+    <div class="dot" data-target="5"></div>
+  </div>
+
+  <!-- SCROLL ROOT -->
+  <div id="scroll-root">
+
+    <!-- ╔══════════════════════════════════════════════════════╗
+         ║  S0 — HERO                                          ║
+         ╚══════════════════════════════════════════════════════╝ -->
+    <section class="panel" id="s0">
+      <div class="scan-line" id="scan"></div>
+
+      <div class="hero-inner">
+        <div class="reticle" aria-hidden="true">
+          <span class="rc tl"></span>
+          <span class="rc tr"></span>
+          <span class="rc bl"></span>
+          <span class="rc br"></span>
+        </div>
+
+        <p class="hero-eyebrow will-fade-in">
+          <span>AURIGA NAVI</span> &nbsp;/&nbsp; DRAKOSANCTIS &nbsp;/&nbsp; SPATIAL INTELLIGENCE
+        </p>
+
+        <h1 class="hero-h1">
+          <div class="h1-line" id="h1l1">See every</div>
+          <div class="h1-line line-cyan" id="h1l2">thing.</div>
+        </h1>
+
+        <p class="hero-sub will-fade-up">
+          Your phone sees 80 object classes, reads any label, monitors traffic lights,
+          maps your routes, and recognises faces — entirely without the internet.
+        </p>
+
+        <div class="hero-stats will-fade-up" style="transition-delay:0.1s">
+          <div class="hero-stat">
+            <span class="hs-val" id="cnt-objects">0</span>
+            <span class="hs-lbl">Object Classes</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hs-val">100%</span>
+            <span class="hs-lbl">On-Device</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hs-val">$0</span>
+            <span class="hs-lbl">Forever Free</span>
+          </div>
+          <div class="hero-stat">
+            <span class="hs-val">Android</span>
+            <span class="hs-lbl">Platform</span>
+          </div>
+        </div>
+
+        <div class="hero-cta will-fade-up" style="transition-delay:0.2s">
+          <a class="btn-primary" href="mailto:drakosanctis@gmail.com">Request Early Access</a>
+          <a class="btn-ghost" href="index.html">View Ecosystem →</a>
+        </div>
+      </div>
+
+      <div class="scroll-hint" aria-hidden="true">
+        <span>Scroll</span>
+        <div class="scroll-arrow"></div>
+      </div>
+    </section>
+
+
+    <!-- ╔══════════════════════════════════════════════════════╗
+         ║  S1 — THE GAP                                       ║
+         ╚══════════════════════════════════════════════════════╝ -->
+    <section class="panel" id="s1">
+      <div class="inner">
+        <span class="sec-label will-fade-in">The Problem</span>
+        <h2 class="gap-h2 will-fade-up">
+          The best blindness assistants<br>cost <em>four thousand dollars</em>.<br>
+          Or require Wi-Fi.<br>Usually both.
+        </h2>
+        <p class="gap-body will-fade-up">
+          OrCam MyEye 2 is the market leader. It retails at <strong>$4,500</strong> and clips to 
+          your glasses. Seeing AI and Google Lookout are free but cloud-dependent — 
+          they stop working when your signal does. 
+          <strong>None of them run a full perception pipeline offline on an Android phone.</strong>
+        </p>
+        <p class="gap-conclusion will-fade-up">
+          We disagree with all of that.
+        </p>
+      </div>
+
+      <div class="gap-orbs will-fade-in">
+        <div class="gap-orb">
+          <div>
+            <div class="gap-orb-name">OrCam MyEye 2</div>
+            <div class="gap-orb-price cross">$4,500</div>
+          </div>
+        </div>
+        <div class="gap-orb">
+          <div>
+            <div class="gap-orb-name">Seeing AI / Lookout</div>
+            <div class="gap-orb-price cross" style="font-size:1.4rem">Requires Cloud</div>
+          </div>
+        </div>
+        <div class="gap-orb" style="opacity:1">
+          <div>
+            <div class="gap-orb-name">Auriga NAVI</div>
+            <div class="gap-orb-price free">$0 · Offline</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ╔══════════════════════════════════════════════════════╗
+         ║  S2 — CAPABILITIES                                  ║
+         ╚══════════════════════════════════════════════════════╝ -->
+    <section class="panel" id="s2">
+      <div class="inner">
+        <header>
+          <span class="sec-label will-fade-in">Capabilities</span>
+          <h2 class="cap-h2 will-fade-up">Nine engines. One phone.</h2>
+          <span class="cap-count will-fade-in">Always on.</span>
+        </header>
+        <div class="cap-grid">
+          <div class="cap-card will-fade-up">
+            <span class="cap-index">01</span>
+            <span class="cap-name">Object Locator</span>
+            <span class="cap-desc">80 COCO classes detected with live bearing and distance. Spoken on acquisition at ~3 fps.</span>
+            <span class="cap-spec">YOLOv8n TFLite · NV21 pipeline</span>
+          </div>
+          <div class="cap-card will-fade-up">
+            <span class="cap-index">02</span>
+            <span class="cap-name">Crossing Guard™</span>
+            <span class="cap-desc">Traffic light state fused with vehicle approach detection. Safe-to-cross confirmation only when both conditions clear.</span>
+            <span class="cap-spec">Dual-engine fusion · 3.5 s cadence</span>
+          </div>
+          <div class="cap-card will-fade-up">
+            <span class="cap-index">03</span>
+            <span class="cap-name">DrakoVoice™ Reader</span>
+            <span class="cap-desc">Point-and-read OCR for product labels, menus, expiry dates, and documents. AUTO mode, paragraph navigation.</span>
+            <span class="cap-spec">ML Kit Latin OCR · ZXing barcodes</span>
+          </div>
+          <div class="cap-card will-fade-up">
+            <span class="cap-index">04</span>
+            <span class="cap-name">Face Vault</span>
+            <span class="cap-desc">Enrol anyone. Recognised on sight from a 128-dimension local embedding. No photos stored. Works entirely offline.</span>
+            <span class="cap-spec">MobileFaceNet · cosine similarity</span>
+          </div>
+          <div class="cap-card will-fade-up">
+            <span class="cap-index">05</span>
+            <span class="cap-name">Passive Hazard</span>
+            <span class="cap-desc">Always-on audio classification. Smoke alarm, car horn, breaking glass, dog bark. Fires before your conscious reaction.</span>
+            <span class="cap-spec">YAMNet TFLite · 521 audio classes</span>
+          </div>
+          <div class="cap-card will-fade-up">
+            <span class="cap-index">06</span>
+            <span class="cap-name">Spatial Memory</span>
+            <span class="cap-desc">Walk a route once. Auriga stores the landmark sequence. Guided step-by-step replay on every return visit. 500 routes maximum.</span>
+            <span class="cap-spec">Topological map · token-overlap matching</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ╔══════════════════════════════════════════════════════╗
+         ║  S3 — ARCHITECTURE                                  ║
+         ╚══════════════════════════════════════════════════════╝ -->
+    <section class="panel" id="s3">
+      <div class="inner">
+        <div>
+          <span class="sec-label will-fade-in">Architecture</span>
+          <h2 class="arch-h2 will-fade-up">No server.<br>No subscription.<br>No compromise.</h2>
+          <p class="arch-body will-fade-up">
+            Every inference runs on TensorFlow Lite and Android ML Kit inside the phone's own hardware.
+            <strong>Zero bytes leave the device.</strong> No API calls, no background uploads, 
+            no account required. Works in tunnels, in airplane mode, in a blackout, 
+            in countries with no data plan.
+          </p>
+          <div class="arch-models will-fade-up">
+            <div class="arch-model">YOLOv8n TFLite — object detection</div>
+            <div class="arch-model">ML Kit Latin OCR — text recognition</div>
+            <div class="arch-model">YAMNet TFLite — audio classification</div>
+            <div class="arch-model">MobileFaceNet — face embeddings</div>
+            <div class="arch-model">Android CameraX — frame pipeline</div>
+          </div>
+          <p class="arch-footer will-fade-up">
+            Everything your phone already<br>has the power to run.
+          </p>
+        </div>
+
+        <div class="arch-right will-fade-up">
+          <div class="arch-stat-row">
+            <span class="asr-val">~3fps</span>
+            <span class="asr-lbl">Object detection inference</span>
+          </div>
+          <div class="arch-stat-row">
+            <span class="asr-val">&lt;200ms</span>
+            <span class="asr-lbl">OCR latency per frame</span>
+          </div>
+          <div class="arch-stat-row">
+            <span class="asr-val">~8%</span>
+            <span class="asr-lbl">Additional battery overhead</span>
+          </div>
+          <div class="arch-stat-row">
+            <span class="asr-val">0</span>
+            <span class="asr-lbl">Cloud dependencies</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ╔══════════════════════════════════════════════════════╗
+         ║  S4 — COMPARISON                                    ║
+         ╚══════════════════════════════════════════════════════╝ -->
+    <section class="panel" id="s4">
+      <div class="inner">
+        <span class="sec-label will-fade-in">vs The Field</span>
+        <div class="cmp-headline">
+          <div class="cmp-zero will-fade-up" id="cmp-price">$0</div>
+          <div class="cmp-vs-block will-fade-up">
+            <span class="cmp-vs">vs</span>
+            <span class="cmp-them">$4,500</span>
+            <span class="cmp-them-sub">OrCam MyEye 2 · Market leader</span>
+          </div>
+        </div>
+
+        <table class="cmp-table will-fade-up">
+          <thead>
+            <tr>
+              <th></th>
+              <th class="us">Auriga NAVI</th>
+              <th>OrCam MyEye 2</th>
+              <th>Seeing AI</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Price</td>
+              <td class="us"><span class="check">◆</span>Free</td>
+              <td class="them">$4,500</td>
+              <td class="them">Free</td>
+            </tr>
+            <tr>
+              <td>Hardware</td>
+              <td class="us"><span class="check">◆</span>Your Android</td>
+              <td class="them">$4,500 clip</td>
+              <td class="them">Any phone</td>
+            </tr>
+            <tr>
+              <td>Works offline</td>
+              <td class="us"><span class="check">◆</span>Always</td>
+              <td class="them">Mostly</td>
+              <td class="them">No</td>
+            </tr>
+            <tr>
+              <td>Object classes</td>
+              <td class="us"><span class="check">◆</span>80 (COCO)</td>
+              <td class="them">~20</td>
+              <td class="them">Variable</td>
+            </tr>
+            <tr>
+              <td>Route memory</td>
+              <td class="us"><span class="check">◆</span>500 routes</td>
+              <td class="them">None</td>
+              <td class="them">None</td>
+            </tr>
+            <tr>
+              <td>Face recognition</td>
+              <td class="us"><span class="check">◆</span>Offline vault</td>
+              <td class="them">Paid add-on</td>
+              <td class="them">None</td>
+            </tr>
+            <tr>
+              <td>Audio hazard detection</td>
+              <td class="us"><span class="check">◆</span>Always-on</td>
+              <td class="them">None</td>
+              <td class="them">None</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+
+    <!-- ╔══════════════════════════════════════════════════════╗
+         ║  S5 — DRAKOSANCTIS + CTA                           ║
+         ╚══════════════════════════════════════════════════════╝ -->
+    <section class="panel" id="s5">
+      <div class="inner">
+        <p class="cta-logo will-fade-in">DrakoSanctis</p>
+        <h2 class="cta-h2">
+          <div class="will-fade-up">Built for</div>
+          <div class="will-fade-up" style="color:var(--cyan)">independence.</div>
+        </h2>
+        <p class="cta-body will-fade-up">
+          We're a small independent team. Auriga NAVI exists because 
+          <strong>assistive technology has been expensive and cloud-dependent for too long.</strong>
+          The hardware is in everyone's pocket. The models are small enough to run on it.
+          We built the integration that was missing.
+        </p>
+        <div class="cta-actions will-fade-up">
+          <a class="btn-primary" href="mailto:drakosanctis@gmail.com?subject=Auriga NAVI — Early Access Request">Request the APK</a>
+          <a class="btn-ghost" href="mailto:drakosanctis@gmail.com?subject=Auriga NAVI — General Enquiry">Send a Message</a>
+        </div>
+        <p class="cta-contact will-fade-in">
+          <a href="mailto:drakosanctis@gmail.com">drakosanctis@gmail.com</a>
+          &nbsp;&nbsp;·&nbsp;&nbsp;
+          <a href="index.html">Full Ecosystem →</a>
+        </p>
+      </div>
+
+      <div class="cta-footer">
+        <span class="cta-foot-copy">© 2025 DrakoSanctis · All Rights Reserved</span>
+        <nav class="cta-foot-nav">
+          <a href="index.html">Home</a>
+          <a href="locator.html">Object Locator</a>
+          <a href="reader.html">DrakoVoice</a>
+          <a href="feedback.html">Feedback</a>
+        </nav>
+      </div>
+    </section>
+
+  </div><!-- /scroll-root -->
+
+
+  <script>
+    gsap.registerPlugin(ScrollTrigger);
+
+    const root    = document.getElementById('scroll-root');
+    const panels  = gsap.utils.toArray('.panel');
+    const dots    = gsap.utils.toArray('.dot');
+    const TOTAL   = panels.length;
+
+    // ── SNAP SCROLLING ─────────────────────────────────────────
+    ScrollTrigger.defaults({ scroller: root });
+
+    ScrollTrigger.create({
+      scroller: root,
+      snap: {
+        snapTo: 1 / (TOTAL - 1),
+        delay: 0.05,
+        duration: { min: 0.35, max: 0.65 },
+        ease: 'power2.inOut',
+        inertia: false
+      }
+    });
+
+    // ── ACTIVE DOT TRACKING ────────────────────────────────────
+    function setActiveDot(idx) {
+      dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+    }
+    panels.forEach((panel, i) => {
+      ScrollTrigger.create({
+        scroller: root,
+        trigger: panel,
+        start: 'top 55%',
+        end: 'bottom 45%',
+        onEnter: () => setActiveDot(i),
+        onEnterBack: () => setActiveDot(i)
+      });
+    });
+
+    // ── DOT CLICK → SCROLL TO PANEL ───────────────────────────
+    dots.forEach(dot => {
+      dot.addEventListener('click', () => {
+        const idx = parseInt(dot.dataset.target, 10);
+        gsap.to(root, {
+          scrollTo: { y: panels[idx], offsetY: 0 },
+          duration: 0.7,
+          ease: 'power2.inOut'
+        });
+      });
+    });
+
+    // nav scroll links
+    document.querySelectorAll('[data-scroll]').forEach(link => {
+      link.addEventListener('click', e => {
+        e.preventDefault();
+        const idx = parseInt(link.dataset.scroll, 10);
+        gsap.to(root, {
+          scrollTo: { y: panels[idx] },
+          duration: 0.7,
+          ease: 'power2.inOut'
+        });
+      });
+    });
+
+    // ── HERO — RETICLE LOCK-ON ─────────────────────────────────
+    const corners = gsap.utils.toArray('.rc');
+    const offsets = [
+      { x: -18, y: -18 }, // tl
+      { x:  18, y: -18 }, // tr
+      { x: -18, y:  18 }, // bl
+      { x:  18, y:  18 }, // br
+    ];
+
+    // Hero text stays visible from frame 1.
+    // Only decorative elements (corners, scan, scroll hint) use GSAP initial hide.
+    gsap.set(corners, (i) => ({ ...offsets[i], opacity: 0 }));
+    gsap.set('#scan', { opacity: 0, top: '0%' });
+    gsap.set('.scroll-hint', { opacity: 0 });
+
+    // Corners lock-on → scan sweeps → corner glow pulse
+    const heroTl = gsap.timeline({ delay: 0.15 });
+    heroTl
+      .to(corners, {
+        x: 0, y: 0, opacity: 1,
+        duration: 0.5, ease: 'power3.out', stagger: 0.07
+      })
+      .to('#scan', { opacity: 0.6, duration: 0.1 }, '-=0.05')
+      .to('#scan', { top: '100%', duration: 0.75, ease: 'none' }, '<')
+      .to('#scan', { opacity: 0, duration: 0.15 }, '-=0.15')
+      .to('.scroll-hint', { opacity: 1, duration: 0.4 }, '-=0.1');
+
+    // Object counter runs independently on load
+    gsap.to({ val: 0 }, {
+      val: 80, duration: 2, ease: 'power2.out', delay: 0.5,
+      onUpdate() { document.getElementById('cnt-objects').textContent = Math.round(this.targets()[0].val); }
+    });
+
+    // ── PER-PANEL ENTRANCE ANIMATIONS ─────────────────────────
+    panels.forEach((panel, i) => {
+      if (i === 0) return; // hero handled above
+
+      const fadeUps = panel.querySelectorAll('.will-fade-up');
+      const fadeIns = panel.querySelectorAll('.will-fade-in');
+      const cards   = panel.querySelectorAll('.cap-card.will-fade-up');
+
+      if (cards.length) {
+        // capabilities — staggered card reveal
+        ScrollTrigger.create({
+          scroller: root,
+          trigger: panel,
+          start: 'top 70%',
+          once: true,
+          onEnter() {
+            gsap.to(panel.querySelectorAll('.sec-label, .cap-h2, .cap-count'), {
+              y: 0, opacity: 1, duration: 0.5, stagger: 0.1, ease: 'power2.out'
+            });
+            gsap.to(cards, {
+              y: 0, opacity: 1,
+              duration: 0.5,
+              stagger: 0.07,
+              ease: 'power2.out',
+              delay: 0.2
+            });
+          }
+        });
+        gsap.set(cards, { y: 40, opacity: 0 });
+        gsap.set(panel.querySelectorAll('.sec-label, .cap-h2, .cap-count'), { y: 25, opacity: 0 });
+        return;
+      }
+
+      // Generic sections
+      gsap.set(fadeUps, { y: 40, opacity: 0 });
+      gsap.set(fadeIns, { opacity: 0 });
+
+      ScrollTrigger.create({
+        scroller: root,
+        trigger: panel,
+        start: 'top 70%',
+        once: true,
+        onEnter() {
+          gsap.to(fadeIns, { opacity: 1, duration: 0.6, stagger: 0.1, ease: 'power2.out' });
+          gsap.to(fadeUps, { y: 0, opacity: 1, duration: 0.6, stagger: 0.12, ease: 'power2.out', delay: 0.1 });
+        }
+      });
+    });
+
+    // ── COMPARISON — PRICE COUNTER ─────────────────────────────
+    ScrollTrigger.create({
+      scroller: root,
+      trigger: '#s4',
+      start: 'top 70%',
+      once: true,
+      onEnter() {
+        const el = document.getElementById('cmp-price');
+        gsap.from({ v: 4500 }, {
+          v: 0,
+          duration: 1.4,
+          ease: 'power2.out',
+          delay: 0.4,
+          onUpdate() { el.textContent = '$' + Math.round(this.targets()[0].v).toLocaleString(); },
+          onComplete() { el.textContent = '$0'; }
+        });
+      }
+    });
+
+    // ── CORNER GLOW PULSE (ambient, hero only) ────────────────
+    gsap.to('.rc', {
+      filter: 'drop-shadow(0 0 6px var(--cyan))',
+      duration: 2.5,
+      repeat: -1,
+      yoyo: true,
+      ease: 'sine.inOut',
+      delay: 1.5
+    });
+
+    // ── GSAP ScrollTo shim (use if ScrollTo plugin unavailable) ─
+    // polyfill for gsap.to(root, { scrollTo: ... })
+    if (!gsap.plugins || !gsap.plugins.scrollTo) {
+      gsap.registerPlugin({
+        name: 'scrollTo',
+        init(target, vars) {
+          this.target = target;
+          this.vars   = vars;
+        },
+        render(progress) {
+          // basic y scroll
+        }
+      });
+      // fallback: dot clicks use scrollIntoView
+      dots.forEach(dot => {
+        dot.onclick = () => {
+          const idx = parseInt(dot.dataset.target, 10);
+          panels[idx].scrollIntoView({ behavior: 'smooth' });
+        };
+      });
+    }
+
+    // ── KEYBOARD NAVIGATION ────────────────────────────────────
+    let currentPanel = 0;
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+        e.preventDefault();
+        currentPanel = Math.min(currentPanel + 1, TOTAL - 1);
+        panels[currentPanel].scrollIntoView({ behavior: 'smooth' });
+      }
+      if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault();
+        currentPanel = Math.max(currentPanel - 1, 0);
+        panels[currentPanel].scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+    panels.forEach((p, i) => {
+      ScrollTrigger.create({
+        scroller: root,
+        trigger: p,
+        start: 'top 50%',
+        onEnter: () => { currentPanel = i; },
+        onEnterBack: () => { currentPanel = i; }
+      });
+    });
+
+    ScrollTrigger.refresh();
+  </script>
+</body>
+</html>
