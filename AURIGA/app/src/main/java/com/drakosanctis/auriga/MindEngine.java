@@ -174,7 +174,7 @@ public class MindEngine {
             return true;
         } catch (ClassNotFoundException cnf) {
             Log.i(TAG, "MediaPipe AAR absent — add 'implementation "
-                    + "com.google.mediapipe:tasks-genai:0.10.14' to build.gradle");
+                    + "com.google.mediapipe:tasks-genai:0.10.35' to build.gradle");
         } catch (Throwable t) {
             Log.w(TAG, "tryLoadMediaPipe(" + modelFile + "): " + t.getMessage());
         }

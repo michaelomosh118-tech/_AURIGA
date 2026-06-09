@@ -13,6 +13,12 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+
+    <!-- AurigaCoreService uses foregroundServiceType="camera|microphone".
+         Android 14+ enforces a matching permission for each declared type;
+         omitting FOREGROUND_SERVICE_CAMERA causes a hard SecurityException
+         when the service is started on API 34+ devices. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
     
     <!-- Bluetooth LE camera connectivity (API 31+ split permissions) -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
@@ -212,6 +218,18 @@
             android:exported="false"
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
+
+        <!-- AurigaAlarmReceiver: handles AlarmManager broadcasts for the
+             alarm + reminder skill (AurigaSkillEngine). Must be registered
+             here to fire when the app is in the background or killed. -->
+        <receiver
+            android:name=".AurigaAlarmReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.drakosanctis.auriga.ALARM_FIRE"/>
+                <action android:name="com.drakosanctis.auriga.REMINDER_FIRE"/>
+            </intent-filter>
+        </receiver>
 
         <!-- FileProvider so Share intents can attach the raw crash file
              (required for emailing / Drive / cloud attachments). -->

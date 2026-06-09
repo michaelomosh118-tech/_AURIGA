@@ -37,6 +37,15 @@
     native <methods>;
 }
 
+# ── MediaPipe LLM Inference (MindEngine reflective loading) ──────────────
+# MindEngine loads LlmInference via Class.forName() and Method.invoke().
+# Without these rules a minified/obfuscated release build strips the class
+# names and MindEngine always falls through to the rule-based fallback.
+# minifyEnabled is currently false, but add rules now so enabling shrinking
+# in a future release does not silently break the LLM path.
+-keep class com.google.mediapipe.tasks.genai.llminference.** { *; }
+-keepclassmembers class com.google.mediapipe.tasks.genai.llminference.** { *; }
+
 # Keep serializable classes
 -keepclassmembers class * implements java.io.Serializable {
     static final long serialVersionUID;
