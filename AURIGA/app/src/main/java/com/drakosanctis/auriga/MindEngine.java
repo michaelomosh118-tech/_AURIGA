@@ -1,5 +1,6 @@
 package com.drakosanctis.auriga;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.os.Handler;
@@ -28,21 +29,21 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * ─────────────────────────────────────────────────────────────────────────
  * Required model files (drop into app/src/main/assets/ — gitignored for size):
  *
- *   gemma2b_q4.bin           Gemma 2 2B Q4 (~1.5 GB)   preferred; richer answers
- *   qwen2_5_0_5b_q8.bin      Qwen 2.5 0.5B Q8 (~400 MB) fast; good for Q&A
+ *   gemma2b_q4.bin           Gemma 2 2B IT q8 (~2.52 GB)  primary; richer answers
+ *   qwen2_5_0_5b_q8.bin      Qwen 2.5 0.5B q8 (~519 MB)  fallback for low-RAM devices
  *
- * Engine tries gemma2b first, then qwen. If neither is present, tryCreate()
+ * Engine tries gemma2b first (skipped automatically on devices with <3500 MB
+ * total RAM to avoid OOM), then qwen. If neither is present, tryCreate()
  * returns null and AurigaVoiceEngine stays on the rule-based fallback.
  * ─────────────────────────────────────────────────────────────────────────
  *
- * MediaPipe AAR — compile-time OPTIONAL (reflection-based loading):
- *   MindEngine loads LlmInference reflectively so the project compiles without
- *   the AAR. To enable the LLM, add to build.gradle:
+ * MediaPipe AAR — already active in build.gradle:
+ *   implementation 'com.google.mediapipe:tasks-genai:0.10.35'
  *
- *       implementation 'com.google.mediapipe:tasks-genai:0.10.14'
- *
- *   Without the AAR, the engine falls back to KnowledgeCache context passthrough
- *   — still factual for weather / news queries.
+ *   MindEngine loads LlmInference reflectively so the APK compiles and ships
+ *   even without any model file present.
+ *   Without a model file the engine falls back to KnowledgeCache context
+ *   passthrough — still factual for weather / news queries.
  *
  * Prompt formats:
  *   Gemma : <start_of_turn>user\n{sys}{ctx}{q}<end_of_turn>\n<start_of_turn>model\n
@@ -56,6 +57,13 @@ public class MindEngine {
     static final String MODEL_QWEN  = "qwen2_5_0_5b_q8.bin";
 
     private static final int MAX_TOKENS = 150; // ~100 words — comfortable TTS length
+
+    /**
+     * Minimum total RAM (MB) required to attempt loading the large Gemma 2B model.
+     * Devices below this threshold skip straight to Qwen to avoid an OOM crash.
+     * Gemma q8 expands to ~3.2 GB in RAM; allow 300 MB headroom for OS + app.
+     */
+    private static final long GEMMA_MIN_RAM_MB = 3_500;
 
     private static final String SYSTEM_PROMPT =
         "You are Auriga, a helpful voice assistant for blind and low-vision users. "
@@ -110,10 +118,34 @@ public class MindEngine {
     // ── Init ──────────────────────────────────────────────────────────
 
     private void init() {
-        if (assetExists(MODEL_GEMMA) && tryLoadMediaPipe(MODEL_GEMMA, "gemma")) return;
-        if (assetExists(MODEL_QWEN)  && tryLoadMediaPipe(MODEL_QWEN,  "qwen"))  return;
-        Log.i(TAG, "MindEngine: no model in assets. Drop " + MODEL_GEMMA
-                + " or " + MODEL_QWEN + " into app/src/main/assets/.");
+        // Gemma 2B (q8) expands to ~3.2 GB in RAM. Skip it on devices that
+        // don't have enough headroom — they go straight to the lighter Qwen model.
+        if (assetExists(MODEL_GEMMA)) {
+            if (totalRamMb() >= GEMMA_MIN_RAM_MB) {
+                if (tryLoadMediaPipe(MODEL_GEMMA, "gemma")) return;
+            } else {
+                Log.i(TAG, "MindEngine: skipping Gemma — device has "
+                        + totalRamMb() + " MB RAM (need " + GEMMA_MIN_RAM_MB + " MB). "
+                        + "Falling through to Qwen.");
+            }
+        }
+        if (assetExists(MODEL_QWEN) && tryLoadMediaPipe(MODEL_QWEN, "qwen")) return;
+        Log.i(TAG, "MindEngine: no usable model in assets. "
+                + "Drop " + MODEL_GEMMA + " and/or " + MODEL_QWEN
+                + " into app/src/main/assets/ — see MODEL_README.md.");
+    }
+
+    /** Returns total device RAM in MB. Used for the Gemma OOM guard. */
+    private long totalRamMb() {
+        try {
+            ActivityManager am = (ActivityManager) ctx.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am == null) return 0;
+            ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
+            am.getMemoryInfo(mi);
+            return mi.totalMem / (1024 * 1024);
+        } catch (Throwable t) {
+            return 0; // be conservative — don't attempt Gemma if we can't read RAM
+        }
     }
 
     private boolean tryLoadMediaPipe(String modelFile, String type) {

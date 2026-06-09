@@ -34,6 +34,11 @@ Thumbs.db
 # AURIGA/app/src/main/assets/MODEL_README.md for provenance.
 *.tflite
 
+# AurigaMind LLM model files. These are large binary blobs (519 MB – 2.5 GB)
+# that ship inside the APK but must never be committed to git.
+# See AURIGA/app/src/main/assets/MODEL_README.md for download instructions.
+*.bin
+
 # Logs
 *.log
 node_modules

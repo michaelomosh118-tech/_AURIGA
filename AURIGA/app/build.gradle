@@ -162,6 +162,11 @@ android {
     // mmap fails with "MappedByteBuffer is not a valid model file".
     androidResources {
         noCompress.add('tflite')
+        // LLM model files are renamed .tflite → .bin when placed in assets
+        // (MindEngine expects .bin filenames). AAPT must NOT compress them
+        // because MediaPipe maps the file into memory with mmap(); a compressed
+        // asset silently produces "Failed to mmap model" at runtime.
+        noCompress.add('bin')
     }
 
     // Bundle the public web preview (AURIGA/web_deploy) into the APK as
@@ -298,14 +303,14 @@ dependencies {
     // Covers EAN-8/13, UPC-A/E, QR Code, Code 128/39, Data Matrix, ITF, PDF-417.
     implementation 'com.google.zxing:core:3.5.2'
 
-    // ── AurigaMind — on-device LLM (OPTIONAL, compile-time) ──────
+    // ── AurigaMind — on-device LLM ────────────────────────────────
     // MindEngine loads LlmInference via reflection so the APK compiles
-    // and ships without this AAR. Uncomment + drop a model file into
-    // app/src/main/assets/ (see MODEL_README.md) to enable full LLM Q&A.
-    // Also add to android.aaptOptions: noCompress '*.bin'  to prevent
-    // the asset compressor from mangling the large model flatbuffer.
+    // and ships without a model file. Drop gemma2b_q4.bin and/or
+    // qwen2_5_0_5b_q8.bin into app/src/main/assets/ to enable LLM Q&A.
+    // See MODEL_README.md for verified download instructions.
+    // noCompress for .bin is already declared in androidResources above.
     //
-    implementation 'com.google.mediapipe:tasks-genai:0.10.14'
+    implementation 'com.google.mediapipe:tasks-genai:0.10.35'
 
     // Redundant 'org.json:json' removed as it's built into Android
     testImplementation 'junit:junit:4.13.2'

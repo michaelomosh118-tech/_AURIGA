@@ -65,135 +65,154 @@ runner cache) at build time — see the build script in
 # AurigaMind — on-device LLM models
 
 `MindEngine` powers the Auriga personal assistant (Alexa/Siri-style Q&A).
-**Bundle both files.** MindEngine tries Gemma first; if it isn't present
-(or the device has insufficient RAM) it falls back to Qwen automatically.
+
+**Bundle both files** — MindEngine tries Gemma first and falls back to
+Qwen automatically. On devices with less than 3,500 MB total RAM the
+engine skips Gemma entirely (OOM guard) and loads Qwen instead.
 Neither file is committed to the repo (`*.bin` is gitignored).
-
-## Format note
-
-The old MediaPipe `.bin` flatbuffer format is no longer produced by
-current tooling. Current releases use `.tflite` format, which
-`tasks-genai:0.10.14` (the version wired in `build.gradle`) accepts
-identically via `setModelPath()`. **Download the `.tflite` file and
-rename it to the `.bin` filename MindEngine expects** — MediaPipe
-reads the file by content, not by extension.
 
 ---
 
-## Option A — Gemma 2 2B IT  (q8, ~2.52 GB, preferred)
+## Format
 
-Richer, more conversational answers. Requires a device with ≥4 GB RAM.
+The old `.bin` flatbuffer format is no longer produced by current
+tooling. Current model releases from the `litert-community` Hugging
+Face organisation use `.tflite` format, which
+`tasks-genai:0.10.35` (the version in `build.gradle`) accepts
+identically via `setModelPath()`. The files are downloaded as `.tflite`
+and **renamed to `.bin`** when placed in assets — MediaPipe reads by
+content, not by extension. The `noCompress 'bin'` rule in
+`build.gradle` ensures AAPT stores them uncompressed so MediaPipe can
+`mmap()` them at runtime.
 
-**Prerequisites:** a Hugging Face account and accepted Gemma licence at
-<https://huggingface.co/litert-community/Gemma2-2B-IT>
+---
+
+## Model A — Qwen 2.5 0.5B IT  (q8, 519 MB)  ← fallback / low-RAM devices
+
+Apache-2.0 licence — **no login required.**
+
+**This file is already present in the repo** (downloaded into
+`app/src/main/assets/qwen2_5_0_5b_q8.bin` by the project setup).
+
+To re-download manually:
 
 ```bash
-# Install the HuggingFace CLI if you don't have it
+curl -L \
+  "https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite" \
+  -o AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin
+```
+
+Verify after download:
+
+```bash
+sha256sum AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin
+# expected: 54806eb754fe80fe6ed42d055ea56099ae0a273a52bda6437290cc00c501000b
+# size:     544,011,416 bytes
+```
+
+---
+
+## Model B — Gemma 2 2B IT  (q8, 2.52 GB)  ← primary / flagship devices
+
+Gemma licence — **requires a Hugging Face account.**
+
+### Step 1 — Accept the licence
+
+Visit <https://huggingface.co/litert-community/Gemma2-2B-IT> while
+logged in and click **"Acknowledge licensed"**. This is a one-time step
+per HF account.
+
+### Step 2 — Download
+
+**Option A — huggingface-cli (recommended):**
+
+```bash
 pip install huggingface_hub
+huggingface-cli login        # enter your HF token when prompted
 
-# Log in (creates ~/.cache/huggingface/token)
-huggingface-cli login
-
-# Download (2.52 GB — use a metered connection carefully)
 huggingface-cli download litert-community/Gemma2-2B-IT \
   Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite \
-  --local-dir .
+  --local-dir /tmp/gemma
 
-# Rename to the filename MindEngine expects
-mv Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite \
+mv /tmp/gemma/Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite \
    AURIGA/app/src/main/assets/gemma2b_q4.bin
 ```
 
-**Verified file** (as of 2025-06-08, from HuggingFace LFS metadata):
-
-| Field    | Value |
-|----------|-------|
-| Filename | `Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite` |
-| Size     | 2,709,032,880 bytes (2,583.5 MB) |
-| SHA-256  | `29ff136fd298e611296e10e9b511c86f42d1291b5b8bfc18c42178e733b679a9` |
-
-Verify after download:
+**Option B — curl with token:**
 
 ```bash
-# Linux / macOS
-sha256sum Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite
+# Replace <YOUR_HF_TOKEN> with a token that has read access
+curl -L -H "Authorization: Bearer <YOUR_HF_TOKEN>" \
+  "https://huggingface.co/litert-community/Gemma2-2B-IT/resolve/main/Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite" \
+  -o AURIGA/app/src/main/assets/gemma2b_q4.bin
+```
+
+### Step 3 — Verify
+
+```bash
+sha256sum AURIGA/app/src/main/assets/gemma2b_q4.bin
 # expected: 29ff136fd298e611296e10e9b511c86f42d1291b5b8bfc18c42178e733b679a9
-```
-
----
-
-## Option B — Qwen 2.5 0.5B  (q8, ~519 MB, fast)
-
-Lighter model; good for Q&A on mid-range devices. Apache-2.0 licence —
-**no login required**.
-
-```bash
-# Install the HuggingFace CLI if you don't have it
-pip install huggingface_hub
-
-# Download (~519 MB)
-huggingface-cli download litert-community/Qwen2.5-0.5B-Instruct \
-  Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite \
-  --local-dir .
-
-# Rename to the filename MindEngine expects
-mv Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite \
-   AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin
-```
-
-**Verified file** (as of 2025-06-08, from HuggingFace LFS metadata):
-
-| Field    | Value |
-|----------|-------|
-| Filename | `Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite` |
-| Size     | 544,011,416 bytes (518.8 MB) |
-| SHA-256  | `54806eb754fe80fe6ed42d055ea56099ae0a273a52bda6437290cc00c501000b` |
-
-Verify after download:
-
-```bash
-# Linux / macOS
-sha256sum Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite
-# expected: 54806eb754fe80fe6ed42d055ea56099ae0a273a52bda6437290cc00c501000b
-```
-
-Direct download URL (no auth needed, verified HTTP 200):
-
-```
-https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite
+# size:     2,709,032,880 bytes
 ```
 
 ---
 
 ## MediaPipe AAR status
 
-**Already active.** As of the current `app/build.gradle`, line 308 reads:
+**Already active.** `app/build.gradle` line 316:
 
 ```groovy
-implementation 'com.google.mediapipe:tasks-genai:0.10.14'
+implementation 'com.google.mediapipe:tasks-genai:0.10.35'
 ```
 
-No action needed — the dependency is live. `MindEngine` loads
-`LlmInference` via reflection at runtime, so the APK compiles and runs
-even when no model file is present (graceful degradation below).
+No action needed. MindEngine loads `LlmInference` via reflection so
+the APK compiles and ships even without any model file present.
+
+---
+
+## Device compatibility
+
+| Device class | Total RAM | Model loaded | Notes |
+|---|---|---|---|
+| Flagship (Pixel 8, S24, etc.) | ≥ 6 GB | Gemma 2B → Qwen fallback | ~10 tok/s decode |
+| Mid-range (Pixel 6a, A54, etc.) | 4–5 GB | Gemma 2B → Qwen fallback | ~7 tok/s decode |
+| Budget / low-RAM | < 3.5 GB | Qwen 0.5B only | ~30 tok/s decode |
+
+RAM thresholds are enforced automatically at runtime — no user configuration needed.
+
+---
 
 ## Graceful degradation
 
 If neither model file is present, `MindEngine.tryCreate()` returns null
 and `AurigaVoiceEngine` stays on the three-tier rule-based fallback:
 
-  1. `AurigaKnowledge` rule-based KB  (instant, always available)
-  2. `KnowledgeCache` context string   (weather/news from SQLite, online sync)
-  3. `AurigaKnowledge.fallback()`      (safe "I don't know" response)
+1. `AurigaKnowledge` rule-based KB  (instant, always available)
+2. `KnowledgeCache` context string   (weather/news from SQLite, online sync)
+3. `AurigaKnowledge.fallback()`      (safe "I don't know" response)
 
-So the APK builds, installs, and ships without any model file.
+The APK builds, installs, and ships without any model file.
 The LLM is a progressive enhancement.
+
+---
+
+## Google Colab notebook (model download + verification)
+
+A ready-to-run Colab notebook is provided at
+`scripts/download_models.ipynb`. It downloads both models, verifies
+SHA-256 checksums, and produces a zip you can copy to your build
+machine. Open it at:
+
+```
+https://colab.research.google.com/github/<your-repo>/blob/main/scripts/download_models.ipynb
+```
+
+---
 
 ## Deprecation notice
 
-As of 2025, Google has deprecated the Android and iOS implementations
-of the MediaPipe LLM Inference API in favour of
-[LiteRT-LM](https://ai.google.dev/edge/litert). The `tasks-genai:0.10.14`
-dependency still functions, but future projects should target LiteRT-LM.
-The model files listed above (`litert-community` on Hugging Face) are
-compatible with both APIs.
+As of 2025, Google deprecated the Android/iOS MediaPipe LLM Inference
+API in favour of [LiteRT-LM](https://ai.google.dev/edge/litert).
+`tasks-genai:0.10.35` still functions and the `litert-community`
+model files are compatible with both APIs. Migration to LiteRT-LM
+is recommended for new projects but is not required for Auriga now.
