@@ -118,21 +118,35 @@ public class MindEngine {
     // ── Init ──────────────────────────────────────────────────────────
 
     private void init() {
-        // Gemma 2B (q8) expands to ~3.2 GB in RAM. Skip it on devices that
-        // don't have enough headroom — they go straight to the lighter Qwen model.
-        if (assetExists(MODEL_GEMMA)) {
-            if (totalRamMb() >= GEMMA_MIN_RAM_MB) {
-                if (tryLoadMediaPipe(MODEL_GEMMA, "gemma")) return;
-            } else {
-                Log.i(TAG, "MindEngine: skipping Gemma — device has "
-                        + totalRamMb() + " MB RAM (need " + GEMMA_MIN_RAM_MB + " MB). "
-                        + "Falling through to Qwen.");
+        // ── Gemma 2B (q8, ~3.2 GB in RAM) ────────────────────────────
+        // Two sources are checked in order:
+        //   1. APK assets  — present only if CI bundled it (rare for 2.5 GB model)
+        //   2. FilesDir    — ModelDownloadManager places it here on first launch
+        //
+        // Skip Gemma on low-RAM devices (OOM guard: need ≥3500 MB).
+        if (totalRamMb() >= GEMMA_MIN_RAM_MB) {
+            // Check APK assets first
+            if (assetExists(MODEL_GEMMA)) {
+                if (tryLoadMediaPipe(MODEL_GEMMA, "gemma", true)) return;
             }
+            // Check FilesDir (runtime download path)
+            File gemmaFile = ModelDownloadManager.gemmaFilesPath(ctx);
+            if (gemmaFile.exists() && gemmaFile.length() > 0) {
+                if (tryLoadFromFile(gemmaFile, "gemma")) return;
+            }
+        } else {
+            Log.i(TAG, "MindEngine: skipping Gemma — device has "
+                    + totalRamMb() + " MB RAM (need " + GEMMA_MIN_RAM_MB + " MB). "
+                    + "Falling through to Qwen.");
         }
-        if (assetExists(MODEL_QWEN) && tryLoadMediaPipe(MODEL_QWEN, "qwen")) return;
-        Log.i(TAG, "MindEngine: no usable model in assets. "
-                + "Drop " + MODEL_GEMMA + " and/or " + MODEL_QWEN
-                + " into app/src/main/assets/ — see MODEL_README.md.");
+
+        // ── Qwen 2.5 0.5B (q8, ~519 MB) ─────────────────────────────
+        // Bundled in the APK assets by CI — always available immediately.
+        if (assetExists(MODEL_QWEN) && tryLoadMediaPipe(MODEL_QWEN, "qwen", true)) return;
+
+        Log.i(TAG, "MindEngine: no usable model available. "
+                + "Qwen should be bundled in APK assets. "
+                + "Gemma downloads to FilesDir on first launch via ModelDownloadManager.");
     }
 
     /** Returns total device RAM in MB. Used for the Gemma OOM guard. */
@@ -148,30 +162,12 @@ public class MindEngine {
         }
     }
 
-    private boolean tryLoadMediaPipe(String modelFile, String type) {
+    /** Load a model from APK assets, copying to cache dir so MediaPipe can mmap it. */
+    private boolean tryLoadMediaPipe(String modelFile, String type, boolean fromAsset) {
         try {
             String path = copyAssetToCache(modelFile);
             if (path == null) return false;
-
-            String pkg    = "com.google.mediapipe.tasks.genai.llminference.LlmInference";
-            Class<?> bCls = Class.forName(pkg + "$LlmInferenceOptions$Builder");
-            Object   b    = bCls.getDeclaredConstructor().newInstance();
-            bCls.getMethod("setModelPath", String.class).invoke(b, path);
-            bCls.getMethod("setMaxTokens",  int.class).invoke(b, MAX_TOKENS);
-            Object options = bCls.getMethod("build").invoke(b);
-
-            Class<?> llmCls = Class.forName(pkg);
-            for (java.lang.reflect.Method m : llmCls.getMethods()) {
-                if ("createFromOptions".equals(m.getName()) && m.getParameterCount() == 2) {
-                    llm = m.invoke(null, ctx, options);
-                    break;
-                }
-            }
-            if (llm == null) return false;
-            modelType = type;
-            ready     = true;
-            Log.i(TAG, "MindEngine ready: " + modelFile);
-            return true;
+            return initMediaPipe(path, type, modelFile);
         } catch (ClassNotFoundException cnf) {
             Log.i(TAG, "MediaPipe AAR absent — add 'implementation "
                     + "com.google.mediapipe:tasks-genai:0.10.35' to build.gradle");
@@ -179,6 +175,42 @@ public class MindEngine {
             Log.w(TAG, "tryLoadMediaPipe(" + modelFile + "): " + t.getMessage());
         }
         return false;
+    }
+
+    /** Load a model from a plain File path (e.g. FilesDir download). */
+    private boolean tryLoadFromFile(File modelFile, String type) {
+        try {
+            return initMediaPipe(modelFile.getAbsolutePath(), type, modelFile.getName());
+        } catch (ClassNotFoundException cnf) {
+            Log.i(TAG, "MediaPipe AAR absent");
+        } catch (Throwable t) {
+            Log.w(TAG, "tryLoadFromFile(" + modelFile.getName() + "): " + t.getMessage());
+        }
+        return false;
+    }
+
+    /** Shared MediaPipe LlmInference bootstrap used by both load paths. */
+    private boolean initMediaPipe(String absolutePath, String type, String logName)
+            throws Exception {
+        String pkg    = "com.google.mediapipe.tasks.genai.llminference.LlmInference";
+        Class<?> bCls = Class.forName(pkg + "$LlmInferenceOptions$Builder");
+        Object   b    = bCls.getDeclaredConstructor().newInstance();
+        bCls.getMethod("setModelPath", String.class).invoke(b, absolutePath);
+        bCls.getMethod("setMaxTokens",  int.class).invoke(b, MAX_TOKENS);
+        Object options = bCls.getMethod("build").invoke(b);
+
+        Class<?> llmCls = Class.forName(pkg);
+        for (java.lang.reflect.Method m : llmCls.getMethods()) {
+            if ("createFromOptions".equals(m.getName()) && m.getParameterCount() == 2) {
+                llm = m.invoke(null, ctx, options);
+                break;
+            }
+        }
+        if (llm == null) return false;
+        modelType = type;
+        ready     = true;
+        Log.i(TAG, "MindEngine ready: " + logName + " (" + type + ")");
+        return true;
     }
 
     // ── Public API ────────────────────────────────────────────────────

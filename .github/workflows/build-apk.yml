@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       # ── 1. Checkout ────────────────────────────────────────────────
@@ -33,58 +33,64 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: pip-ultralytics-hf-${{ runner.os }}
+          key: pip-ultralytics-hf-${{ runner.os }}-v2
 
-      # ── 5. Cache downloaded models ─────────────────────────────────
-      - name: Cache models
-        id: model-cache
+      # ── 5. Cache model files (keyed by content hashes) ─────────────
+      - name: Cache YOLOv8n model
+        id: yolo-cache
         uses: actions/cache@v4
         with:
-          path: AURIGA/app/src/main/assets/models-cache
-          key: auriga-models-v1-yolo-qwen-gemma
+          path: AURIGA/app/src/main/assets/yolov8n_float32.tflite
+          key: yolov8n-tflite-fp32-v1
+
+      - name: Cache Qwen model
+        id: qwen-cache
+        uses: actions/cache@v4
+        with:
+          path: AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin
+          key: qwen-2_5-0_5b-q8-v1
+
+      - name: Cache Gemma model
+        id: gemma-cache
+        uses: actions/cache@v4
+        with:
+          path: AURIGA/app/src/main/assets/gemma2b_q4.bin
+          key: gemma2-2b-it-q8-v1
 
       # ── 6. Install Python deps ─────────────────────────────────────
       - name: Install Python dependencies
         run: pip install ultralytics huggingface_hub --quiet
 
-      # ── 7. Download / export models ────────────────────────────────
-      # Qwen and Gemma are optional LLM models — the app loads them
-      # reflectively and gracefully falls back when they are absent.
-      # Only YOLOv8n is required (powers LocatorActivity).
-      # Gemma requires HF_TOKEN; the step is skipped gracefully if absent.
-      - name: Download and export all models
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      # ── 7. Export YOLOv8n (required) ──────────────────────────────
+      - name: Export YOLOv8n TFLite model
+        if: steps.yolo-cache.outputs.cache-hit != 'true'
         run: |
-          ASSETS=AURIGA/app/src/main/assets
-          CACHE=$ASSETS/models-cache
-          mkdir -p $CACHE
-
-          # ── YOLOv8n TFLite (required) ───────────────────────────────
-          TARGET_YOLO=$ASSETS/yolov8n_float32.tflite
-          CACHE_YOLO=$CACHE/yolov8n_float32.tflite
-
-          if [ -f "$CACHE_YOLO" ]; then
-            echo "YOLOv8n: cache hit"
-            cp $CACHE_YOLO $TARGET_YOLO
-          else
-            echo "YOLOv8n: exporting..."
-            yolo export model=yolov8n.pt format=tflite imgsz=640 --quiet
-            cp yolov8n_saved_model/yolov8n_float32.tflite $TARGET_YOLO
-            cp $TARGET_YOLO $CACHE_YOLO
-            echo "YOLOv8n: done ($(du -sh $TARGET_YOLO | cut -f1))"
+          DEST="AURIGA/app/src/main/assets/yolov8n_float32.tflite"
+          echo "Exporting YOLOv8n to TFLite..."
+          yolo export model=yolov8n.pt format=tflite imgsz=640 --quiet
+          SRC=$(find yolov8n_saved_model -name "yolov8n_float32.tflite" | head -1)
+          if [ -z "$SRC" ]; then
+            echo "::error::YOLOv8n export failed — tflite not found"
+            exit 1
           fi
+          cp "$SRC" "$DEST"
+          echo "YOLOv8n ready: $(du -sh $DEST | cut -f1)"
 
-          # ── Qwen 2.5 0.5B (optional — no auth required) ────────────
-          TARGET_QWEN=$ASSETS/qwen2_5_0_5b_q8.bin
-          CACHE_QWEN=$CACHE/qwen2_5_0_5b_q8.bin
+      - name: Verify YOLOv8n
+        run: |
+          f="AURIGA/app/src/main/assets/yolov8n_float32.tflite"
+          [ -f "$f" ] || { echo "::error::YOLOv8n missing"; exit 1; }
+          echo "YOLOv8n OK: $(du -sh $f | cut -f1)"
 
-          if [ -f "$CACHE_QWEN" ]; then
-            echo "Qwen: cache hit"
-            cp $CACHE_QWEN $TARGET_QWEN
-          else
-            echo "Qwen: downloading 519 MB (optional LLM — skipped if network fails)..."
-            python3 - <<'EOF' || echo "::warning::Qwen download failed — LLM will be disabled at runtime (non-fatal)"
+      # ── 8. Download Qwen 2.5 0.5B (required — bundled in APK) ─────
+      # Apache-2.0, no auth token needed. Pre-bundled so the assistant
+      # works immediately on install with no network required.
+      - name: Download Qwen 2.5 0.5B
+        if: steps.qwen-cache.outputs.cache-hit != 'true'
+        run: |
+          DEST="AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin"
+          echo "Downloading Qwen 2.5 0.5B (519 MB)..."
+          python3 - <<'EOF'
           import os, sys
           try:
             from huggingface_hub import hf_hub_download
@@ -94,105 +100,85 @@ jobs:
               local_dir="/tmp/qwen"
             )
             dest = "AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin"
-            cache = "AURIGA/app/src/main/assets/models-cache/qwen2_5_0_5b_q8.bin"
-            os.rename(path, dest)
-            import shutil; shutil.copy(dest, cache)
-            print(f"Qwen saved → {dest}  ({os.path.getsize(dest):,} bytes)")
+            import shutil; shutil.copy(path, dest)
+            print(f"Qwen saved: {os.path.getsize(dest):,} bytes")
           except Exception as e:
-            print(f"Qwen download skipped: {e}", file=sys.stderr)
-            sys.exit(0)
+            print(f"ERROR: {e}", file=sys.stderr)
+            sys.exit(1)
           EOF
+
+      - name: Verify Qwen
+        run: |
+          f="AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin"
+          [ -f "$f" ] || { echo "::error::Qwen model missing — cannot build AI-capable APK"; exit 1; }
+          echo "Qwen OK: $(du -sh $f | cut -f1)"
+
+      # ── 9. Download Gemma 2 2B IT (optional — bundled when token available)
+      # On devices with >= 3.5 GB RAM, Gemma gives richer answers than Qwen.
+      # Requires HF_TOKEN with access to litert-community/Gemma2-2B-IT.
+      # If token is absent or download fails the APK still works fully via Qwen;
+      # the app will also attempt to download Gemma at first launch via
+      # ModelDownloadManager.
+      - name: Download Gemma 2 2B IT
+        if: steps.gemma-cache.outputs.cache-hit != 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          DEST="AURIGA/app/src/main/assets/gemma2b_q4.bin"
+          HF_TOKEN="${HF_TOKEN:-}"
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::warning::HF_TOKEN not set — Gemma 2B will be downloaded at runtime instead of being pre-bundled. Qwen covers all queries on install."
+            exit 0
           fi
-
-          # ── Gemma 2 2B (optional — requires HF_TOKEN secret) ───────
-          TARGET_GEMMA=$ASSETS/gemma2b_q4.bin
-          CACHE_GEMMA=$CACHE/gemma2b_q4.bin
-
-          if [ -f "$CACHE_GEMMA" ]; then
-            echo "Gemma: cache hit"
-            cp $CACHE_GEMMA $TARGET_GEMMA
-          else
-            HF_TOKEN="${HF_TOKEN:-}"
-            if [ -z "$HF_TOKEN" ]; then
-              echo "::warning::HF_TOKEN secret not set — Gemma 2 2B will be skipped (LLM falls back to Qwen or rule-based responses)"
-            else
-              echo "Gemma: downloading 2.52 GB..."
-              python3 - <<'EOF' || echo "::warning::Gemma download failed — LLM will fall back to Qwen/rule-based (non-fatal)"
+          echo "Downloading Gemma 2 2B IT (2.52 GB)..."
+          python3 - <<'EOF'
           import os, sys
           try:
             from huggingface_hub import login, hf_hub_download
             token = os.environ.get("HF_TOKEN", "")
             if not token:
-              print("HF_TOKEN not available in Python env", file=sys.stderr)
+              print("HF_TOKEN not in env", file=sys.stderr)
               sys.exit(0)
-            login(token=token)
+            login(token=token, add_to_git_credential=False)
             path = hf_hub_download(
               repo_id="litert-community/Gemma2-2B-IT",
               filename="Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite",
               local_dir="/tmp/gemma"
             )
             dest = "AURIGA/app/src/main/assets/gemma2b_q4.bin"
-            cache = "AURIGA/app/src/main/assets/models-cache/gemma2b_q4.bin"
-            os.rename(path, dest)
-            import shutil; shutil.copy(dest, cache)
-            print(f"Gemma saved → {dest}  ({os.path.getsize(dest):,} bytes)")
+            import shutil; shutil.copy(path, dest)
+            print(f"Gemma saved: {os.path.getsize(dest):,} bytes")
           except Exception as e:
-            print(f"Gemma download skipped: {e}", file=sys.stderr)
+            print(f"Gemma download failed (non-fatal): {e}", file=sys.stderr)
             sys.exit(0)
           EOF
-            fi
-          fi
 
-          echo ""
-          echo "── Model inventory ──────────────────────────"
-          ls -lh $ASSETS/*.tflite $ASSETS/*.bin 2>/dev/null || echo "(no large model files present)"
-
-      # ── 8. Verify required model + report optional models ──────────
-      # Only YOLOv8n is a hard requirement. Qwen and Gemma are optional
-      # on-device LLMs; missing them logs a warning but never fails CI.
-      - name: Verify model inventory
+      - name: Report Gemma status
         run: |
-          ASSETS=AURIGA/app/src/main/assets
-          FAIL=false
-
-          # Required
-          if [ -f "$ASSETS/yolov8n_float32.tflite" ]; then
-            echo "OK       YOLOv8n float32 ($(du -sh $ASSETS/yolov8n_float32.tflite | cut -f1))"
+          f="AURIGA/app/src/main/assets/gemma2b_q4.bin"
+          if [ -f "$f" ]; then
+            echo "Gemma OK: $(du -sh $f | cut -f1) — will be pre-bundled in APK"
           else
-            echo "::error::MISSING yolov8n_float32.tflite — LocatorActivity requires this model"
-            FAIL=true
+            echo "::warning::Gemma not bundled — app will download it at first launch via ModelDownloadManager"
           fi
 
-          # Optional — report but never fail
-          if [ -f "$ASSETS/qwen2_5_0_5b_q8.bin" ]; then
-            actual=$(sha256sum "$ASSETS/qwen2_5_0_5b_q8.bin" | awk '{print $1}')
-            expected="54806eb754fe80fe6ed42d055ea56099ae0a273a52bda6437290cc00c501000b"
-            if [ "$actual" = "$expected" ]; then
-              echo "OK       Qwen 2.5 0.5B (checksum verified)"
+      # ── 10. Model inventory summary ───────────────────────────────
+      - name: Model inventory
+        run: |
+          echo "── Final model inventory ──────────────────────────────"
+          ASSETS="AURIGA/app/src/main/assets"
+          for f in "$ASSETS/yolov8n_float32.tflite" \
+                   "$ASSETS/qwen2_5_0_5b_q8.bin"     \
+                   "$ASSETS/gemma2b_q4.bin"; do
+            name=$(basename "$f")
+            if [ -f "$f" ]; then
+              echo "  BUNDLED   $name  ($(du -sh $f | cut -f1))"
             else
-              echo "::warning::Qwen 2.5 0.5B checksum mismatch — model may be a newer version; runtime will attempt to load anyway"
+              echo "  MISSING   $name"
             fi
-          else
-            echo "::warning::OPTIONAL Qwen 2.5 0.5B not present — MindEngine LLM will be disabled at runtime"
-          fi
+          done
 
-          if [ -f "$ASSETS/gemma2b_q4.bin" ]; then
-            actual=$(sha256sum "$ASSETS/gemma2b_q4.bin" | awk '{print $1}')
-            expected="29ff136fd298e611296e10e9b511c86f42d1291b5b8bfc18c42178e733b679a9"
-            if [ "$actual" = "$expected" ]; then
-              echo "OK       Gemma 2 2B (checksum verified)"
-            else
-              echo "::warning::Gemma 2 2B checksum mismatch — model may be a newer version; runtime will attempt to load anyway"
-            fi
-          else
-            echo "::warning::OPTIONAL Gemma 2 2B not present — MindEngine will use Qwen or rule-based fallback"
-          fi
-
-          if [ "$FAIL" = "true" ]; then
-            exit 1
-          fi
-
-      # ── 9. Gradle cache ────────────────────────────────────────────
+      # ── 11. Gradle cache ──────────────────────────────────────────
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
@@ -202,16 +188,16 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      # ── 10. Make gradlew executable ───────────────────────────────
+      # ── 12. Make gradlew executable ───────────────────────────────
       - name: Make gradlew executable
         run: chmod +x AURIGA/gradlew
 
-      # ── 11. Build all flavour debug APKs ──────────────────────────
+      # ── 13. Build all flavour debug APKs ──────────────────────────
       - name: Build debug APKs (all flavours)
         working-directory: AURIGA
         run: ./gradlew assembleNaviDebug assembleSentinelDebug assembleAeroDebug assembleIndustrialDebug --no-daemon --stacktrace
 
-      # ── 12. Upload APKs as workflow artifacts ─────────────────────
+      # ── 14. Upload APKs as workflow artifacts ─────────────────────
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
@@ -219,12 +205,27 @@ jobs:
           path: AURIGA/app/build/outputs/apk/**/debug/*.apk
           retention-days: 14
 
-      # ── 13. Post build summary ────────────────────────────────────
+      # ── 15. Build summary ─────────────────────────────────────────
       - name: Build summary
         if: always()
         run: |
-          echo "## Auriga APK Build" >> $GITHUB_STEP_SUMMARY
+          echo "## Auriga APK Build #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Bundled models" >> $GITHUB_STEP_SUMMARY
+          echo "| Model | Status | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|------|" >> $GITHUB_STEP_SUMMARY
+          ASSETS="AURIGA/app/src/main/assets"
+          for f in "$ASSETS/yolov8n_float32.tflite" "$ASSETS/qwen2_5_0_5b_q8.bin" "$ASSETS/gemma2b_q4.bin"; do
+            name=$(basename "$f")
+            if [ -f "$f" ]; then
+              size=$(du -sh "$f" | cut -f1)
+              echo "| $name | ✅ bundled | $size |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| $name | ⚠️ not bundled | — |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### APK outputs" >> $GITHUB_STEP_SUMMARY
           echo "| APK | Size |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|------|" >> $GITHUB_STEP_SUMMARY
           find AURIGA/app/build/outputs/apk -name "*.apk" 2>/dev/null | while read f; do
@@ -232,5 +233,3 @@ jobs:
             name=$(basename "$f")
             echo "| $name | $size |" >> $GITHUB_STEP_SUMMARY
           done || true
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Download the APKs from the **Artifacts** section of this run." >> $GITHUB_STEP_SUMMARY

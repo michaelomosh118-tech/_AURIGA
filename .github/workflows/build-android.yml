@@ -52,46 +52,107 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # Export YOLOv8n TFLite model (required by LocatorActivity).
-      # The binary is gitignored so CI must produce it before Gradle
-      # packages the APK assets.
-      - name: Set up Python for YOLOv8n export
+      # ── Model downloads: all three models must be in assets before Gradle runs ──
+      # Models are gitignored (large binary blobs) so CI must download/export them.
+      # YOLOv8n  — required, exported from Ultralytics
+      # Qwen     — required, bundled in APK so assistant works immediately on install
+      # Gemma    — optional, bundled if HF_TOKEN available; else downloaded at runtime
+      - name: Set up Python for model preparation
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
-      - name: Restore cached YOLOv8n TFLite model
+      - name: Cache YOLOv8n model
         id: yolo-cache
         uses: actions/cache@v4
         with:
           path: AURIGA/app/src/main/assets/yolov8n_float32.tflite
           key: yolov8n-tflite-fp32-v1
 
-      - name: Export YOLOv8n model (cache miss only)
+      - name: Cache Qwen model
+        id: qwen-cache
+        uses: actions/cache@v4
+        with:
+          path: AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin
+          key: qwen-2_5-0_5b-q8-v1
+
+      - name: Cache Gemma model
+        id: gemma-cache
+        uses: actions/cache@v4
+        with:
+          path: AURIGA/app/src/main/assets/gemma2b_q4.bin
+          key: gemma2-2b-it-q8-v1
+
+      - name: Install Python dependencies
+        run: pip install --quiet ultralytics huggingface_hub
+
+      - name: Export YOLOv8n TFLite model
         if: steps.yolo-cache.outputs.cache-hit != 'true'
         run: |
-          pip install --quiet --no-cache-dir "numpy<2" "ultralytics"
-          yolo export model=yolov8n.pt format=tflite imgsz=640
-          DEST="${{ github.workspace }}/AURIGA/app/src/main/assets/yolov8n_float32.tflite"
-          mkdir -p "$(dirname "$DEST")"
-          SRC=$(find yolov8n_saved_model -name "yolov8n_float32.tflite" | head -n 1)
-          if [ -z "$SRC" ]; then
-            echo "::error::YOLOv8n export failed — tflite not found"
-            ls -laR yolov8n_saved_model || true
-            exit 1
-          fi
-          cp "$SRC" "$DEST"
-          echo "YOLOv8n model copied to: $DEST"
-        working-directory: ${{ runner.temp }}
-
-      - name: Verify YOLOv8n model
-        run: |
           DEST="AURIGA/app/src/main/assets/yolov8n_float32.tflite"
-          if [ ! -f "$DEST" ]; then
-            echo "::error::YOLO model missing at $DEST"
-            exit 1
-          fi
-          echo "YOLOv8n model ready: $(ls -lh $DEST | awk '{print $5}')"
+          yolo export model=yolov8n.pt format=tflite imgsz=640 --quiet
+          SRC=$(find yolov8n_saved_model -name "yolov8n_float32.tflite" | head -1)
+          [ -n "$SRC" ] || { echo "::error::YOLOv8n export failed"; exit 1; }
+          cp "$SRC" "$DEST"
+          echo "YOLOv8n: $(du -sh $DEST | cut -f1)"
+
+      - name: Download Qwen 2.5 0.5B (bundled — no auth needed)
+        if: steps.qwen-cache.outputs.cache-hit != 'true'
+        run: |
+          python3 - <<'EOF'
+          import os, sys, shutil
+          try:
+            from huggingface_hub import hf_hub_download
+            path = hf_hub_download(
+              repo_id="litert-community/Qwen2.5-0.5B-Instruct",
+              filename="Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite",
+              local_dir="/tmp/qwen"
+            )
+            dest = "AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin"
+            shutil.copy(path, dest)
+            print(f"Qwen ready: {os.path.getsize(dest):,} bytes")
+          except Exception as e:
+            print(f"ERROR: {e}", file=sys.stderr); sys.exit(1)
+          EOF
+
+      - name: Download Gemma 2 2B IT (optional — requires HF_TOKEN)
+        if: steps.gemma-cache.outputs.cache-hit != 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          [ -n "$HF_TOKEN" ] || { echo "::warning::HF_TOKEN not set — Gemma skipped (app downloads at runtime)"; exit 0; }
+          python3 - <<'EOF'
+          import os, sys, shutil
+          try:
+            from huggingface_hub import login, hf_hub_download
+            login(token=os.environ["HF_TOKEN"], add_to_git_credential=False)
+            path = hf_hub_download(
+              repo_id="litert-community/Gemma2-2B-IT",
+              filename="Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite",
+              local_dir="/tmp/gemma"
+            )
+            dest = "AURIGA/app/src/main/assets/gemma2b_q4.bin"
+            shutil.copy(path, dest)
+            print(f"Gemma ready: {os.path.getsize(dest):,} bytes")
+          except Exception as e:
+            print(f"Gemma download failed (non-fatal): {e}", file=sys.stderr); sys.exit(0)
+          EOF
+
+      - name: Verify required models
+        run: |
+          ASSETS="AURIGA/app/src/main/assets"
+          FAIL=false
+          for req in yolov8n_float32.tflite qwen2_5_0_5b_q8.bin; do
+            f="$ASSETS/$req"
+            if [ -f "$f" ]; then echo "OK  $req ($(du -sh $f | cut -f1))"
+            else echo "::error::MISSING $req"; FAIL=true; fi
+          done
+          for opt in gemma2b_q4.bin; do
+            f="$ASSETS/$opt"
+            if [ -f "$f" ]; then echo "OK  $opt ($(du -sh $f | cut -f1))"
+            else echo "::warning::OPTIONAL $opt not bundled — runtime download via ModelDownloadManager"; fi
+          done
+          [ "$FAIL" = "false" ] || exit 1
 
       # Build all four product-flavor debug APKs.
       # In a project with product flavors, 'assembleDebug' assembles all
