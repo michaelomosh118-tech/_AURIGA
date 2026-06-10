@@ -50,12 +50,12 @@ jobs:
           path: AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin
           key: qwen-2_5-0_5b-q8-v1
 
-      - name: Cache Gemma model
-        id: gemma-cache
+      - name: Cache Qwen 2.5 1.5B model
+        id: qwen-large-cache
         uses: actions/cache@v4
         with:
-          path: AURIGA/app/src/main/assets/gemma2b_q4.bin
-          key: gemma2-2b-it-q8-v1
+          path: AURIGA/app/src/main/assets/qwen2_5_1_5b_q4.bin
+          key: qwen-2_5-1_5b-q4-v1
 
       # ── 6. Install Python deps ─────────────────────────────────────
       - name: Install Python dependencies
@@ -113,54 +113,36 @@ jobs:
           [ -f "$f" ] || { echo "::error::Qwen model missing — cannot build AI-capable APK"; exit 1; }
           echo "Qwen OK: $(du -sh $f | cut -f1)"
 
-      # ── 9. Download Gemma 2 2B IT (optional — bundled when token available)
-      # On devices with >= 3.5 GB RAM, Gemma gives richer answers than Qwen.
-      # Requires HF_TOKEN with access to litert-community/Gemma2-2B-IT.
-      # If token is absent or download fails the APK still works fully via Qwen;
-      # the app will also attempt to download Gemma at first launch via
-      # ModelDownloadManager.
-      - name: Download Gemma 2 2B IT
-        if: steps.gemma-cache.outputs.cache-hit != 'true'
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      # ── 9. Download Qwen 2.5 1.5B (required — bundled in APK) ───────
+      # Apache-2.0, no auth token needed. ~800 MB. Used on devices with
+      # ≥3 GB RAM; Qwen 0.5B is the automatic fallback below that.
+      - name: Download Qwen 2.5 1.5B
+        if: steps.qwen-large-cache.outputs.cache-hit != 'true'
         run: |
-          DEST="AURIGA/app/src/main/assets/gemma2b_q4.bin"
-          HF_TOKEN="${HF_TOKEN:-}"
-          if [ -z "$HF_TOKEN" ]; then
-            echo "::warning::HF_TOKEN not set — Gemma 2B will be downloaded at runtime instead of being pre-bundled. Qwen covers all queries on install."
-            exit 0
-          fi
-          echo "Downloading Gemma 2 2B IT (2.52 GB)..."
+          DEST="AURIGA/app/src/main/assets/qwen2_5_1_5b_q4.bin"
+          echo "Downloading Qwen 2.5 1.5B (~800 MB)..."
           python3 - <<'EOF'
           import os, sys
           try:
-            from huggingface_hub import login, hf_hub_download
-            token = os.environ.get("HF_TOKEN", "")
-            if not token:
-              print("HF_TOKEN not in env", file=sys.stderr)
-              sys.exit(0)
-            login(token=token, add_to_git_credential=False)
+            from huggingface_hub import hf_hub_download
             path = hf_hub_download(
-              repo_id="litert-community/Gemma2-2B-IT",
-              filename="Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite",
-              local_dir="/tmp/gemma"
+              repo_id="litert-community/Qwen2.5-1.5B-Instruct",
+              filename="Qwen2.5-1.5B-Instruct_multi-prefill-seq_q4_ekv1280.tflite",
+              local_dir="/tmp/qwen_large"
             )
-            dest = "AURIGA/app/src/main/assets/gemma2b_q4.bin"
+            dest = "AURIGA/app/src/main/assets/qwen2_5_1_5b_q4.bin"
             import shutil; shutil.copy(path, dest)
-            print(f"Gemma saved: {os.path.getsize(dest):,} bytes")
+            print(f"Qwen 1.5B saved: {os.path.getsize(dest):,} bytes")
           except Exception as e:
-            print(f"Gemma download failed (non-fatal): {e}", file=sys.stderr)
-            sys.exit(0)
+            print(f"ERROR: {e}", file=sys.stderr)
+            sys.exit(1)
           EOF
 
-      - name: Report Gemma status
+      - name: Verify Qwen 1.5B
         run: |
-          f="AURIGA/app/src/main/assets/gemma2b_q4.bin"
-          if [ -f "$f" ]; then
-            echo "Gemma OK: $(du -sh $f | cut -f1) — will be pre-bundled in APK"
-          else
-            echo "::warning::Gemma not bundled — app will download it at first launch via ModelDownloadManager"
-          fi
+          f="AURIGA/app/src/main/assets/qwen2_5_1_5b_q4.bin"
+          [ -f "$f" ] || { echo "::error::Qwen 1.5B missing — cannot build AI-capable APK"; exit 1; }
+          echo "Qwen 1.5B OK: $(du -sh $f | cut -f1)"
 
       # ── 10. Model inventory summary ───────────────────────────────
       - name: Model inventory
@@ -168,8 +150,8 @@ jobs:
           echo "── Final model inventory ──────────────────────────────"
           ASSETS="AURIGA/app/src/main/assets"
           for f in "$ASSETS/yolov8n_float32.tflite" \
-                   "$ASSETS/qwen2_5_0_5b_q8.bin"     \
-                   "$ASSETS/gemma2b_q4.bin"; do
+                   "$ASSETS/qwen2_5_0_5b_q8.bin"    \
+                   "$ASSETS/qwen2_5_1_5b_q4.bin"; do
             name=$(basename "$f")
             if [ -f "$f" ]; then
               echo "  BUNDLED   $name  ($(du -sh $f | cut -f1))"
@@ -215,7 +197,7 @@ jobs:
           echo "| Model | Status | Size |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|------|" >> $GITHUB_STEP_SUMMARY
           ASSETS="AURIGA/app/src/main/assets"
-          for f in "$ASSETS/yolov8n_float32.tflite" "$ASSETS/qwen2_5_0_5b_q8.bin" "$ASSETS/gemma2b_q4.bin"; do
+          for f in "$ASSETS/yolov8n_float32.tflite" "$ASSETS/qwen2_5_0_5b_q8.bin" "$ASSETS/qwen2_5_1_5b_q4.bin"; do
             name=$(basename "$f")
             if [ -f "$f" ]; then
               size=$(du -sh "$f" | cut -f1)

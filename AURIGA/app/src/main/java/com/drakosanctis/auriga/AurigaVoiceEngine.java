@@ -293,20 +293,19 @@ public class AurigaVoiceEngine implements RecognitionListener {
                 MindEngine.createAsync(activity, knowledgeCache, ttsRef,
                         engine -> mindEngine = engine);
 
-                /* Attach TTS to the Gemma downloader so it can speak
-                   progress ("Gemma download 25% complete", etc.).
+                /* Attach TTS to the Qwen downloader so it can speak progress.
                    ModelDownloadManager is started in AurigaApplication.onCreate
                    before TTS is ready, so we wire TTS here once it's ready. */
                 if (AurigaApplication.modelDownloadManager != null) {
                     AurigaApplication.modelDownloadManager.setTts(ttsRef);
-                } else if (!ModelDownloadManager.isGemmaReady(activity)) {
+                } else if (!ModelDownloadManager.isQwenLargeReady(activity)) {
                     /* Rare path: Application.onCreate ran without network.
                        Start the download now that we're past init and online. */
                     if (ModelDownloadManager.isOnline(activity)) {
                         ModelDownloadManager mgr = new ModelDownloadManager(activity);
                         mgr.setTts(ttsRef);
                         AurigaApplication.modelDownloadManager = mgr;
-                        mgr.ensureGemmaDownloaded();
+                        mgr.ensureQwenLargeDownloaded();
                     }
                 }
             }

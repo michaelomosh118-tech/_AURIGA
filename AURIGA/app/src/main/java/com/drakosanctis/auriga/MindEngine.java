@@ -21,20 +21,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * MindEngine — on-device LLM backbone for the Auriga personal assistant.
  *
- * Wraps the MediaPipe LLM Inference API around a quantised Gemma 2B or
- * Qwen 2.5 0.5B model. Supports streaming so TTS begins speaking after the
- * FIRST complete sentence — the user hears word 1 of the answer within ~2 s
- * even if full generation takes 8–10 s.
+ * Wraps the MediaPipe LLM Inference API around a quantised Qwen 2.5 1.5B
+ * (primary) or Qwen 2.5 0.5B (low-RAM fallback) model. Supports streaming
+ * so TTS begins speaking after the FIRST complete sentence — the user hears
+ * word 1 of the answer within ~2 s even if full generation takes 8–10 s.
  *
  * ─────────────────────────────────────────────────────────────────────────
- * Required model files (drop into app/src/main/assets/ — gitignored for size):
+ * Required model files (bundled in APK assets by CI — gitignored for size):
  *
- *   gemma2b_q4.bin           Gemma 2 2B IT q8 (~2.52 GB)  primary; richer answers
- *   qwen2_5_0_5b_q8.bin      Qwen 2.5 0.5B q8 (~519 MB)  fallback for low-RAM devices
+ *   qwen2_5_1_5b_q4.bin     Qwen 2.5 1.5B q4 (~800 MB)  primary; richer answers
+ *   qwen2_5_0_5b_q8.bin     Qwen 2.5 0.5B q8 (~519 MB)  fallback for low-RAM devices
  *
- * Engine tries gemma2b first (skipped automatically on devices with <3500 MB
- * total RAM to avoid OOM), then qwen. If neither is present, tryCreate()
- * returns null and AurigaVoiceEngine stays on the rule-based fallback.
+ * Engine tries qwen_large first (skipped on devices with <3000 MB total RAM),
+ * then qwen. If neither is present, tryCreate() returns null and
+ * AurigaVoiceEngine stays on the rule-based fallback.
  * ─────────────────────────────────────────────────────────────────────────
  *
  * MediaPipe AAR — already active in build.gradle:
@@ -45,25 +45,24 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *   Without a model file the engine falls back to KnowledgeCache context
  *   passthrough — still factual for weather / news queries.
  *
- * Prompt formats:
- *   Gemma : <start_of_turn>user\n{sys}{ctx}{q}<end_of_turn>\n<start_of_turn>model\n
- *   Qwen  : <|im_start|>system\n{sys}<|im_end|>\n<|im_start|>user\n{ctx}{q}<|im_end|>\n<|im_start|>assistant\n
+ * Prompt format (both models use ChatML):
+ *   <|im_start|>system\n{sys}<|im_end|>\n<|im_start|>user\n{ctx}{q}<|im_end|>\n<|im_start|>assistant\n
  */
 public class MindEngine {
 
     private static final String TAG = "MindEngine";
 
-    static final String MODEL_GEMMA = "gemma2b_q4.bin";
-    static final String MODEL_QWEN  = "qwen2_5_0_5b_q8.bin";
+    static final String MODEL_QWEN_LARGE = "qwen2_5_1_5b_q4.bin";
+    static final String MODEL_QWEN       = "qwen2_5_0_5b_q8.bin";
 
     private static final int MAX_TOKENS = 150; // ~100 words — comfortable TTS length
 
     /**
-     * Minimum total RAM (MB) required to attempt loading the large Gemma 2B model.
-     * Devices below this threshold skip straight to Qwen to avoid an OOM crash.
-     * Gemma q8 expands to ~3.2 GB in RAM; allow 300 MB headroom for OS + app.
+     * Minimum total RAM (MB) required to attempt loading the Qwen 1.5B model.
+     * Devices below this threshold skip straight to Qwen 0.5B to avoid OOM.
+     * Qwen 1.5B q4 expands to ~2.5 GB in RAM; allow 500 MB headroom.
      */
-    private static final long GEMMA_MIN_RAM_MB = 3_500;
+    private static final long QWEN_LARGE_MIN_RAM_MB = 3_000;
 
     private static final String SYSTEM_PROMPT =
         "You are Auriga, a helpful voice assistant for blind and low-vision users. "
@@ -82,15 +81,15 @@ public class MindEngine {
     private final AtomicBoolean   busy  = new AtomicBoolean(false);
 
     private Object   llm       = null; // LlmInference (reflective)
-    private String   modelType = "";   // "gemma" or "qwen"
+    private String   modelType = "";   // "qwen_large" or "qwen"
     private boolean  ready     = false;
     private Future<?>  current = null;
 
     // ── Factory ───────────────────────────────────────────────────────
 
     /**
-     * Creates a MindEngine asynchronously. Model loading takes 5–30 s for
-     * Gemma 2B on first run (cache population). {@code onReady} fires on a
+     * Creates a MindEngine asynchronously. Model loading takes 5–20 s for
+     * Qwen 1.5B on first run (cache population). {@code onReady} fires on a
      * background thread; engine is null if no model is available.
      */
     public static void createAsync(Context ctx, KnowledgeCache knowledge,
@@ -118,26 +117,24 @@ public class MindEngine {
     // ── Init ──────────────────────────────────────────────────────────
 
     private void init() {
-        // ── Gemma 2B (q8, ~3.2 GB in RAM) ────────────────────────────
+        // ── Qwen 2.5 1.5B (q4, ~800 MB) ─────────────────────────────
         // Two sources are checked in order:
-        //   1. APK assets  — present only if CI bundled it (rare for 2.5 GB model)
-        //   2. FilesDir    — ModelDownloadManager places it here on first launch
+        //   1. APK assets — bundled by CI (primary path)
+        //   2. FilesDir   — ModelDownloadManager places it here as fallback
         //
-        // Skip Gemma on low-RAM devices (OOM guard: need ≥3500 MB).
-        if (totalRamMb() >= GEMMA_MIN_RAM_MB) {
-            // Check APK assets first
-            if (assetExists(MODEL_GEMMA)) {
-                if (tryLoadMediaPipe(MODEL_GEMMA, "gemma", true)) return;
+        // Skip on low-RAM devices (OOM guard: need ≥3000 MB).
+        if (totalRamMb() >= QWEN_LARGE_MIN_RAM_MB) {
+            if (assetExists(MODEL_QWEN_LARGE)) {
+                if (tryLoadMediaPipe(MODEL_QWEN_LARGE, "qwen_large", true)) return;
             }
-            // Check FilesDir (runtime download path)
-            File gemmaFile = ModelDownloadManager.gemmaFilesPath(ctx);
-            if (gemmaFile.exists() && gemmaFile.length() > 0) {
-                if (tryLoadFromFile(gemmaFile, "gemma")) return;
+            File largeFile = ModelDownloadManager.qwenLargeFilesPath(ctx);
+            if (largeFile.exists() && largeFile.length() > 0) {
+                if (tryLoadFromFile(largeFile, "qwen_large")) return;
             }
         } else {
-            Log.i(TAG, "MindEngine: skipping Gemma — device has "
-                    + totalRamMb() + " MB RAM (need " + GEMMA_MIN_RAM_MB + " MB). "
-                    + "Falling through to Qwen.");
+            Log.i(TAG, "MindEngine: skipping Qwen 1.5B — device has "
+                    + totalRamMb() + " MB RAM (need " + QWEN_LARGE_MIN_RAM_MB + " MB). "
+                    + "Falling through to Qwen 0.5B.");
         }
 
         // ── Qwen 2.5 0.5B (q8, ~519 MB) ─────────────────────────────
@@ -145,11 +142,10 @@ public class MindEngine {
         if (assetExists(MODEL_QWEN) && tryLoadMediaPipe(MODEL_QWEN, "qwen", true)) return;
 
         Log.i(TAG, "MindEngine: no usable model available. "
-                + "Qwen should be bundled in APK assets. "
-                + "Gemma downloads to FilesDir on first launch via ModelDownloadManager.");
+                + "Both Qwen models should be bundled in APK assets by CI.");
     }
 
-    /** Returns total device RAM in MB. Used for the Gemma OOM guard. */
+    /** Returns total device RAM in MB. Used for the Qwen 1.5B OOM guard. */
     private long totalRamMb() {
         try {
             ActivityManager am = (ActivityManager) ctx.getSystemService(Context.ACTIVITY_SERVICE);
@@ -158,7 +154,7 @@ public class MindEngine {
             am.getMemoryInfo(mi);
             return mi.totalMem / (1024 * 1024);
         } catch (Throwable t) {
-            return 0; // be conservative — don't attempt Gemma if we can't read RAM
+            return 0; // be conservative — don't attempt large model if we can't read RAM
         }
     }
 
@@ -364,12 +360,7 @@ public class MindEngine {
 
     private String buildPrompt(String query, String context) {
         String ctx = context.isEmpty() ? "" : context + " ";
-        if ("gemma".equals(modelType)) {
-            return "<start_of_turn>user\n"
-                 + SYSTEM_PROMPT + ctx + query
-                 + "<end_of_turn>\n<start_of_turn>model\n";
-        }
-        // Qwen / generic ChatML
+        // Both Qwen models use ChatML format
         return "<|im_start|>system\n" + SYSTEM_PROMPT + "<|im_end|>\n"
              + "<|im_start|>user\n" + ctx + query + "<|im_end|>\n"
              + "<|im_start|>assistant\n";

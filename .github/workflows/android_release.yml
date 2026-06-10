@@ -17,13 +17,11 @@ name: AURIGA Release Publisher
 #     you don't accidentally ship a debug-keyed artifact to users forever.
 #
 # Model bundling:
-#   - YOLOv8n (~12 MB)  : always bundled — exported from Ultralytics on runner.
+#   - YOLOv8n (~12 MB)   : always bundled — exported from Ultralytics on runner.
 #   - Qwen 0.5B (~519 MB): always bundled — Apache-2.0, no auth needed.
-#   - Gemma 2B (~2.52 GB): bundled only when HF_TOKEN secret is set AND the
-#     licence is accepted at huggingface.co/litert-community/Gemma2-2B-IT.
-#     Without it the APK ships with Qwen only; ModelDownloadManager offers
-#     a runtime Gemma download at first launch. A raw APK with Gemma exceeds
-#     2 GB — for Play Store delivery use AAB + Play Asset Delivery.
+#   - Qwen 1.5B (~800 MB): always bundled — Apache-2.0, no auth needed.
+#     Used on devices with ≥3 GB RAM; 0.5B is the automatic fallback.
+#     No HF_TOKEN required — both models are open-access on HuggingFace.
 
 on:
   push:
@@ -67,7 +65,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       # Python is always needed — YOLO export uses ultralytics,
-      # Qwen/Gemma downloads use huggingface_hub.
+      # Qwen downloads use huggingface_hub.
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -199,59 +197,44 @@ jobs:
           [ -f "$f" ] || { echo "::error::Qwen model missing — AI assistant will be unavailable in this release"; exit 1; }
           echo "Qwen OK: $(du -sh $f | cut -f1)"
 
-      # ── Phase 3: Gemma 2 2B IT (~2.52 GB, optional) ───────────────
-      # Requires HF_TOKEN secret + licence accepted at:
-      #   huggingface.co/litert-community/Gemma2-2B-IT
-      # If absent this step is skipped. The APK ships with Qwen only
-      # and ModelDownloadManager offers a Gemma runtime download.
-      # IMPORTANT: bundling Gemma produces an APK >2.5 GB which exceeds
-      # the GitHub Release 2 GB artifact limit and cannot be submitted
-      # to Play Store as a raw APK — use AAB + Play Asset Delivery.
-      - name: Restore cached Gemma 2 2B IT model
-        id: gemma-cache
+      # ── Phase 3: Qwen 2.5 1.5B (~800 MB, Apache-2.0) ─────────────
+      # Always bundled. No auth token required. Provides richer answers
+      # on devices with ≥3 GB RAM; Qwen 0.5B is the automatic fallback.
+      - name: Restore cached Qwen 2.5 1.5B model
+        id: qwen-large-cache
         uses: actions/cache@v4
         with:
-          path: ${{ steps.locate.outputs.project_root }}/app/src/main/assets/gemma2b_q4.bin
-          key: gemma2-2b-it-q8-v1
+          path: ${{ steps.locate.outputs.project_root }}/app/src/main/assets/qwen2_5_1_5b_q4.bin
+          key: qwen-2_5-1_5b-q4-v1
 
-      - name: Download Gemma 2 2B IT (cache miss + token available)
-        if: steps.gemma-cache.outputs.cache-hit != 'true'
+      - name: Download Qwen 2.5 1.5B (cache miss only)
+        if: steps.qwen-large-cache.outputs.cache-hit != 'true'
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          DEST: ${{ steps.locate.outputs.project_root }}/app/src/main/assets/gemma2b_q4.bin
+          DEST: ${{ steps.locate.outputs.project_root }}/app/src/main/assets/qwen2_5_1_5b_q4.bin
         run: |
-          if [ -z "${HF_TOKEN:-}" ]; then
-            echo "::warning::HF_TOKEN not set — Gemma 2B will not be pre-bundled in this release. Add HF_TOKEN secret + accept the Gemma licence at huggingface.co/litert-community/Gemma2-2B-IT to enable."
-            exit 0
-          fi
-          echo "Downloading Gemma 2 2B IT (~2.52 GB)..."
+          echo "Downloading Qwen 2.5 1.5B (~800 MB)..."
           python3 - <<'EOF'
           import os, sys, shutil
           try:
-            from huggingface_hub import login, hf_hub_download
-            token = os.environ["HF_TOKEN"]
-            login(token=token, add_to_git_credential=False)
+            from huggingface_hub import hf_hub_download
             path = hf_hub_download(
-              repo_id="litert-community/Gemma2-2B-IT",
-              filename="Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite",
-              local_dir="/tmp/gemma"
+              repo_id="litert-community/Qwen2.5-1.5B-Instruct",
+              filename="Qwen2.5-1.5B-Instruct_multi-prefill-seq_q4_ekv1280.tflite",
+              local_dir="/tmp/qwen_large"
             )
             dest = os.environ["DEST"]
             shutil.copy(path, dest)
-            print(f"Gemma saved: {os.path.getsize(dest):,} bytes")
+            print(f"Qwen 1.5B saved: {os.path.getsize(dest):,} bytes")
           except Exception as e:
-            print(f"Gemma download failed (non-fatal): {e}", file=sys.stderr)
-            sys.exit(0)
+            print(f"ERROR: {e}", file=sys.stderr)
+            sys.exit(1)
           EOF
 
-      - name: Report Gemma bundle status
+      - name: Verify Qwen 1.5B model is bundled
         run: |
-          f="${{ steps.locate.outputs.project_root }}/app/src/main/assets/gemma2b_q4.bin"
-          if [ -f "$f" ]; then
-            echo "Gemma OK: $(du -sh $f | cut -f1) — pre-bundled in release APK/AAB"
-          else
-            echo "Gemma not bundled — ModelDownloadManager will offer runtime download on first launch"
-          fi
+          f="${{ steps.locate.outputs.project_root }}/app/src/main/assets/qwen2_5_1_5b_q4.bin"
+          [ -f "$f" ] || { echo "::error::Qwen 1.5B model missing — AI assistant will use 0.5B only"; exit 1; }
+          echo "Qwen 1.5B OK: $(du -sh $f | cut -f1)"
 
       # ── Phase 4: Model inventory ───────────────────────────────────
       - name: Model inventory
@@ -259,8 +242,8 @@ jobs:
           echo "── Model inventory ─────────────────────────────────────"
           ASSETS="${{ steps.locate.outputs.project_root }}/app/src/main/assets"
           for f in "$ASSETS/yolov8n_float32.tflite" \
-                   "$ASSETS/qwen2_5_0_5b_q8.bin"     \
-                   "$ASSETS/gemma2b_q4.bin"; do
+                   "$ASSETS/qwen2_5_0_5b_q8.bin"    \
+                   "$ASSETS/qwen2_5_1_5b_q4.bin"; do
             name=$(basename "$f")
             if [ -f "$f" ]; then
               echo "  BUNDLED   $name  ($(du -sh $f | cut -f1))"
@@ -323,7 +306,7 @@ jobs:
           echo "| Model | Status | Size |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|------|" >> $GITHUB_STEP_SUMMARY
           ASSETS="${{ steps.locate.outputs.project_root }}/app/src/main/assets"
-          for f in "$ASSETS/yolov8n_float32.tflite" "$ASSETS/qwen2_5_0_5b_q8.bin" "$ASSETS/gemma2b_q4.bin"; do
+          for f in "$ASSETS/yolov8n_float32.tflite" "$ASSETS/qwen2_5_0_5b_q8.bin" "$ASSETS/qwen2_5_1_5b_q4.bin"; do
             name=$(basename "$f")
             if [ -f "$f" ]; then
               size=$(du -sh "$f" | cut -f1)

@@ -20,25 +20,24 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * ModelDownloadManager — silently downloads the Gemma 2B LLM to the
- * app's private files directory on first launch.
+ * ModelDownloadManager — silently downloads Qwen 2.5 1.5B to the app's
+ * private files directory as a fallback when the CI bundle is unavailable.
  *
- * Why not bundle Gemma in the APK:
- *   Gemma 2 2B IT q8 is 2.52 GB. Combined with Qwen (519 MB already
- *   bundled), MediaPipe AAR (~120 MB), and app code (~200 MB), the
- *   APK would exceed 3.3 GB — above the practical sideload limit.
- *   Qwen is bundled (519 MB, works immediately). Gemma downloads once
- *   in the background and loads automatically when ready.
+ * Normal path:
+ *   Both Qwen models are bundled in APK assets by the CI build pipeline
+ *   (no auth token required — Apache-2.0 licence). This manager is only
+ *   triggered when the large model is absent from assets, providing a
+ *   graceful recovery without requiring an APK update.
  *
  * Storage:
- *   {@code getFilesDir()/models/gemma2b_q4.bin}
- *   ~2.52 GB, stored in the app's private internal storage (no
+ *   {@code getFilesDir()/models/qwen2_5_1_5b_q4.bin}
+ *   ~800 MB, stored in the app's private internal storage (no
  *   READ/WRITE_EXTERNAL_STORAGE permission needed on any Android version).
  *
  * MindEngine awareness:
- *   MindEngine.tryCreate() checks both the APK asset path AND the
- *   FilesDir model path, so once the download completes the engine
- *   loads Gemma automatically on the next voice query.
+ *   MindEngine.tryCreate() checks both the APK asset path AND this
+ *   FilesDir path, so once the download completes the engine loads
+ *   Qwen 1.5B automatically on the next voice query.
  *
  * Progress reporting:
  *   Download progress is reported by voice (TTS) in 25% increments
@@ -46,31 +45,33 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * Retry policy:
  *   Up to 3 attempts, 10-second back-off between retries.
- *   A partially-downloaded file is kept and resumed by byte-range
+ *   A partially-downloaded file is kept and resumed via byte-range
  *   if the server supports Range requests.
  */
 public class ModelDownloadManager {
 
     private static final String TAG = "ModelDownloadMgr";
 
-    public static final String MODEL_DIR      = "models";
-    public static final String GEMMA_FILENAME = "gemma2b_q4.bin";
+    public static final String MODEL_DIR           = "models";
+    public static final String QWEN_LARGE_FILENAME = "qwen2_5_1_5b_q4.bin";
 
-    private static final String GEMMA_URL =
-        "https://huggingface.co/litert-community/Gemma2-2B-IT/resolve/main/"
-        + "Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite";
+    private static final String QWEN_LARGE_URL =
+        "https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/resolve/main/"
+        + "Qwen2.5-1.5B-Instruct_multi-prefill-seq_q4_ekv1280.tflite";
 
-    private static final long   GEMMA_EXPECTED_BYTES = 2_709_032_880L;
+    // Approximate expected size — used for progress calculation and
+    // completion verification. Qwen 2.5 1.5B q4 ≈ 800 MB.
+    private static final long   QWEN_LARGE_MIN_BYTES = 600_000_000L; // 600 MB floor
     private static final int    MAX_RETRIES          = 3;
     private static final int    RETRY_DELAY_MS       = 10_000;
     private static final int    CONNECT_TIMEOUT_MS   = 30_000;
     private static final int    READ_TIMEOUT_MS      = 60_000;
     private static final int    BUFFER_SIZE          = 128 * 1024; // 128 KB
 
-    private static final String PREFS_NAME          = "auriga_model_prefs";
-    private static final String PREF_GEMMA_DONE     = "gemma_download_complete";
-    private static final String PREF_GEMMA_BYTES    = "gemma_downloaded_bytes";
-    private static final String PREF_GEMMA_ATTEMPTS = "gemma_download_attempts";
+    private static final String PREFS_NAME               = "auriga_model_prefs";
+    private static final String PREF_QWEN_LARGE_DONE     = "qwen_large_download_complete";
+    private static final String PREF_QWEN_LARGE_BYTES    = "qwen_large_downloaded_bytes";
+    private static final String PREF_QWEN_LARGE_ATTEMPTS = "qwen_large_download_attempts";
 
     private final Context         ctx;
     private final Handler         main = new Handler(Looper.getMainLooper());
@@ -91,35 +92,34 @@ public class ModelDownloadManager {
     // ── Public API ────────────────────────────────────────────────────
 
     /**
-     * Returns the File path where Gemma will be / is stored.
-     * Use this in MindEngine to check for a completed download.
+     * Returns the File path where Qwen 1.5B will be / is stored.
+     * Used by MindEngine to check for a completed download.
      */
-    public static File gemmaFilesPath(Context ctx) {
+    public static File qwenLargeFilesPath(Context ctx) {
         File dir = new File(ctx.getFilesDir(), MODEL_DIR);
-        return new File(dir, GEMMA_FILENAME);
+        return new File(dir, QWEN_LARGE_FILENAME);
     }
 
-    /** True if Gemma has been fully downloaded and is ready to use. */
-    public static boolean isGemmaReady(Context ctx) {
-        File f = gemmaFilesPath(ctx);
-        return f.exists() && f.length() >= GEMMA_EXPECTED_BYTES * 0.99; // allow 1% margin
+    /** True if Qwen 1.5B has been fully downloaded and is ready to use. */
+    public static boolean isQwenLargeReady(Context ctx) {
+        File f = qwenLargeFilesPath(ctx);
+        return f.exists() && f.length() >= QWEN_LARGE_MIN_BYTES;
     }
 
     /**
      * Check if a download is needed and start it if so.
      * Safe to call multiple times — no-ops if already running or complete.
-     * Does NOT require network permission checks; those are done internally.
      */
-    public void ensureGemmaDownloaded() {
-        if (isGemmaReady(ctx)) {
-            Log.d(TAG, "Gemma already present — no download needed");
+    public void ensureQwenLargeDownloaded() {
+        if (isQwenLargeReady(ctx)) {
+            Log.d(TAG, "Qwen 1.5B already present — no download needed");
             return;
         }
         if (running.getAndSet(true)) {
-            Log.d(TAG, "Gemma download already in progress");
+            Log.d(TAG, "Qwen 1.5B download already in progress");
             return;
         }
-        exec.submit(this::downloadGemmaWithRetry);
+        exec.submit(this::downloadWithRetry);
     }
 
     /** Cancel any in-progress download. The partial file is kept for resuming. */
@@ -129,24 +129,24 @@ public class ModelDownloadManager {
 
     // ── Download logic ────────────────────────────────────────────────
 
-    private void downloadGemmaWithRetry() {
-        int attempts = getPrefs().getInt(PREF_GEMMA_ATTEMPTS, 0);
+    private void downloadWithRetry() {
+        int attempts = getPrefs().getInt(PREF_QWEN_LARGE_ATTEMPTS, 0);
 
         for (int attempt = 1; attempt <= MAX_RETRIES && running.get(); attempt++) {
-            setPrefs(PREF_GEMMA_ATTEMPTS, attempts + attempt);
-            Log.i(TAG, "Gemma download attempt " + attempt + "/" + MAX_RETRIES);
+            setPrefs(PREF_QWEN_LARGE_ATTEMPTS, attempts + attempt);
+            Log.i(TAG, "Qwen 1.5B download attempt " + attempt + "/" + MAX_RETRIES);
 
             try {
-                boolean done = downloadGemma();
+                boolean done = downloadQwenLarge();
                 if (done) {
-                    getPrefs().edit().putBoolean(PREF_GEMMA_DONE, true).apply();
-                    Log.i(TAG, "Gemma download complete");
-                    speakDeferred("Gemma AI model ready. I can now answer more complex questions.");
+                    getPrefs().edit().putBoolean(PREF_QWEN_LARGE_DONE, true).apply();
+                    Log.i(TAG, "Qwen 1.5B download complete");
+                    speakDeferred("Qwen AI model ready. I can now answer more complex questions.");
                     running.set(false);
                     return;
                 }
             } catch (Throwable t) {
-                Log.w(TAG, "Gemma download attempt " + attempt + " failed: " + t.getMessage());
+                Log.w(TAG, "Qwen 1.5B download attempt " + attempt + " failed: " + t.getMessage());
             }
 
             if (attempt < MAX_RETRIES && running.get()) {
@@ -154,56 +154,54 @@ public class ModelDownloadManager {
             }
         }
 
-        Log.w(TAG, "Gemma download failed after " + MAX_RETRIES + " attempts. Will retry next launch.");
+        Log.w(TAG, "Qwen 1.5B download failed after " + MAX_RETRIES + " attempts. Will retry next launch.");
         running.set(false);
     }
 
     /**
-     * Downloads Gemma to {@code getFilesDir()/models/gemma2b_q4.bin}.
+     * Downloads Qwen 1.5B to {@code getFilesDir()/models/qwen2_5_1_5b_q4.bin}.
      * Supports HTTP Range resume if the file is partially present.
      * @return true if the file is complete and valid.
      */
-    private boolean downloadGemma() throws Exception {
+    private boolean downloadQwenLarge() throws Exception {
         File dir  = new File(ctx.getFilesDir(), MODEL_DIR);
         if (!dir.exists() && !dir.mkdirs()) {
             Log.e(TAG, "Cannot create model dir: " + dir.getAbsolutePath());
             return false;
         }
-        File dest = new File(dir, GEMMA_FILENAME);
+        File dest = new File(dir, QWEN_LARGE_FILENAME);
         long existingBytes = dest.exists() ? dest.length() : 0L;
 
-        Log.i(TAG, "Gemma: resuming from byte " + existingBytes
-                + " / " + GEMMA_EXPECTED_BYTES);
+        Log.i(TAG, "Qwen 1.5B: resuming from byte " + existingBytes);
 
-        HttpURLConnection conn = (HttpURLConnection) new URL(GEMMA_URL).openConnection();
+        HttpURLConnection conn = (HttpURLConnection) new URL(QWEN_LARGE_URL).openConnection();
         conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
         conn.setReadTimeout(READ_TIMEOUT_MS);
         conn.setRequestProperty("User-Agent", "Auriga/1.0 (Android; VI assistant)");
+        conn.setInstanceFollowRedirects(true);
 
-        // Attempt byte-range resume
         if (existingBytes > 0) {
             conn.setRequestProperty("Range", "bytes=" + existingBytes + "-");
         }
 
         int code = conn.getResponseCode();
-        boolean resume = (code == 206); // Partial Content
+        boolean resume = (code == 206);
         if (code != 200 && code != 206) {
-            Log.w(TAG, "Gemma download server returned HTTP " + code);
+            Log.w(TAG, "Qwen 1.5B download server returned HTTP " + code);
             conn.disconnect();
             return false;
         }
 
         long totalBytes = conn.getContentLengthLong();
-        if (totalBytes <= 0) totalBytes = GEMMA_EXPECTED_BYTES;
+        if (totalBytes <= 0) totalBytes = 800_000_000L; // fallback estimate
         long totalWithResume = resume ? totalBytes + existingBytes : totalBytes;
 
         long downloaded = existingBytes;
         int lastSpokenPct = resume ? (int)(existingBytes * 100 / totalWithResume) : 0;
 
-        // Announce on the first attempt only, not every retry
         if (existingBytes == 0) {
-            speakDeferred("Downloading Gemma AI model. This is a 2.5 gigabyte file and "
-                    + "will take several minutes. Qwen is available immediately.");
+            speakDeferred("Downloading Qwen AI model. This is about 800 megabytes "
+                    + "and will take a few minutes. Qwen small is available immediately.");
         }
 
         byte[] buf = new byte[BUFFER_SIZE];
@@ -218,11 +216,10 @@ public class ModelDownloadManager {
                 int pct = (int)(downloaded * 100 / totalWithResume);
                 saveProgress(downloaded);
 
-                // Speak at 25%, 50%, 75%
                 int milestone = (pct / 25) * 25;
                 if (milestone > lastSpokenPct && milestone < 100) {
                     lastSpokenPct = milestone;
-                    speakDeferred("Gemma download " + milestone + "% complete.");
+                    speakDeferred("Qwen download " + milestone + "% complete.");
                 }
             }
         } finally {
@@ -230,17 +227,16 @@ public class ModelDownloadManager {
         }
 
         if (!running.get()) {
-            Log.i(TAG, "Gemma download cancelled at " + downloaded + " bytes");
+            Log.i(TAG, "Qwen 1.5B download cancelled at " + downloaded + " bytes");
             return false;
         }
 
         long finalSize = dest.length();
-        if (finalSize >= GEMMA_EXPECTED_BYTES * 0.99) {
-            Log.i(TAG, "Gemma download verified: " + finalSize + " bytes");
+        if (finalSize >= QWEN_LARGE_MIN_BYTES) {
+            Log.i(TAG, "Qwen 1.5B download verified: " + finalSize + " bytes");
             return true;
         } else {
-            Log.w(TAG, "Gemma file incomplete: " + finalSize
-                    + " of " + GEMMA_EXPECTED_BYTES + " bytes");
+            Log.w(TAG, "Qwen 1.5B file incomplete: " + finalSize + " bytes");
             return false;
         }
     }
@@ -266,21 +262,21 @@ public class ModelDownloadManager {
     }
 
     private void saveProgress(long bytes) {
-        getPrefs().edit().putLong(PREF_GEMMA_BYTES, bytes).apply();
+        getPrefs().edit().putLong(PREF_QWEN_LARGE_BYTES, bytes).apply();
     }
 
     /** Returns download progress 0–100, or -1 if not started. */
-    public int getGemmaProgressPercent() {
-        if (isGemmaReady(ctx)) return 100;
-        long bytes = getPrefs().getLong(PREF_GEMMA_BYTES, -1);
+    public int getQwenLargeProgressPercent() {
+        if (isQwenLargeReady(ctx)) return 100;
+        long bytes = getPrefs().getLong(PREF_QWEN_LARGE_BYTES, -1);
         if (bytes < 0) return -1;
-        return (int)(bytes * 100 / GEMMA_EXPECTED_BYTES);
+        return (int)(bytes * 100 / 800_000_000L);
     }
 
     /** True if a download is currently in progress. */
     public boolean isDownloading() { return running.get(); }
 
-    /** Check network availability (any connection — no Wi-Fi restriction per user request). */
+    /** Check network availability. */
     public static boolean isOnline(Context ctx) {
         ConnectivityManager cm = (ConnectivityManager)
                 ctx.getSystemService(Context.CONNECTIVITY_SERVICE);

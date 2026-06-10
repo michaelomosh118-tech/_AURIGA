@@ -52,23 +52,20 @@ public class AurigaApplication extends Application {
         instance = this;
         installUncaughtExceptionHandler();
         surfaceLastCrashIfAny();
-        kickGemmaDownloadIfNeeded();
+        kickQwenLargeDownloadIfNeeded();
     }
 
     /**
-     * Start Gemma background download on first launch (or resume if interrupted).
-     * Qwen is bundled in the APK assets and works immediately.
-     * Gemma (2.5 GB) is too large to bundle — it downloads once to FilesDir.
-     * No TTS at this point (app just started), so we attach TTS later via
-     * AurigaVoiceEngine. ModelDownloadManager.setTts() is called from there.
+     * Start Qwen 1.5B background download if the asset is missing from the APK
+     * (rare — CI normally bundles it). No TTS at this point (app just started),
+     * so we attach TTS later via AurigaVoiceEngine.
      */
-    private void kickGemmaDownloadIfNeeded() {
-        if (ModelDownloadManager.isGemmaReady(this)) return;
+    private void kickQwenLargeDownloadIfNeeded() {
+        if (ModelDownloadManager.isQwenLargeReady(this)) return;
         if (!ModelDownloadManager.isOnline(this)) return;
         ModelDownloadManager mgr = new ModelDownloadManager(this);
-        // Store on the instance so AurigaVoiceEngine can attach TTS to it later
         modelDownloadManager = mgr;
-        mgr.ensureGemmaDownloaded();
+        mgr.ensureQwenLargeDownloaded();
     }
 
     /** Global ModelDownloadManager instance — AurigaVoiceEngine attaches TTS here. */
