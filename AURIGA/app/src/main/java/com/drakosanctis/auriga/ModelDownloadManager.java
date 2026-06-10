@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *   graceful recovery without requiring an APK update.
  *
  * Storage:
- *   {@code getFilesDir()/models/qwen2_5_1_5b_q4.bin}
+ *   {@code getFilesDir()/models/qwen2_5_1_5b_q8.bin}
  *   ~800 MB, stored in the app's private internal storage (no
  *   READ/WRITE_EXTERNAL_STORAGE permission needed on any Android version).
  *
@@ -53,14 +53,14 @@ public class ModelDownloadManager {
     private static final String TAG = "ModelDownloadMgr";
 
     public static final String MODEL_DIR           = "models";
-    public static final String QWEN_LARGE_FILENAME = "qwen2_5_1_5b_q4.bin";
+    public static final String QWEN_LARGE_FILENAME = "qwen2_5_1_5b_q8.bin";
 
     private static final String QWEN_LARGE_URL =
         "https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/resolve/main/"
-        + "Qwen2.5-1.5B-Instruct_multi-prefill-seq_q4_ekv1280.tflite";
+        + "Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite";
 
     // Approximate expected size — used for progress calculation and
-    // completion verification. Qwen 2.5 1.5B q4 ≈ 800 MB.
+    // completion verification. Qwen 2.5 1.5B q8 ≈ 800 MB.
     private static final long   QWEN_LARGE_MIN_BYTES = 600_000_000L; // 600 MB floor
     private static final int    MAX_RETRIES          = 3;
     private static final int    RETRY_DELAY_MS       = 10_000;
@@ -159,7 +159,7 @@ public class ModelDownloadManager {
     }
 
     /**
-     * Downloads Qwen 1.5B to {@code getFilesDir()/models/qwen2_5_1_5b_q4.bin}.
+     * Downloads Qwen 1.5B to {@code getFilesDir()/models/qwen2_5_1_5b_q8.bin}.
      * Supports HTTP Range resume if the file is partially present.
      * @return true if the file is complete and valid.
      */

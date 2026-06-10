@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * ─────────────────────────────────────────────────────────────────────────
  * Required model files (bundled in APK assets by CI — gitignored for size):
  *
- *   qwen2_5_1_5b_q4.bin     Qwen 2.5 1.5B q4 (~800 MB)  primary; richer answers
+ *   qwen2_5_1_5b_q8.bin     Qwen 2.5 1.5B q8 (~800 MB)  primary; richer answers
  *   qwen2_5_0_5b_q8.bin     Qwen 2.5 0.5B q8 (~519 MB)  fallback for low-RAM devices
  *
  * Engine tries qwen_large first (skipped on devices with <3000 MB total RAM),
@@ -52,7 +52,7 @@ public class MindEngine {
 
     private static final String TAG = "MindEngine";
 
-    static final String MODEL_QWEN_LARGE = "qwen2_5_1_5b_q4.bin";
+    static final String MODEL_QWEN_LARGE = "qwen2_5_1_5b_q8.bin";
     static final String MODEL_QWEN       = "qwen2_5_0_5b_q8.bin";
 
     private static final int MAX_TOKENS = 150; // ~100 words — comfortable TTS length
@@ -60,7 +60,7 @@ public class MindEngine {
     /**
      * Minimum total RAM (MB) required to attempt loading the Qwen 1.5B model.
      * Devices below this threshold skip straight to Qwen 0.5B to avoid OOM.
-     * Qwen 1.5B q4 expands to ~2.5 GB in RAM; allow 500 MB headroom.
+     * Qwen 1.5B q8 expands to ~2.5 GB in RAM; allow 500 MB headroom.
      */
     private static final long QWEN_LARGE_MIN_RAM_MB = 3_000;
 
@@ -117,7 +117,7 @@ public class MindEngine {
     // ── Init ──────────────────────────────────────────────────────────
 
     private void init() {
-        // ── Qwen 2.5 1.5B (q4, ~800 MB) ─────────────────────────────
+        // ── Qwen 2.5 1.5B (q8, ~800 MB) ─────────────────────────────
         // Two sources are checked in order:
         //   1. APK assets — bundled by CI (primary path)
         //   2. FilesDir   — ModelDownloadManager places it here as fallback
