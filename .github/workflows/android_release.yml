@@ -15,6 +15,15 @@ name: AURIGA Release Publisher
 #   - Otherwise it falls back to the committed debug keystore so a release
 #     can still be cut end-to-end during bootstrap. A warning is logged so
 #     you don't accidentally ship a debug-keyed artifact to users forever.
+#
+# Model bundling:
+#   - YOLOv8n (~12 MB)  : always bundled — exported from Ultralytics on runner.
+#   - Qwen 0.5B (~519 MB): always bundled — Apache-2.0, no auth needed.
+#   - Gemma 2B (~2.52 GB): bundled only when HF_TOKEN secret is set AND the
+#     licence is accepted at huggingface.co/litert-community/Gemma2-2B-IT.
+#     Without it the APK ships with Qwen only; ModelDownloadManager offers
+#     a runtime Gemma download at first launch. A raw APK with Gemma exceeds
+#     2 GB — for Play Store delivery use AAB + Play Asset Delivery.
 
 on:
   push:
@@ -33,6 +42,7 @@ permissions:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 150
 
     strategy:
       fail-fast: false
@@ -55,6 +65,19 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+
+      # Python is always needed — YOLO export uses ultralytics,
+      # Qwen/Gemma downloads use huggingface_hub.
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Python dependencies
+        run: |
+          # numpy<2 required — TensorFlow/Keras TFLite exporter calls
+          # numpy._no_nep50_warning which was removed in numpy 2.x.
+          pip install --quiet --no-cache-dir "numpy<2" ultralytics huggingface_hub
 
       - name: Resolve release tag
         id: tag
@@ -84,9 +107,6 @@ jobs:
           AURIGA_RELEASE_KEYSTORE_B64: ${{ secrets.AURIGA_RELEASE_KEYSTORE_B64 }}
         run: |
           if [ -n "${AURIGA_RELEASE_KEYSTORE_B64:-}" ]; then
-            # Write to an ABSOLUTE path so the Gradle release signing config
-            # resolves it unambiguously regardless of which module
-            # build.gradle is being evaluated from.
             KEYSTORE_PATH="$(cd "${{ steps.locate.outputs.project_root }}" && pwd)/release-key.jks"
             echo "$AURIGA_RELEASE_KEYSTORE_B64" | base64 -d > "$KEYSTORE_PATH"
             echo "present=true" >> "$GITHUB_OUTPUT"
@@ -105,17 +125,10 @@ jobs:
           CAP="$(echo "${F:0:1}" | tr '[:lower:]' '[:upper:]')${F:1}"
           echo "cap=$CAP" >> "$GITHUB_OUTPUT"
 
-      # ── Phase 1: native YOLOv8n Object Locator ────────────────────
-      # The TFLite model is gitignored (binary blob, ~12 MB) so CI must
-      # fetch it before assembling the APK. We export from Ultralytics
-      # on the runner, then cache the result so subsequent matrix cells
-      # (and subsequent tag pushes) skip the heavy `pip install
-      # ultralytics` step and pull the model straight from the actions
-      # cache.
-      #
-      # Cache key bump: change the trailing version (-v1 → -v2) to
-      # force a re-export, e.g. when upgrading to YOLOv9 or pinning to
-      # a newer Ultralytics release.
+      # ── Phase 1: YOLOv8n Object Locator (~12 MB) ──────────────────
+      # Exported from Ultralytics on the runner. Cached across runs so
+      # subsequent tag pushes skip the pip install + export entirely.
+      # Cache key bump: -v1 → -v2 to force a fresh export.
       - name: Restore cached YOLOv8n TFLite model
         id: yolo-cache
         uses: actions/cache@v4
@@ -123,32 +136,13 @@ jobs:
           path: ${{ steps.locate.outputs.project_root }}/app/src/main/assets/yolov8n_float32.tflite
           key: yolov8n-tflite-fp32-v1
 
-      - name: Set up Python (cache miss only)
-        if: steps.yolo-cache.outputs.cache-hit != 'true'
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
       - name: Export YOLOv8n model (cache miss only)
         if: steps.yolo-cache.outputs.cache-hit != 'true'
         working-directory: ${{ runner.temp }}
         run: |
-          echo "::group::Install Ultralytics (pinning numpy<2 for TFLite export)"
-          # Ultralytics' TFLite exporter pulls in TensorFlow, whose Keras
-          # code still calls numpy._no_nep50_warning — a private API
-          # removed in numpy 2.x. Pin numpy to the 1.x line so the pip
-          # resolver picks compatible scipy/tensorflow wheels. Documented
-          # workaround: https://github.com/ultralytics/ultralytics/issues/13800
-          pip install --quiet --no-cache-dir "numpy<2" "ultralytics"
-          echo "::endgroup::"
           echo "::group::Export yolov8n.pt → TFLite (640x640 fp32)"
           yolo export model=yolov8n.pt format=tflite imgsz=640
           echo "::endgroup::"
-          # IMPORTANT: this step's working-directory is runner.temp, so
-          # any relative path like "./AURIGA/..." would resolve under
-          # /tmp and silently land outside the repo. Use the absolute
-          # workspace path so the file ends up exactly where the verify
-          # step (and Gradle's asset packaging) looks for it.
           DEST="${{ github.workspace }}/${{ steps.locate.outputs.project_root }}/app/src/main/assets/yolov8n_float32.tflite"
           mkdir -p "$(dirname "$DEST")"
           SRC=$(find yolov8n_saved_model -name "yolov8n_float32.tflite" | head -n 1)
@@ -163,13 +157,119 @@ jobs:
       - name: Verify YOLOv8n model is bundled
         run: |
           DEST="${{ steps.locate.outputs.project_root }}/app/src/main/assets/yolov8n_float32.tflite"
-          if [ ! -f "$DEST" ]; then
-            echo "::error::YOLO model missing at $DEST after fetch step"
-            exit 1
-          fi
-          SIZE=$(ls -l "$DEST" | awk '{print $5}')
-          echo "Bundled YOLO model: $DEST ($SIZE bytes)"
+          [ -f "$DEST" ] || { echo "::error::YOLOv8n missing at $DEST after fetch step"; exit 1; }
+          echo "YOLOv8n OK: $(du -sh $DEST | cut -f1)"
 
+      # ── Phase 2: Qwen 2.5 0.5B (~519 MB, Apache-2.0) ─────────────
+      # Always bundled. No auth token required. Provides full AI
+      # assistant functionality immediately on install, offline.
+      - name: Restore cached Qwen 2.5 0.5B model
+        id: qwen-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.locate.outputs.project_root }}/app/src/main/assets/qwen2_5_0_5b_q8.bin
+          key: qwen-2_5-0_5b-q8-v1
+
+      - name: Download Qwen 2.5 0.5B (cache miss only)
+        if: steps.qwen-cache.outputs.cache-hit != 'true'
+        env:
+          DEST: ${{ steps.locate.outputs.project_root }}/app/src/main/assets/qwen2_5_0_5b_q8.bin
+        run: |
+          echo "Downloading Qwen 2.5 0.5B (~519 MB)..."
+          python3 - <<'EOF'
+          import os, sys, shutil
+          try:
+            from huggingface_hub import hf_hub_download
+            path = hf_hub_download(
+              repo_id="litert-community/Qwen2.5-0.5B-Instruct",
+              filename="Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite",
+              local_dir="/tmp/qwen"
+            )
+            dest = os.environ["DEST"]
+            shutil.copy(path, dest)
+            print(f"Qwen saved: {os.path.getsize(dest):,} bytes")
+          except Exception as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            sys.exit(1)
+          EOF
+
+      - name: Verify Qwen model is bundled
+        run: |
+          f="${{ steps.locate.outputs.project_root }}/app/src/main/assets/qwen2_5_0_5b_q8.bin"
+          [ -f "$f" ] || { echo "::error::Qwen model missing — AI assistant will be unavailable in this release"; exit 1; }
+          echo "Qwen OK: $(du -sh $f | cut -f1)"
+
+      # ── Phase 3: Gemma 2 2B IT (~2.52 GB, optional) ───────────────
+      # Requires HF_TOKEN secret + licence accepted at:
+      #   huggingface.co/litert-community/Gemma2-2B-IT
+      # If absent this step is skipped. The APK ships with Qwen only
+      # and ModelDownloadManager offers a Gemma runtime download.
+      # IMPORTANT: bundling Gemma produces an APK >2.5 GB which exceeds
+      # the GitHub Release 2 GB artifact limit and cannot be submitted
+      # to Play Store as a raw APK — use AAB + Play Asset Delivery.
+      - name: Restore cached Gemma 2 2B IT model
+        id: gemma-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.locate.outputs.project_root }}/app/src/main/assets/gemma2b_q4.bin
+          key: gemma2-2b-it-q8-v1
+
+      - name: Download Gemma 2 2B IT (cache miss + token available)
+        if: steps.gemma-cache.outputs.cache-hit != 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          DEST: ${{ steps.locate.outputs.project_root }}/app/src/main/assets/gemma2b_q4.bin
+        run: |
+          if [ -z "${HF_TOKEN:-}" ]; then
+            echo "::warning::HF_TOKEN not set — Gemma 2B will not be pre-bundled in this release. Add HF_TOKEN secret + accept the Gemma licence at huggingface.co/litert-community/Gemma2-2B-IT to enable."
+            exit 0
+          fi
+          echo "Downloading Gemma 2 2B IT (~2.52 GB)..."
+          python3 - <<'EOF'
+          import os, sys, shutil
+          try:
+            from huggingface_hub import login, hf_hub_download
+            token = os.environ["HF_TOKEN"]
+            login(token=token, add_to_git_credential=False)
+            path = hf_hub_download(
+              repo_id="litert-community/Gemma2-2B-IT",
+              filename="Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite",
+              local_dir="/tmp/gemma"
+            )
+            dest = os.environ["DEST"]
+            shutil.copy(path, dest)
+            print(f"Gemma saved: {os.path.getsize(dest):,} bytes")
+          except Exception as e:
+            print(f"Gemma download failed (non-fatal): {e}", file=sys.stderr)
+            sys.exit(0)
+          EOF
+
+      - name: Report Gemma bundle status
+        run: |
+          f="${{ steps.locate.outputs.project_root }}/app/src/main/assets/gemma2b_q4.bin"
+          if [ -f "$f" ]; then
+            echo "Gemma OK: $(du -sh $f | cut -f1) — pre-bundled in release APK/AAB"
+          else
+            echo "Gemma not bundled — ModelDownloadManager will offer runtime download on first launch"
+          fi
+
+      # ── Phase 4: Model inventory ───────────────────────────────────
+      - name: Model inventory
+        run: |
+          echo "── Model inventory ─────────────────────────────────────"
+          ASSETS="${{ steps.locate.outputs.project_root }}/app/src/main/assets"
+          for f in "$ASSETS/yolov8n_float32.tflite" \
+                   "$ASSETS/qwen2_5_0_5b_q8.bin"     \
+                   "$ASSETS/gemma2b_q4.bin"; do
+            name=$(basename "$f")
+            if [ -f "$f" ]; then
+              echo "  BUNDLED   $name  ($(du -sh $f | cut -f1))"
+            else
+              echo "  MISSING   $name"
+            fi
+          done
+
+      # ── Phase 5: Build ─────────────────────────────────────────────
       - name: Assemble ${{ matrix.flavor }} release (APK + AAB)
         working-directory: ${{ steps.locate.outputs.project_root }}
         env:
@@ -192,7 +292,6 @@ jobs:
           CAP="${{ steps.flavor.outputs.cap }}"
           APK_SRC=$(find "app/build/outputs/apk/${F}/release" -name "*.apk" | head -n 1)
           AAB_SRC=$(find "app/build/outputs/bundle/${F}Release" -name "*.aab" | head -n 1)
-          # Friendly names matching what the website download links expect.
           APK_DST="../_release_out/Auriga${CAP}-release.apk"
           AAB_DST="../_release_out/Auriga${CAP}-release.aab"
           cp "$APK_SRC" "$APK_DST"
@@ -214,12 +313,36 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+      # ── Phase 6: Build summary ─────────────────────────────────────
+      - name: Build summary
+        if: always()
+        run: |
+          echo "## AURIGA ${{ steps.flavor.outputs.cap }} Release — ${{ steps.tag.outputs.value }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Bundled models" >> $GITHUB_STEP_SUMMARY
+          echo "| Model | Status | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|------|" >> $GITHUB_STEP_SUMMARY
+          ASSETS="${{ steps.locate.outputs.project_root }}/app/src/main/assets"
+          for f in "$ASSETS/yolov8n_float32.tflite" "$ASSETS/qwen2_5_0_5b_q8.bin" "$ASSETS/gemma2b_q4.bin"; do
+            name=$(basename "$f")
+            if [ -f "$f" ]; then
+              size=$(du -sh "$f" | cut -f1)
+              echo "| $name | ✅ bundled | $size |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| $name | ⚠️ not bundled | — |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Release artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          find _release_out -type f 2>/dev/null | while read f; do
+            echo "| $(basename $f) | $(du -h $f | cut -f1) |" >> $GITHUB_STEP_SUMMARY
+          done || true
+
   publish:
     needs: build-and-publish
     runs-on: ubuntu-latest
-    # Evaluated once at the job level so `if:` conditions on steps below
-    # can use env.HAS_MIRROR_TOKEN (the `secrets` context is not permitted
-    # inside step-level `if:` expressions directly).
     env:
       HAS_MIRROR_TOKEN: ${{ secrets.AURIGA_PUBLIC_RELEASES_TOKEN != '' }}
     steps:
@@ -250,17 +373,6 @@ jobs:
             _release_final/AurigaAero-release.aab
             _release_final/AurigaIndustrial-release.aab
 
-      # The _AURIGA source repo is private, so GitHub serves
-      # releases/latest/download/... URLs only to authenticated users.
-      # The public `auriga-releases` repo exists as a public mirror that the
-      # landing page links against. Mirror every tag's artifacts there when
-      # the AURIGA_PUBLIC_RELEASES_TOKEN PAT secret is configured. Skips
-      # silently (with a warning) otherwise so tag pushes never break during
-      # bootstrap.
-      # Diagnostic: confirm the mirror PAT authenticates correctly and has
-      # write access to the target repo before we try to publish. Output is
-      # scrubbed — `gh api user --jq .login` and a permissions probe, nothing
-      # that can leak the token itself.
       - name: Diagnose mirror PAT
         if: ${{ env.HAS_MIRROR_TOKEN == 'true' }}
         env:
@@ -279,19 +391,12 @@ jobs:
         if: ${{ env.HAS_MIRROR_TOKEN == 'true' }}
         uses: softprops/action-gh-release@v2
         with:
-          # Cross-repo publish using the PAT. The action validates write
-          # permission against the target repo's /releases endpoint only,
-          # which is exactly what the PAT is scoped to do.
           repository: michaelomosh118-tech/auriga-releases
           token: ${{ secrets.AURIGA_PUBLIC_RELEASES_TOKEN }}
           tag_name: ${{ needs.build-and-publish.outputs.release_tag }}
           name: Auriga ${{ needs.build-and-publish.outputs.release_tag }}
           body: "Public mirror of michaelomosh118-tech/_AURIGA@${{ needs.build-and-publish.outputs.release_tag }}. APKs signed v1+v2+v3."
-          # If the tag doesn't yet exist on the mirror repo, target the
-          # default branch so the action creates it on the fly.
           target_commitish: main
-          # Re-publishing an existing release is idempotent: overwrite
-          # assets rather than failing on duplicate file names.
           overwrite_files: true
           files: |
             _release_final/AurigaNavi-release.apk
@@ -306,4 +411,4 @@ jobs:
       - name: Warn if public mirror token is missing
         if: ${{ env.HAS_MIRROR_TOKEN != 'true' }}
         run: |
-          echo "::warning::AURIGA_PUBLIC_RELEASES_TOKEN secret not set — this tag was NOT mirrored to the public auriga-releases repo. Add the secret (PAT with public_repo scope) to enable automatic mirroring. Until then the website's DIRECT DOWNLOAD button will continue to serve whichever artifacts were last manually uploaded."
+          echo "::warning::AURIGA_PUBLIC_RELEASES_TOKEN secret not set — this tag was NOT mirrored to the public auriga-releases repo. Add the secret (PAT with public_repo scope) to enable automatic mirroring."

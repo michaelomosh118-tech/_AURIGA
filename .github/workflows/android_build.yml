@@ -10,6 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
 
     strategy:
       fail-fast: false
@@ -31,13 +32,16 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
+    # Python is always needed — YOLO export uses ultralytics,
+    # Qwen/Gemma downloads use huggingface_hub.
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
     - name: Locate Android Project Root
       id: locate
       run: |
-        # The Android Gradle project lives at AURIGA/ (hardcoded — find is
-        # non-deterministic across CI runners and the layout will not change).
-        # We still validate the expectation so a future repo restructure
-        # fails loudly instead of silently building the wrong path.
         PROJECT_ROOT="AURIGA"
         if [ ! -f "${PROJECT_ROOT}/gradlew" ]; then
           echo "::error::Expected Gradle wrapper at ${PROJECT_ROOT}/gradlew — not found!"
@@ -61,15 +65,8 @@ jobs:
         echo "apk_subdir=${FLAVOR}/${BUILD_TYPE}" >> "$GITHUB_OUTPUT"
 
     # ── Phase 1: native YOLOv8n Object Locator ──────────────────────
-    # The TFLite model is gitignored (binary blob, ~12 MB) so CI must
-    # fetch it before assembling the APK. We export from Ultralytics on
-    # the runner, then cache the result so subsequent matrix cells (and
-    # subsequent workflow runs) skip the heavy `pip install ultralytics`
-    # step and pull the model straight from the actions cache.
-    #
-    # Cache key bump: change the trailing version (-v1 → -v2) to force
-    # a re-export, e.g. when upgrading to YOLOv9 or pinning to a newer
-    # Ultralytics release.
+    # Exported from Ultralytics on the runner (~12 MB fp32 TFLite).
+    # Cache key bump: -v1 → -v2 to force a fresh export.
     - name: Restore cached YOLOv8n TFLite model
       id: yolo-cache
       uses: actions/cache@v4
@@ -77,36 +74,21 @@ jobs:
         path: ${{ steps.locate.outputs.project_root }}/app/src/main/assets/yolov8n_float32.tflite
         key: yolov8n-tflite-fp32-v1
 
-    - name: Set up Python (cache miss only)
-      if: steps.yolo-cache.outputs.cache-hit != 'true'
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+    - name: Install Python dependencies
+      run: |
+        # Ultralytics' TFLite exporter requires numpy<2 (numpy 2.x removed
+        # private API numpy._no_nep50_warning used by TensorFlow/Keras).
+        pip install --quiet --no-cache-dir "numpy<2" ultralytics huggingface_hub
 
     - name: Export YOLOv8n model (cache miss only)
       if: steps.yolo-cache.outputs.cache-hit != 'true'
       working-directory: ${{ runner.temp }}
       run: |
-        echo "::group::Install Ultralytics (pinning numpy<2 for TFLite export)"
-        # Ultralytics' TFLite exporter pulls in TensorFlow, whose Keras code
-        # still calls numpy._no_nep50_warning — a private API removed in
-        # numpy 2.x. Pin numpy to the 1.x line so the pip resolver picks
-        # compatible scipy/tensorflow wheels. Documented workaround:
-        # https://github.com/ultralytics/ultralytics/issues/13800
-        pip install --quiet --no-cache-dir "numpy<2" "ultralytics"
-        echo "::endgroup::"
         echo "::group::Export yolov8n.pt → TFLite (640x640 fp32)"
         yolo export model=yolov8n.pt format=tflite imgsz=640
         echo "::endgroup::"
-        # IMPORTANT: this step's working-directory is runner.temp, so
-        # any relative path like "./AURIGA/..." would resolve under /tmp
-        # and silently land outside the repo. Use the absolute workspace
-        # path so the file ends up exactly where the verify step (and
-        # Gradle's asset packaging) looks for it.
         DEST="${{ github.workspace }}/${{ steps.locate.outputs.project_root }}/app/src/main/assets/yolov8n_float32.tflite"
         mkdir -p "$(dirname "$DEST")"
-        # Ultralytics writes to yolov8n_saved_model/<various>.tflite —
-        # grab the float32 export specifically.
         SRC=$(find yolov8n_saved_model -name "yolov8n_float32.tflite" | head -n 1)
         if [ -z "$SRC" ]; then
           echo "::error::Ultralytics export did not produce yolov8n_float32.tflite"
@@ -114,18 +96,125 @@ jobs:
           exit 1
         fi
         cp "$SRC" "$DEST"
-        echo "Exported model copied to: $DEST"
+        echo "YOLOv8n exported to: $DEST"
 
     - name: Verify YOLOv8n model is bundled
       run: |
         DEST="${{ steps.locate.outputs.project_root }}/app/src/main/assets/yolov8n_float32.tflite"
-        if [ ! -f "$DEST" ]; then
-          echo "::error::YOLO model missing at $DEST after fetch step"
-          exit 1
-        fi
-        SIZE=$(ls -l "$DEST" | awk '{print $5}')
-        echo "Bundled YOLO model: $DEST ($SIZE bytes)"
+        [ -f "$DEST" ] || { echo "::error::YOLOv8n missing at $DEST"; exit 1; }
+        echo "YOLOv8n OK: $(du -sh $DEST | cut -f1)"
 
+    # ── Phase 2: Qwen 2.5 0.5B (bundled — Apache-2.0, no auth) ──────
+    # ~519 MB. Bundled so the assistant works immediately on install
+    # with no network required on the device.
+    - name: Restore cached Qwen 2.5 0.5B model
+      id: qwen-cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.locate.outputs.project_root }}/app/src/main/assets/qwen2_5_0_5b_q8.bin
+        key: qwen-2_5-0_5b-q8-v1
+
+    - name: Download Qwen 2.5 0.5B (cache miss only)
+      if: steps.qwen-cache.outputs.cache-hit != 'true'
+      run: |
+        DEST="${{ steps.locate.outputs.project_root }}/app/src/main/assets/qwen2_5_0_5b_q8.bin"
+        echo "Downloading Qwen 2.5 0.5B (~519 MB)..."
+        python3 - <<'EOF'
+        import os, sys, shutil
+        try:
+          from huggingface_hub import hf_hub_download
+          path = hf_hub_download(
+            repo_id="litert-community/Qwen2.5-0.5B-Instruct",
+            filename="Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite",
+            local_dir="/tmp/qwen"
+          )
+          dest = os.environ["DEST"]
+          shutil.copy(path, dest)
+          print(f"Qwen saved: {os.path.getsize(dest):,} bytes")
+        except Exception as e:
+          print(f"ERROR: {e}", file=sys.stderr)
+          sys.exit(1)
+        EOF
+      env:
+        DEST: ${{ steps.locate.outputs.project_root }}/app/src/main/assets/qwen2_5_0_5b_q8.bin
+
+    - name: Verify Qwen model is bundled
+      run: |
+        f="${{ steps.locate.outputs.project_root }}/app/src/main/assets/qwen2_5_0_5b_q8.bin"
+        [ -f "$f" ] || { echo "::error::Qwen model missing — AI assistant will be unavailable"; exit 1; }
+        echo "Qwen OK: $(du -sh $f | cut -f1)"
+
+    # ── Phase 3: Gemma 2 2B IT (optional — requires HF_TOKEN) ───────
+    # ~2.52 GB. Pre-bundled only when HF_TOKEN secret is set AND the
+    # licence is accepted at huggingface.co/litert-community/Gemma2-2B-IT.
+    # Without it the APK is fully functional via Qwen; ModelDownloadManager
+    # will offer the user a runtime download of Gemma on first launch.
+    #
+    # NOTE: bundling Gemma produces an APK >2.5 GB. For Play Store
+    # distribution use AAB + Play Asset Delivery instead of a raw APK.
+    - name: Restore cached Gemma 2 2B IT model
+      id: gemma-cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.locate.outputs.project_root }}/app/src/main/assets/gemma2b_q4.bin
+        key: gemma2-2b-it-q8-v1
+
+    - name: Download Gemma 2 2B IT (cache miss + token available)
+      if: steps.gemma-cache.outputs.cache-hit != 'true'
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        DEST: ${{ steps.locate.outputs.project_root }}/app/src/main/assets/gemma2b_q4.bin
+      run: |
+        if [ -z "${HF_TOKEN:-}" ]; then
+          echo "::warning::HF_TOKEN not set — Gemma 2B will not be pre-bundled. Qwen covers all queries on install. Set HF_TOKEN + accept licence at huggingface.co/litert-community/Gemma2-2B-IT to pre-bundle."
+          exit 0
+        fi
+        echo "Downloading Gemma 2 2B IT (~2.52 GB)..."
+        python3 - <<'EOF'
+        import os, sys, shutil
+        try:
+          from huggingface_hub import login, hf_hub_download
+          token = os.environ["HF_TOKEN"]
+          login(token=token, add_to_git_credential=False)
+          path = hf_hub_download(
+            repo_id="litert-community/Gemma2-2B-IT",
+            filename="Gemma2-2B-IT_multi-prefill-seq_q8_ekv1280.tflite",
+            local_dir="/tmp/gemma"
+          )
+          dest = os.environ["DEST"]
+          shutil.copy(path, dest)
+          print(f"Gemma saved: {os.path.getsize(dest):,} bytes")
+        except Exception as e:
+          print(f"Gemma download failed (non-fatal): {e}", file=sys.stderr)
+          sys.exit(0)
+        EOF
+
+    - name: Report Gemma bundle status
+      run: |
+        f="${{ steps.locate.outputs.project_root }}/app/src/main/assets/gemma2b_q4.bin"
+        if [ -f "$f" ]; then
+          echo "Gemma OK: $(du -sh $f | cut -f1) — pre-bundled in APK"
+        else
+          echo "Gemma not bundled — ModelDownloadManager will offer runtime download on first launch"
+        fi
+
+    # ── Phase 4: Model inventory summary ────────────────────────────
+    - name: Model inventory
+      run: |
+        echo "── Model inventory ─────────────────────────────────────"
+        ASSETS="${{ steps.locate.outputs.project_root }}/app/src/main/assets"
+        for f in "$ASSETS/yolov8n_float32.tflite" \
+                 "$ASSETS/qwen2_5_0_5b_q8.bin"     \
+                 "$ASSETS/gemma2b_q4.bin"; do
+          name=$(basename "$f")
+          if [ -f "$f" ]; then
+            echo "  BUNDLED   $name  ($(du -sh $f | cut -f1))"
+          else
+            echo "  MISSING   $name"
+          fi
+        done
+
+    # ── Phase 5: Build ───────────────────────────────────────────────
     - name: Build ${{ matrix.flavor }} ${{ matrix.buildType }} APK
       working-directory: ${{ steps.locate.outputs.project_root }}
       run: |
@@ -149,3 +238,28 @@ jobs:
         path: "**/app/build/outputs/apk/${{ steps.task.outputs.apk_subdir }}/app-*.apk"
         retention-days: 14
         if-no-files-found: error
+
+    # ── Phase 6: Build summary ───────────────────────────────────────
+    - name: Build summary
+      if: always()
+      run: |
+        echo "## AURIGA ${{ matrix.flavor }} ${{ matrix.buildType }} — Build #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Bundled models" >> $GITHUB_STEP_SUMMARY
+        echo "| Model | Status | Size |" >> $GITHUB_STEP_SUMMARY
+        echo "|-------|--------|------|" >> $GITHUB_STEP_SUMMARY
+        ASSETS="${{ steps.locate.outputs.project_root }}/app/src/main/assets"
+        for f in "$ASSETS/yolov8n_float32.tflite" "$ASSETS/qwen2_5_0_5b_q8.bin" "$ASSETS/gemma2b_q4.bin"; do
+          name=$(basename "$f")
+          if [ -f "$f" ]; then
+            size=$(du -sh "$f" | cut -f1)
+            echo "| $name | ✅ bundled | $size |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| $name | ⚠️ not bundled | — |" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### APK output" >> $GITHUB_STEP_SUMMARY
+        find AURIGA/app/build/outputs/apk -name "*.apk" 2>/dev/null | while read f; do
+          echo "| $(basename $f) | $(du -h $f | cut -f1) |" >> $GITHUB_STEP_SUMMARY
+        done || true
