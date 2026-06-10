@@ -8,6 +8,17 @@ on:
   release:
     types: [ created ]
   workflow_dispatch:
+  # Allow this workflow to be called as a reusable workflow from release.yml
+  workflow_call:
+    secrets:
+      SIGNING_KEY_BASE64:
+        required: false
+      KEY_ALIAS:
+        required: false
+      KEY_STORE_PASSWORD:
+        required: false
+      KEY_PASSWORD:
+        required: false
 
 jobs:
   build:
@@ -41,44 +52,94 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Build Debug APK
+      # Export YOLOv8n TFLite model (required by LocatorActivity).
+      # The binary is gitignored so CI must produce it before Gradle
+      # packages the APK assets.
+      - name: Set up Python for YOLOv8n export
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Restore cached YOLOv8n TFLite model
+        id: yolo-cache
+        uses: actions/cache@v4
+        with:
+          path: AURIGA/app/src/main/assets/yolov8n_float32.tflite
+          key: yolov8n-tflite-fp32-v1
+
+      - name: Export YOLOv8n model (cache miss only)
+        if: steps.yolo-cache.outputs.cache-hit != 'true'
+        run: |
+          pip install --quiet --no-cache-dir "numpy<2" "ultralytics"
+          yolo export model=yolov8n.pt format=tflite imgsz=640
+          DEST="${{ github.workspace }}/AURIGA/app/src/main/assets/yolov8n_float32.tflite"
+          mkdir -p "$(dirname "$DEST")"
+          SRC=$(find yolov8n_saved_model -name "yolov8n_float32.tflite" | head -n 1)
+          if [ -z "$SRC" ]; then
+            echo "::error::YOLOv8n export failed — tflite not found"
+            ls -laR yolov8n_saved_model || true
+            exit 1
+          fi
+          cp "$SRC" "$DEST"
+          echo "YOLOv8n model copied to: $DEST"
+        working-directory: ${{ runner.temp }}
+
+      - name: Verify YOLOv8n model
+        run: |
+          DEST="AURIGA/app/src/main/assets/yolov8n_float32.tflite"
+          if [ ! -f "$DEST" ]; then
+            echo "::error::YOLO model missing at $DEST"
+            exit 1
+          fi
+          echo "YOLOv8n model ready: $(ls -lh $DEST | awk '{print $5}')"
+
+      # Build all four product-flavor debug APKs.
+      # In a project with product flavors, 'assembleDebug' assembles all
+      # flavors' debug variants — output lands in apk/{flavor}/debug/.
+      - name: Build Debug APKs (all flavors)
         run: ./gradlew assembleDebug --no-daemon --stacktrace
         working-directory: AURIGA
 
-      - name: Build Release APK (unsigned)
+      # Build all four product-flavor release APKs (signed with debug key
+      # as fallback when no release keystore secret is present).
+      # Output lands in app/build/outputs/apk/{flavor}/release/.
+      - name: Build Release APKs (all flavors)
         run: ./gradlew assembleRelease --no-daemon --stacktrace
         working-directory: AURIGA
 
-      - name: Sign Release APK
+      - name: Sign Release APKs (production keystore)
         if: github.event_name == 'release' && secrets.SIGNING_KEY_BASE64 != ''
         uses: r0adkll/sign-android-release@v1
         id: sign_apk
         with:
-          releaseDirectory: AURIGA/app/build/outputs/apk/release
+          releaseDirectory: AURIGA/app/build/outputs/apk/navi/release
           signingKeyBase64: ${{ secrets.SIGNING_KEY_BASE64 }}
           alias: ${{ secrets.KEY_ALIAS }}
           keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
 
-      - name: Rename APK with version
+      - name: Rename navi debug APK with version + commit
         run: |
-          VERSION=$(grep versionName AURIGA/app/build.gradle | head -1 | sed 's/.*"\(.*\)".*/\1/' || echo "dev")
+          VERSION=$(grep 'versionName' AURIGA/app/build.gradle | head -1 | sed 's/.*"\(.*\)".*/\1/' || echo "dev")
           COMMIT=$(echo $GITHUB_SHA | cut -c1-7)
-          cp AURIGA/app/build/outputs/apk/debug/app-debug.apk \
-             AURIGA/app/build/outputs/apk/debug/AurigaNavi-${VERSION}-${COMMIT}-debug.apk || true
+          SRC=$(find AURIGA/app/build/outputs/apk/navi/debug -name "*.apk" | head -1)
+          if [ -n "$SRC" ]; then
+            DIR=$(dirname "$SRC")
+            cp "$SRC" "$DIR/AurigaNavi-${VERSION}-${COMMIT}-debug.apk" || true
+          fi
 
-      - name: Upload Debug APK artifact
+      - name: Upload Debug APK artifacts
         uses: actions/upload-artifact@v4
         with:
           name: AurigaNavi-debug
-          path: AURIGA/app/build/outputs/apk/debug/*.apk
+          path: AURIGA/app/build/outputs/apk/**/debug/*.apk
           retention-days: 30
 
-      - name: Upload Release APK artifact
+      - name: Upload Release APK artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: AurigaNavi-release-unsigned
-          path: AURIGA/app/build/outputs/apk/release/*.apk
+          name: AurigaNavi-release
+          path: AURIGA/app/build/outputs/apk/**/release/*.apk
           retention-days: 30
 
       - name: Upload APKs to GitHub Release
@@ -86,8 +147,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            AURIGA/app/build/outputs/apk/debug/*.apk
-            AURIGA/app/build/outputs/apk/release/*.apk
+            AURIGA/app/build/outputs/apk/**/debug/*.apk
+            AURIGA/app/build/outputs/apk/**/release/*.apk
           fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -101,7 +162,12 @@ jobs:
           echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Trigger | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
-          if [ -f AURIGA/app/build/outputs/apk/debug/app-debug.apk ]; then
-            SIZE=$(du -h AURIGA/app/build/outputs/apk/debug/app-debug.apk | cut -f1)
-            echo "| Debug APK size | $SIZE |" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### APK outputs" >> $GITHUB_STEP_SUMMARY
+          echo "| APK | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|------|" >> $GITHUB_STEP_SUMMARY
+          find AURIGA/app/build/outputs/apk -name "*.apk" 2>/dev/null | while read f; do
+            size=$(du -h "$f" | cut -f1)
+            name=$(basename "$f")
+            echo "| $name | $size |" >> $GITHUB_STEP_SUMMARY
+          done || true

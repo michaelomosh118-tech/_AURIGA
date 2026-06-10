@@ -70,11 +70,12 @@ jobs:
       - name: Locate Android Project Root
         id: locate
         run: |
-          PROJECT_ROOT=$(find . -name "build.gradle" -not -path "*/app/*" -not -path "*/.git/*" -exec dirname {} \; | head -n 1)
-          if [ -z "$PROJECT_ROOT" ]; then
-            echo "Error: Could not find build.gradle in the repository!"
+          PROJECT_ROOT="AURIGA"
+          if [ ! -f "${PROJECT_ROOT}/gradlew" ] || [ ! -f "${PROJECT_ROOT}/build.gradle" ]; then
+            echo "::error::Android project not found at expected path: ${PROJECT_ROOT}"
             exit 1
           fi
+          echo "Android project root: $PROJECT_ROOT"
           echo "project_root=$PROJECT_ROOT" >> "$GITHUB_OUTPUT"
 
       - name: Decode release keystore (if provided)

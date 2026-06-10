@@ -34,12 +34,20 @@ jobs:
     - name: Locate Android Project Root
       id: locate
       run: |
-        PROJECT_ROOT=$(find . -name "build.gradle" -not -path "*/app/*" -not -path "*/.git/*" -exec dirname {} \; | head -n 1)
-        if [ -z "$PROJECT_ROOT" ]; then
-          echo "Error: Could not find build.gradle in the repository!"
+        # The Android Gradle project lives at AURIGA/ (hardcoded — find is
+        # non-deterministic across CI runners and the layout will not change).
+        # We still validate the expectation so a future repo restructure
+        # fails loudly instead of silently building the wrong path.
+        PROJECT_ROOT="AURIGA"
+        if [ ! -f "${PROJECT_ROOT}/gradlew" ]; then
+          echo "::error::Expected Gradle wrapper at ${PROJECT_ROOT}/gradlew — not found!"
           exit 1
         fi
-        echo "Found project root at: $PROJECT_ROOT"
+        if [ ! -f "${PROJECT_ROOT}/build.gradle" ]; then
+          echo "::error::Expected project build.gradle at ${PROJECT_ROOT}/build.gradle — not found!"
+          exit 1
+        fi
+        echo "Android project root: $PROJECT_ROOT"
         echo "project_root=$PROJECT_ROOT" >> "$GITHUB_OUTPUT"
 
     - name: Compute Gradle task + output paths

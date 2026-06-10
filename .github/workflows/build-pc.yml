@@ -6,6 +6,8 @@ on:
   release:
     types: [ created ]
   workflow_dispatch:
+  # Allow this workflow to be called as a reusable workflow from release.yml
+  workflow_call:
 
 jobs:
   build-linux:
@@ -35,7 +37,7 @@ jobs:
             pyttsx3 \
             tflite-runtime \
             pyqt6
-        working-directory: platforms/pc
+        working-directory: AURIGA/platforms/pc
         continue-on-error: true
 
       - name: Build Linux binary
@@ -53,13 +55,13 @@ jobs:
             echo "auriga_pc.py not yet created — skipping binary build"
             echo "Placeholder build passed" > dist/AurigaPC-Linux.txt
           fi
-        working-directory: platforms/pc
+        working-directory: AURIGA/platforms/pc
 
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
           name: AurigaPC-Linux
-          path: platforms/pc/dist/
+          path: AURIGA/platforms/pc/dist/
           retention-days: 30
 
   build-windows:
@@ -78,7 +80,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install pyinstaller opencv-python torch torchvision pyttsx3 pyqt6
-        working-directory: platforms/pc
+        working-directory: AURIGA/platforms/pc
         continue-on-error: true
 
       - name: Build Windows EXE
@@ -96,13 +98,13 @@ jobs:
             echo "auriga_pc.py not yet created — skipping binary build"
             echo "Placeholder build passed" > dist/AurigaPC-Windows.txt
           fi
-        working-directory: platforms/pc
+        working-directory: AURIGA/platforms/pc
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: AurigaPC-Windows
-          path: platforms/pc/dist/
+          path: AURIGA/platforms/pc/dist/
           retention-days: 30
 
   upload-to-release:

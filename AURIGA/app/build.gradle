@@ -298,6 +298,15 @@ dependencies {
     // activity is destroyed.
     implementation 'androidx.activity:activity:1.8.2'
 
+    // Explicit lifecycle deps so AurigaCoreService (which implements
+    // LifecycleOwner + LifecycleRegistry directly) and any engine that
+    // imports androidx.lifecycle.* resolves against a pinned version
+    // rather than whatever CameraX or Activity pull in transitively.
+    // lifecycle-service provides ServiceLifecycleDispatcher helpers.
+    implementation 'androidx.lifecycle:lifecycle-runtime:2.7.0'
+    implementation 'androidx.lifecycle:lifecycle-service:2.7.0'
+    implementation 'androidx.lifecycle:lifecycle-common:2.7.0'
+
     // ZXing — offline barcode/QR decoder for LabelReaderEngine (Session 14).
     // Core-only (no Android UI layer needed — we call the decoder API directly).
     // Covers EAN-8/13, UPC-A/E, QR Code, Code 128/39, Data Matrix, ITF, PDF-417.

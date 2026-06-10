@@ -21,8 +21,9 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.app.Activity;
+
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
@@ -55,7 +56,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>Works for NAVI and ARAEL (sentinel) flavors — both share this activity.
  * No external library dependencies; pure Java {@code ServerSocket} + CameraX.
  */
-public class CameraStreamActivity extends AppCompatActivity {
+public class CameraStreamActivity extends Activity {
 
     private static final String TAG      = "CameraStream";
     private static final int    PORT     = 8080;
