@@ -206,6 +206,8 @@ jobs:
     # ── Phase 5: Build ───────────────────────────────────────────────
     - name: Build ${{ matrix.flavor }} ${{ matrix.buildType }} APK
       working-directory: ${{ steps.locate.outputs.project_root }}
+      env:
+        GRADLE_OPTS: "-Xmx5g -XX:MaxMetaspaceSize=512m"
       run: |
         chmod +x ./gradlew
         ./gradlew --no-daemon ${{ steps.task.outputs.gradle_task }}

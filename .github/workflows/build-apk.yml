@@ -178,6 +178,8 @@ jobs:
       # ── 13. Build all flavour debug APKs ──────────────────────────
       - name: Build debug APKs (all flavours)
         working-directory: AURIGA
+        env:
+          GRADLE_OPTS: "-Xmx5g -XX:MaxMetaspaceSize=512m"
         run: ./gradlew assembleNaviDebug assembleSentinelDebug assembleAeroDebug assembleIndustrialDebug --no-daemon --stacktrace
 
       # ── 14. Upload APKs as workflow artifacts ─────────────────────

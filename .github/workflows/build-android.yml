@@ -158,15 +158,19 @@ jobs:
       # In a project with product flavors, 'assembleDebug' assembles all
       # flavors' debug variants — output lands in apk/{flavor}/debug/.
       - name: Build Debug APKs (all flavors)
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
         working-directory: AURIGA
+        env:
+          GRADLE_OPTS: "-Xmx5g -XX:MaxMetaspaceSize=512m"
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       # Build all four product-flavor release APKs (signed with debug key
       # as fallback when no release keystore secret is present).
       # Output lands in app/build/outputs/apk/{flavor}/release/.
       - name: Build Release APKs (all flavors)
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
         working-directory: AURIGA
+        env:
+          GRADLE_OPTS: "-Xmx5g -XX:MaxMetaspaceSize=512m"
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Sign Release APKs (production keystore)
         if: github.event_name == 'release' && secrets.SIGNING_KEY_BASE64 != ''

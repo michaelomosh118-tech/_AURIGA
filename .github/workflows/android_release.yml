@@ -257,6 +257,7 @@ jobs:
       - name: Assemble ${{ matrix.flavor }} release (APK + AAB)
         working-directory: ${{ steps.locate.outputs.project_root }}
         env:
+          GRADLE_OPTS: "-Xmx5g -XX:MaxMetaspaceSize=512m"
           SIGNING_STORE_FILE: ${{ steps.keystore.outputs.path }}
           SIGNING_STORE_PASSWORD: ${{ secrets.AURIGA_RELEASE_STORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.AURIGA_RELEASE_KEY_ALIAS }}
