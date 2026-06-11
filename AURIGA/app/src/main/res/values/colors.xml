@@ -32,6 +32,13 @@
     <color name="status_online">#00F0B4</color>
     <color name="muted_label">#7AA3C8</color>
 
+    <!-- AI section accent -->
+    <color name="ai_violet">#C39BD3</color>
+    <color name="ai_violet_dim">#4DC39BD3</color>
+    <color name="model_ready">#00D06A</color>
+    <color name="model_downloading">#FFB300</color>
+    <color name="model_missing">#9AB8D8</color>
+
     <!-- Drawer section accent colours -->
     <color name="emerald_green">#00D06A</color>
     <color name="emerald_glow_25">#4000D06A</color>

@@ -52,20 +52,26 @@ public class AurigaApplication extends Application {
         instance = this;
         installUncaughtExceptionHandler();
         surfaceLastCrashIfAny();
-        kickQwenLargeDownloadIfNeeded();
+        kickModelDownloadsIfNeeded();
     }
 
     /**
-     * Start Qwen 1.5B background download if the asset is missing from the APK
-     * (rare — CI normally bundles it). No TTS at this point (app just started),
-     * so we attach TTS later via AurigaVoiceEngine.
+     * Start background downloads for both Qwen models if they are not yet
+     * present in the app's private files directory. Models are no longer
+     * bundled in the APK (saves ~1.3 GB of install size); they are
+     * downloaded on first use over any available network connection.
+     * TTS is not yet ready at application start — AurigaVoiceEngine
+     * attaches it later via modelDownloadManager.setTts().
      */
-    private void kickQwenLargeDownloadIfNeeded() {
-        if (ModelDownloadManager.isQwenLargeReady(this)) return;
+    private void kickModelDownloadsIfNeeded() {
+        boolean smallReady = ModelDownloadManager.isQwenSmallReady(this);
+        boolean largeReady = ModelDownloadManager.isQwenLargeReady(this);
+        if (smallReady && largeReady) return;
         if (!ModelDownloadManager.isOnline(this)) return;
         ModelDownloadManager mgr = new ModelDownloadManager(this);
         modelDownloadManager = mgr;
-        mgr.ensureQwenLargeDownloaded();
+        if (!smallReady) mgr.ensureQwenSmallDownloaded();
+        if (!largeReady) mgr.ensureQwenLargeDownloaded();
     }
 
     /** Global ModelDownloadManager instance — AurigaVoiceEngine attaches TTS here. */

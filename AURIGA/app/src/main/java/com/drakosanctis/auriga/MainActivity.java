@@ -13,6 +13,7 @@ import android.view.Gravity;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.Manifest;
@@ -137,6 +138,14 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
     // overlay is hidden — feedback should always carry the freshest
     // engine state, not whatever happened to be on screen.
     private volatile String lastDiagnosticSnapshot = "";
+
+    // ── AI model status UI (drawer AI ASSISTANT section) ──────────────
+    private TextView aiSmallStatus;
+    private TextView aiLargeStatus;
+    private TextView aiActiveLabel;
+    private ProgressBar aiSmallProgress;
+    private ProgressBar aiLargeProgress;
+    private ModelDownloadManager.DownloadListener aiStatusListener;
 
     // Diagnostic overlay state. Toggled by tapping the DIAG button in
     // the HUD top bar (explicit affordance; replaces the earlier
@@ -385,6 +394,7 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
                             (View) findViewById(R.id.nav_feedback),
                             (TextView) findViewById(R.id.nav_feedback_hint));
                     refreshDrawerStatusStrip();
+                    refreshAiModelStatus();
                 }
             });
         }
@@ -571,8 +581,183 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
             } catch (Throwable ignored) {}
         }
 
+        // ── AI ASSISTANT models ────────────────────────────────────────
+        wireAiModels();
+
         // Populate the header status strip on first wire-up
         refreshDrawerStatusStrip();
+    }
+
+    // ── AI model status wiring ─────────────────────────────────────────
+
+    /**
+     * Wire the AI ASSISTANT drawer section: find views, attach click listeners
+     * that trigger on-demand downloads, register a DownloadListener for live
+     * progress updates, and paint the initial status.
+     */
+    private void wireAiModels() {
+        aiSmallStatus  = findViewById(R.id.nav_ai_small_status);
+        aiLargeStatus  = findViewById(R.id.nav_ai_large_status);
+        aiActiveLabel  = findViewById(R.id.nav_ai_active_label);
+        aiSmallProgress = findViewById(R.id.nav_ai_small_progress);
+        aiLargeProgress = findViewById(R.id.nav_ai_large_progress);
+
+        ModelDownloadManager mgr = AurigaApplication.modelDownloadManager;
+        if (mgr == null && ModelDownloadManager.isOnline(this)) {
+            mgr = new ModelDownloadManager(this);
+            AurigaApplication.modelDownloadManager = mgr;
+        }
+        final ModelDownloadManager finalMgr = mgr;
+
+        View smallRow = findViewById(R.id.nav_ai_small_row);
+        if (smallRow != null) {
+            smallRow.setOnClickListener(v -> {
+                if (finalMgr == null) {
+                    Toast.makeText(this,
+                            "No network — connect to download", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                ModelDownloadManager.ModelState s =
+                        finalMgr.getState(ModelDownloadManager.ModelId.QWEN_SMALL);
+                if (s == ModelDownloadManager.ModelState.READY) {
+                    Toast.makeText(this, "Qwen 0.5B already downloaded", Toast.LENGTH_SHORT).show();
+                } else if (s == ModelDownloadManager.ModelState.DOWNLOADING) {
+                    Toast.makeText(this, "Qwen 0.5B download in progress…", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Starting Qwen 0.5B download (~519 MB)…", Toast.LENGTH_SHORT).show();
+                    finalMgr.ensureQwenSmallDownloaded();
+                }
+            });
+        }
+
+        View largeRow = findViewById(R.id.nav_ai_large_row);
+        if (largeRow != null) {
+            largeRow.setOnClickListener(v -> {
+                if (finalMgr == null) {
+                    Toast.makeText(this,
+                            "No network — connect to download", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                ModelDownloadManager.ModelState s =
+                        finalMgr.getState(ModelDownloadManager.ModelId.QWEN_LARGE);
+                if (s == ModelDownloadManager.ModelState.READY) {
+                    Toast.makeText(this, "Qwen 1.5B already downloaded", Toast.LENGTH_SHORT).show();
+                } else if (s == ModelDownloadManager.ModelState.DOWNLOADING) {
+                    Toast.makeText(this, "Qwen 1.5B download in progress…", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Starting Qwen 1.5B download (~800 MB)…", Toast.LENGTH_SHORT).show();
+                    finalMgr.ensureQwenLargeDownloaded();
+                }
+            });
+        }
+
+        aiStatusListener = new ModelDownloadManager.DownloadListener() {
+            @Override
+            public void onProgress(ModelDownloadManager.ModelId model, int percentDone) {
+                applyAiProgress(model, percentDone);
+            }
+            @Override
+            public void onStateChanged(ModelDownloadManager.ModelId model,
+                                       ModelDownloadManager.ModelState newState) {
+                refreshAiModelStatus();
+            }
+        };
+        if (finalMgr != null) {
+            finalMgr.registerListener(aiStatusListener);
+        }
+
+        refreshAiModelStatus();
+    }
+
+    /** Update the progress bar and sub-label for a model mid-download. */
+    private void applyAiProgress(ModelDownloadManager.ModelId model, int pct) {
+        if (model == ModelDownloadManager.ModelId.QWEN_SMALL) {
+            if (aiSmallProgress != null) {
+                aiSmallProgress.setVisibility(View.VISIBLE);
+                aiSmallProgress.setProgress(pct);
+            }
+            if (aiSmallStatus != null) {
+                aiSmallStatus.setText("⟳  Downloading — " + pct + "%");
+                aiSmallStatus.setTextColor(getColor(R.color.model_downloading));
+            }
+        } else {
+            if (aiLargeProgress != null) {
+                aiLargeProgress.setVisibility(View.VISIBLE);
+                aiLargeProgress.setProgress(pct);
+            }
+            if (aiLargeStatus != null) {
+                aiLargeStatus.setText("⟳  Downloading — " + pct + "%");
+                aiLargeStatus.setTextColor(getColor(R.color.model_downloading));
+            }
+        }
+    }
+
+    /**
+     * Repaint all three AI status rows (small, large, active model) from
+     * the current ModelDownloadManager state. Safe to call at any time
+     * from the UI thread; no-ops gracefully if views are null.
+     */
+    private void refreshAiModelStatus() {
+        ModelDownloadManager mgr = AurigaApplication.modelDownloadManager;
+
+        boolean smallReady = ModelDownloadManager.isQwenSmallReady(this);
+        boolean smallDl    = mgr != null
+                && mgr.getState(ModelDownloadManager.ModelId.QWEN_SMALL)
+                        == ModelDownloadManager.ModelState.DOWNLOADING;
+        if (aiSmallStatus != null) {
+            if (smallReady) {
+                aiSmallStatus.setText(getString(R.string.drawer_ai_small_sub_ready));
+                aiSmallStatus.setTextColor(getColor(R.color.model_ready));
+            } else if (smallDl) {
+                int p = mgr.getProgressPercent(ModelDownloadManager.ModelId.QWEN_SMALL);
+                aiSmallStatus.setText("⟳  Downloading — " + p + "%");
+                aiSmallStatus.setTextColor(getColor(R.color.model_downloading));
+            } else {
+                aiSmallStatus.setText(getString(R.string.drawer_ai_small_sub_missing));
+                aiSmallStatus.setTextColor(getColor(R.color.model_missing));
+            }
+        }
+        if (aiSmallProgress != null) {
+            aiSmallProgress.setVisibility(smallDl ? View.VISIBLE : View.GONE);
+            if (smallDl) aiSmallProgress.setProgress(
+                    mgr.getProgressPercent(ModelDownloadManager.ModelId.QWEN_SMALL));
+        }
+
+        boolean largeReady = ModelDownloadManager.isQwenLargeReady(this);
+        boolean largeDl    = mgr != null
+                && mgr.getState(ModelDownloadManager.ModelId.QWEN_LARGE)
+                        == ModelDownloadManager.ModelState.DOWNLOADING;
+        if (aiLargeStatus != null) {
+            if (largeReady) {
+                aiLargeStatus.setText(getString(R.string.drawer_ai_large_sub_ready));
+                aiLargeStatus.setTextColor(getColor(R.color.model_ready));
+            } else if (largeDl) {
+                int p = mgr.getProgressPercent(ModelDownloadManager.ModelId.QWEN_LARGE);
+                aiLargeStatus.setText("⟳  Downloading — " + p + "%");
+                aiLargeStatus.setTextColor(getColor(R.color.model_downloading));
+            } else {
+                aiLargeStatus.setText(getString(R.string.drawer_ai_large_sub_missing));
+                aiLargeStatus.setTextColor(getColor(R.color.model_missing));
+            }
+        }
+        if (aiLargeProgress != null) {
+            aiLargeProgress.setVisibility(largeDl ? View.VISIBLE : View.GONE);
+            if (largeDl) aiLargeProgress.setProgress(
+                    mgr.getProgressPercent(ModelDownloadManager.ModelId.QWEN_LARGE));
+        }
+
+        if (aiActiveLabel != null) {
+            if (largeReady) {
+                aiActiveLabel.setText(getString(R.string.drawer_ai_active_large));
+                aiActiveLabel.setTextColor(getColor(R.color.ai_violet));
+            } else if (smallReady) {
+                aiActiveLabel.setText(getString(R.string.drawer_ai_active_small));
+                aiActiveLabel.setTextColor(getColor(R.color.ai_violet));
+            } else {
+                aiActiveLabel.setText(getString(R.string.drawer_ai_active_none));
+                aiActiveLabel.setTextColor(getColor(R.color.muted_label));
+            }
+        }
     }
 
     /** Update the diagnostic overlay row label to match current visibility. */
@@ -1342,11 +1527,31 @@ public class MainActivity extends Activity implements TextureView.SurfaceTexture
         } catch (Throwable t) {
             Log.w(TAG, "TargetStore reload failed; keeping previous selection", t);
         }
+        // Repaint the AI model status (state may have changed while
+        // the activity was paused — e.g. a download completed).
+        // Re-register the listener in case a new ModelDownloadManager
+        // was created by AurigaApplication after we first wired up.
+        try {
+            ModelDownloadManager appMgr = AurigaApplication.modelDownloadManager;
+            if (appMgr != null && aiStatusListener != null) {
+                appMgr.registerListener(aiStatusListener);
+            }
+            refreshAiModelStatus();
+        } catch (Throwable t) {
+            Log.w(TAG, "AI status refresh on resume failed", t);
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        // Unregister AI download listener to avoid leaking this Activity.
+        try {
+            ModelDownloadManager appMgr = AurigaApplication.modelDownloadManager;
+            if (appMgr != null && aiStatusListener != null) {
+                appMgr.unregisterListener(aiStatusListener);
+            }
+        } catch (Throwable ignored) {}
         // Any of these can be null if their initStep failed; onDestroy must
         // not turn a degraded launch into a teardown crash.
         if (voice != null)  voice.shutdown();

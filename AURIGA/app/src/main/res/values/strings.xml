@@ -56,6 +56,18 @@
     <string name="drawer_contribute_sdk">◈  SDK &amp; Partner Interest</string>
     <string name="drawer_contribute_sdk_sub">Drone, robotics, industrial &amp; white-label enquiries</string>
 
+    <!-- AI Assistant / Model Status section -->
+    <string name="drawer_section_ai">AI ASSISTANT</string>
+    <string name="drawer_ai_small">◈  Qwen 0.5B · Small</string>
+    <string name="drawer_ai_small_sub_missing">Not downloaded · tap to download (~519 MB)</string>
+    <string name="drawer_ai_small_sub_ready">✓  Ready · 519 MB · available offline</string>
+    <string name="drawer_ai_large">◈  Qwen 1.5B · Large</string>
+    <string name="drawer_ai_large_sub_missing">Not downloaded · tap to download (~800 MB)</string>
+    <string name="drawer_ai_large_sub_ready">✓  Ready · 800 MB · available offline</string>
+    <string name="drawer_ai_active_small">◉  Active model: Qwen 0.5B</string>
+    <string name="drawer_ai_active_large">◉  Active model: Qwen 1.5B</string>
+    <string name="drawer_ai_active_none">○  No model loaded · download one above</string>
+
     <!-- Camera Connect spinner arrays -->
     <string-array name="wifi_formats">
         <item>HTTP MJPEG stream</item>

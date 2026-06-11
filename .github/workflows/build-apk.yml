@@ -43,19 +43,7 @@ jobs:
           path: AURIGA/app/src/main/assets/yolov8n_float32.tflite
           key: yolov8n-tflite-fp32-v1
 
-      - name: Cache Qwen model
-        id: qwen-cache
-        uses: actions/cache@v4
-        with:
-          path: AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin
-          key: qwen-2_5-0_5b-q8-v1
-
-      - name: Cache Qwen 2.5 1.5B model
-        id: qwen-large-cache
-        uses: actions/cache@v4
-        with:
-          path: AURIGA/app/src/main/assets/qwen2_5_1_5b_q8.bin
-          key: qwen-2_5-1_5b-q8-v1
+      # Qwen models are no longer cached/bundled — downloaded on first use.
 
       # ── 6. Install Python deps ─────────────────────────────────────
       - name: Install Python dependencies
@@ -82,84 +70,20 @@ jobs:
           [ -f "$f" ] || { echo "::error::YOLOv8n missing"; exit 1; }
           echo "YOLOv8n OK: $(du -sh $f | cut -f1)"
 
-      # ── 8. Download Qwen 2.5 0.5B (required — bundled in APK) ─────
-      # Apache-2.0, no auth token needed. Pre-bundled so the assistant
-      # works immediately on install with no network required.
-      - name: Download Qwen 2.5 0.5B
-        if: steps.qwen-cache.outputs.cache-hit != 'true'
-        run: |
-          DEST="AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin"
-          echo "Downloading Qwen 2.5 0.5B (519 MB)..."
-          python3 - <<'EOF'
-          import os, sys
-          try:
-            from huggingface_hub import hf_hub_download
-            path = hf_hub_download(
-              repo_id="litert-community/Qwen2.5-0.5B-Instruct",
-              filename="Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite",
-              local_dir="/tmp/qwen"
-            )
-            dest = "AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin"
-            import shutil; shutil.copy(path, dest)
-            print(f"Qwen saved: {os.path.getsize(dest):,} bytes")
-          except Exception as e:
-            print(f"ERROR: {e}", file=sys.stderr)
-            sys.exit(1)
-          EOF
-
-      - name: Verify Qwen
-        run: |
-          f="AURIGA/app/src/main/assets/qwen2_5_0_5b_q8.bin"
-          [ -f "$f" ] || { echo "::error::Qwen model missing — cannot build AI-capable APK"; exit 1; }
-          echo "Qwen OK: $(du -sh $f | cut -f1)"
-
-      # ── 9. Download Qwen 2.5 1.5B (required — bundled in APK) ───────
-      # Apache-2.0, no auth token needed. ~800 MB. Used on devices with
-      # ≥3 GB RAM; Qwen 0.5B is the automatic fallback below that.
-      # NOTE: litert-community only ships q8 for the 1.5B model (no q4).
-      - name: Download Qwen 2.5 1.5B
-        if: steps.qwen-large-cache.outputs.cache-hit != 'true'
-        run: |
-          DEST="AURIGA/app/src/main/assets/qwen2_5_1_5b_q8.bin"
-          echo "Downloading Qwen 2.5 1.5B (~800 MB)..."
-          python3 - <<'EOF'
-          import os, sys
-          try:
-            from huggingface_hub import hf_hub_download
-            path = hf_hub_download(
-              repo_id="litert-community/Qwen2.5-1.5B-Instruct",
-              filename="Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite",
-              local_dir="/tmp/qwen_large"
-            )
-            dest = "AURIGA/app/src/main/assets/qwen2_5_1_5b_q8.bin"
-            import shutil; shutil.copy(path, dest)
-            print(f"Qwen 1.5B saved: {os.path.getsize(dest):,} bytes")
-          except Exception as e:
-            print(f"ERROR: {e}", file=sys.stderr)
-            sys.exit(1)
-          EOF
-
-      - name: Verify Qwen 1.5B
-        run: |
-          f="AURIGA/app/src/main/assets/qwen2_5_1_5b_q8.bin"
-          [ -f "$f" ] || { echo "::error::Qwen 1.5B missing — cannot build AI-capable APK"; exit 1; }
-          echo "Qwen 1.5B OK: $(du -sh $f | cut -f1)"
-
-      # ── 10. Model inventory summary ───────────────────────────────
+      # ── 8. Model inventory summary ────────────────────────────────
+      # Qwen 0.5B and 1.5B are no longer bundled in the APK (Option A
+      # size reduction: saves ~1.3 GB). Downloaded on first use by the app.
       - name: Model inventory
         run: |
           echo "── Final model inventory ──────────────────────────────"
           ASSETS="AURIGA/app/src/main/assets"
-          for f in "$ASSETS/yolov8n_float32.tflite" \
-                   "$ASSETS/qwen2_5_0_5b_q8.bin"    \
-                   "$ASSETS/qwen2_5_1_5b_q8.bin"; do
-            name=$(basename "$f")
-            if [ -f "$f" ]; then
-              echo "  BUNDLED   $name  ($(du -sh $f | cut -f1))"
-            else
-              echo "  MISSING   $name"
-            fi
-          done
+          if [ -f "$ASSETS/yolov8n_float32.tflite" ]; then
+            echo "  BUNDLED   yolov8n_float32.tflite  ($(du -sh $ASSETS/yolov8n_float32.tflite | cut -f1))"
+          else
+            echo "  MISSING   yolov8n_float32.tflite"
+          fi
+          echo "  ON-DEMAND qwen2_5_0_5b_q8.bin  (~519 MB, downloaded by app on first use)"
+          echo "  ON-DEMAND qwen2_5_1_5b_q8.bin  (~800 MB, downloaded by app on first use)"
 
       # ── 11. Gradle cache ──────────────────────────────────────────
       - name: Cache Gradle
@@ -200,15 +124,13 @@ jobs:
           echo "| Model | Status | Size |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|------|" >> $GITHUB_STEP_SUMMARY
           ASSETS="AURIGA/app/src/main/assets"
-          for f in "$ASSETS/yolov8n_float32.tflite" "$ASSETS/qwen2_5_0_5b_q8.bin" "$ASSETS/qwen2_5_1_5b_q8.bin"; do
-            name=$(basename "$f")
-            if [ -f "$f" ]; then
-              size=$(du -sh "$f" | cut -f1)
-              echo "| $name | ✅ bundled | $size |" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "| $name | ⚠️ not bundled | — |" >> $GITHUB_STEP_SUMMARY
-            fi
-          done
+          if [ -f "$ASSETS/yolov8n_float32.tflite" ]; then
+            echo "| yolov8n_float32.tflite | ✅ bundled | $(du -sh $ASSETS/yolov8n_float32.tflite | cut -f1) |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| yolov8n_float32.tflite | ❌ missing | — |" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "| qwen2_5_0_5b_q8.bin | ⬇️ on-demand (~519 MB) | — |" >> $GITHUB_STEP_SUMMARY
+          echo "| qwen2_5_1_5b_q8.bin | ⬇️ on-demand (~800 MB) | — |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### APK outputs" >> $GITHUB_STEP_SUMMARY
           echo "| APK | Size |" >> $GITHUB_STEP_SUMMARY
