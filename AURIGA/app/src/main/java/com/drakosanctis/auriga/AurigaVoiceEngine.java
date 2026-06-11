@@ -731,6 +731,12 @@ public class AurigaVoiceEngine implements RecognitionListener {
         } else if (skillEngine != null && skillEngine.dispatch(cmd)) {
             /* skill engine handled it and will speak the reply itself */
 
+        // ── AurigaCoreService camera skills (describe, stair, crossing,
+        //    find face, read label, read cash, what colour, etc.) ──────────
+        } else if (AurigaCoreService.instance != null
+                && AurigaCoreService.instance.tryDispatchCameraCommand(cmd)) {
+            /* camera skill matched — response spoken via the service OutputLayer */
+
         // ── Conversational Q&A — three-tier fallback ──────────────────
         //   Tier 1: AurigaKnowledge rule-based KB  (instant, fully offline)
         //   Tier 2: MindEngine on-device LLM        (2–10 s, offline after first load)

@@ -4,3 +4,6 @@
 - [AurigaMind architecture](auriga-mind.md) — MindEngine + KnowledgeCache wiring; MediaPipe reflective load; dispatch order; how to enable full LLM
 - [SIE Distance Engine](sie-distance-engine.md) — DracoAID auto-calibrates H_c from person bbox; FiducialLUT.generateDynamicTable() builds physics LUT; TriangulationEngine feeds LocatorActivity
 - [Accessibility Feature Set](accessibility-features.md) — ProximityEarconManager + ColorSenseActivity + SosManager + 8 voice commands; competitor gap analysis behind each decision
+- [Camera FrameRelay Architecture](camera-frame-relay.md) — AurigaCoreService never binds CameraX; LocatorActivity pushes frames via FrameRelay singleton; fixes Android 12+ SecurityException
+- [Unified Command Dispatch Chain](command-dispatch-chain.md) — 5-tier chain wired across AurigaVoiceEngine + AurigaCoreService; CommandRouter returns null on no-match; MindEngine reachable from service
+- [VAD Wake-Word Service](vad-wake-word.md) — AudioRecord VAD replaces SpeechRecognizer loop; no audio focus requests; music never ducked; graceful fallback for rare devices

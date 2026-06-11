@@ -138,13 +138,14 @@ public class CommandRouter implements AurigaInterfaces.ICommandRouter {
      * Route a spoken command to the best-matching registered skill.
      *
      * @param spokenCommand Raw transcript from the speech recogniser.
-     * @return The spoken response string from the winning skill handler, or a
-     *         friendly "I don't know that command" fallback message.
+     * @return The spoken response string from the winning skill handler, or
+     *         {@code null} if no skill matched (caller should fall through to
+     *         the next dispatch tier — skill engine, LLM, etc.).
      */
     @Override
     public String dispatch(String spokenCommand) {
         if (spokenCommand == null || spokenCommand.trim().isEmpty()) {
-            return "I didn't catch that. Please try again.";
+            return null;
         }
 
         String normCmd  = normalise(spokenCommand);
@@ -176,9 +177,9 @@ public class CommandRouter implements AurigaInterfaces.ICommandRouter {
             }
         }
 
-        // No match
+        // No match — return null so callers can fall through to the next tier
         Log.d(TAG, "dispatch: no match (bestScore=" + bestScore + ")");
-        return buildNoMatchResponse();
+        return null;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

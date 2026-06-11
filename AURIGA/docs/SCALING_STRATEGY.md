@@ -160,3 +160,115 @@ OrCam charges $4,500+. Envision charges $1,899-$3,499. AURIGA does the spatial f
 **What you're missing:** The read-my-world features that 90% of blind users use daily (OCR, scene description, face recognition, currency ID).
 
 **How to win:** Close the read-my-world gaps (4-6 weeks of work) while keeping the spatial + independence moats that no competitor can match. The result: the first and only integrated vision-assistance suite that works 100% offline, costs $0, and does things OrCam charges $4,500 for.
+
+---
+
+## Architecture Decisions (Session 18 — Integration Fixes)
+
+### Fix 1 — Camera ownership: FrameRelay singleton
+
+**Problem:** `AurigaCoreService` and `LocatorActivity` both called
+`ProcessCameraProvider.unbindAll()` then `bindToLifecycle(this, ...)`, competing for
+the physical camera device. On Android 12+ (SDK 34/35, enforced by Samsung SM-A057F)
+the camera HAL throws `SecurityException: Attempt to use camera from a different
+process than original client` when CameraX session-drain callbacks fire on the
+service's thread pool after the activity originally opened the device.
+
+**Decision:** Exactly one component owns the camera at any given time:
+`LocatorActivity` owns it when in the foreground. `AurigaCoreService` never binds
+CameraX directly. Instead, a new `FrameRelay` singleton (thread-safe
+`CopyOnWriteArrayList` of `IFrameProvider.FrameListener`) acts as a frame bus:
+
+```
+LocatorActivity (YoloAnalyzer thread)
+    │  after each inference cycle
+    ▼
+FrameRelay.get().publishBitmap(bmp, 0)   ← ARGB→NV21 conversion here
+    │  synchronous dispatch
+    ▼
+AurigaCoreService.processFrame(nv21, w, h, rot)
+    │  rate-gated (100ms), offloads to analysisPool
+    ├── StairSenseEngine
+    ├── TrafficSenseEngine
+    ├── CrossingGuardEngine
+    └── GodsEyeOrchestrator
+```
+
+`LocatorActivity.onResume()` calls `FrameRelay.markSourceActive()`.
+`LocatorActivity.onPause()` calls `FrameRelay.markSourceInactive()`.
+When the locator is not in the foreground, no frames flow and the service engines
+are silent (correct — camera access from background is also restricted on Android 12+).
+
+### Fix 2 — LLM wired into command dispatch chain
+
+**Problem:** `AurigaCoreService.CommandRouter` had all camera skills registered but
+its dispatch result was never passed to `AurigaSkillEngine` or `MindEngine`. Unknown
+commands returned the fallback string and stopped. `AurigaVoiceEngine.routeCommand()`
+handled timers/weather/LLM but had no path into the service's camera skills (describe,
+stair, crossing, find face, read cash, etc.).
+
+**Decision:** Unified 5-tier dispatch chain:
+
+```
+AurigaVoiceEngine.routeCommand(cmd)
+    ├── T1: UI / navigation commands (open drawer, go back, etc.)
+    ├── T2: AurigaSkillEngine  (timers, alarms, weather, compass)
+    ├── T3: AurigaCoreService.tryDispatchCameraCommand(cmd)   ← NEW TIER
+    │       └── CommandRouter  (describe, stair, crossing, face, pill, cash…)
+    │           returns null on no-match (CommandRouter.dispatch changed)
+    ├── T4: AurigaKnowledge rule-based KB   (instant, offline)
+    ├── T5: MindEngine Qwen LLM             (streams via its own TTS)
+    └── T6: KnowledgeCache context / AurigaKnowledge.fallback()
+```
+
+`AurigaCoreService` also has a full standalone `onVoiceCommand()` that runs the same
+5-tier chain, for callers that don't go through `AurigaVoiceEngine` (e.g. the Butler).
+
+`CommandRouter.dispatch()` now returns `null` on no-match (previously returned a
+"I don't know that command" string, which prevented callers from detecting miss).
+
+`AurigaCoreService.initTts()` boots `TextToSpeech` in `onCreate()`, then wires
+`AurigaSkillEngine`, `KnowledgeCache.warmUp()`, and `MindEngine.createAsync()`.
+Hot-reload: if a Qwen model download completes while the service is live,
+`ModelDownloadManager.DownloadListener` reinitialises `MindEngine` immediately.
+
+### Fix 3 — Mic kills music: AudioRecord VAD
+
+**Problem:** `AurigaVoiceService` called `SpeechRecognizer.startListening()` on
+every ~300 ms cycle. The recognizer's internal Google process requests
+`AUDIOFOCUS_GAIN` on every call, ducking music and media playback continuously.
+
+**Decision:** Replace the always-on `SpeechRecognizer` loop with `AudioRecord` +
+energy-RMS Voice Activity Detector (VAD):
+
+```
+AudioRecord (VOICE_RECOGNITION, 16 kHz, mono, 16-bit PCM)
+    │  reads 100 ms chunks — NO audio focus request
+    ▼
+computeRms(chunk) > 800.0f ?
+    │  yes, for ≥ 3 consecutive chunks (300 ms sustained speech)
+    ▼
+SpeechRecognizer.startListening()   ← fires once, ~2–3 s window
+    │  onResults: check wake phrase → broadcast
+    ▼
+back to AudioRecord loop (cooldown 2 s minimum)
+```
+
+`AudioRecord` with `MediaRecorder.AudioSource.VOICE_RECOGNITION` gets hardware
+noise suppression (AGC/NS/EC) for free with zero audio focus interaction. Music
+plays completely uninterrupted. The `SpeechRecognizer` is only active for the
+brief window after confirmed speech — fully intentional and acceptable.
+
+Graceful fallback: if `AudioRecord` fails to initialize (rare; some emulators),
+the service degrades to the original `SpeechRecognizer` loop with a log warning.
+
+### Audit fixes (incomplete flows patched)
+
+- **`captureFaceEnrolment()`** — 5-frame capture loop now null-checks each
+  `FrameSnapshot.nv21` and aborts with a voice message if no frame is available
+  (previously passed null frames to `faceVault.enrol()`, risking NPE or silent
+  enrolment failure).
+- **`stopForeground(true)`** — replaced with `stopForeground(STOP_FOREGROUND_REMOVE)`
+  (the `boolean` overload was deprecated in API 33; the `int` overload has been
+  available since API 24, which is this app's minSdk).
+- **`CommandRouter` Javadoc** — updated to reflect `null` return on no-match.

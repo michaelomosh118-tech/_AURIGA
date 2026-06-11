@@ -331,6 +331,12 @@ public class LocatorActivity extends ComponentActivity {
         refreshAiStatus();
         if (voiceEngine != null) voiceEngine.onResume();
 
+        // Tell FrameRelay we are now the active frame source. AurigaCoreService
+        // listens on the relay; it no longer binds CameraX directly, which
+        // eliminates the SecurityException crash on Android 12+ (camera HAL
+        // "different process than original client").
+        FrameRelay.get().markSourceActive();
+
         // Proximity earcon — init on first resume, no-op thereafter.
         if (earconManager == null) earconManager = new ProximityEarconManager();
 
@@ -350,6 +356,7 @@ public class LocatorActivity extends ComponentActivity {
     protected void onPause() {
         super.onPause();
         if (voiceEngine != null) voiceEngine.onPause();
+        FrameRelay.get().markSourceInactive(); // stop pushing frames to service engines
         if (earconManager != null) earconManager.silence();
         if (sensorManager != null) {
             try { sensorManager.unregisterListener(lightListener); } catch (Throwable ignored) {}
@@ -730,6 +737,14 @@ public class LocatorActivity extends ComponentActivity {
                                 + " — NONE MATCH FILTER");
                     }
                 });
+
+                // Feed processed frame to AurigaCoreService perception engines via
+                // FrameRelay (stair sense, traffic sense, crossing guard, face/pill/cash
+                // identification, scene description). The bitmap is already upright (rotation
+                // has been applied by imageProxyToUprightBitmap) so we pass rotation=0.
+                // FrameRelay.publishBitmap() converts ARGB→NV21 internally and dispatches to
+                // all registered listeners. Done BEFORE recycle so the pixels are still valid.
+                FrameRelay.get().publishBitmap(bmp, 0);
 
                 bmp.recycle();
             } catch (Throwable t) {

@@ -16,21 +16,12 @@ import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 
-import androidx.annotation.Nullable;
-import androidx.camera.core.CameraSelector;
-import androidx.camera.core.ImageAnalysis;
-import androidx.camera.core.ImageProxy;
-import androidx.camera.lifecycle.ProcessCameraProvider;
-import androidx.core.app.NotificationCompat;
-import androidx.core.content.ContextCompat;
-import androidx.lifecycle.Lifecycle;
-import androidx.lifecycle.LifecycleOwner;
-import androidx.lifecycle.LifecycleRegistry;
+import android.speech.tts.TextToSpeech;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
 
 import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -38,7 +29,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -117,7 +107,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *            android:exported="false" /&gt;
  * </pre>
  */
-public class AurigaCoreService extends Service implements LifecycleOwner {
+public class AurigaCoreService extends Service {
 
     private static final String TAG = "AurigaCoreService";
 
@@ -153,22 +143,29 @@ public class AurigaCoreService extends Service implements LifecycleOwner {
     private YoloDetector         yoloDetector;
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Camera state
+    // Singleton — allows AurigaVoiceEngine to route camera commands here
     // ─────────────────────────────────────────────────────────────────────────
-    private ProcessCameraProvider cameraProvider;
-    private final AtomicLong      lastFrameMs  = new AtomicLong(0L);
-    private final AtomicBoolean   cameraReady  = new AtomicBoolean(false);
+    public static volatile AurigaCoreService instance;
 
-    // Latest frame snapshot shared between analysis calls
+    // ─────────────────────────────────────────────────────────────────────────
+    // Frame state (populated via FrameRelay, not CameraX direct binding)
+    // ─────────────────────────────────────────────────────────────────────────
+    private final AtomicLong lastFrameMs = new AtomicLong(0L);
+
+    // Latest frame snapshot — updated by processFrame(), read by CommandRouter skills
     private final AtomicReference<FrameSnapshot> latestFrame = new AtomicReference<>();
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // LifecycleOwner (required for CameraX binding)
-    // ─────────────────────────────────────────────────────────────────────────
-    private final LifecycleRegistry lifecycleRegistry = new LifecycleRegistry(this);
+    // FrameRelay listener — held so it can be removed in onDestroy()
+    private AurigaInterfaces.IFrameProvider.FrameListener frameListener;
 
-    @Override
-    public Lifecycle getLifecycle() { return lifecycleRegistry; }
+    // ─────────────────────────────────────────────────────────────────────────
+    // LLM / skill-engine tier (TTS-dependent; wired in initTts())
+    // ─────────────────────────────────────────────────────────────────────────
+    private TextToSpeech      tts;
+    private boolean           ttsReady     = false;
+    private AurigaSkillEngine skillEngine;
+    private KnowledgeCache    knowledgeCache;
+    private MindEngine        mindEngine;
 
     // ─────────────────────────────────────────────────────────────────────────
     // Service lifecycle
@@ -178,14 +175,21 @@ public class AurigaCoreService extends Service implements LifecycleOwner {
     public void onCreate() {
         super.onCreate();
         Log.i(TAG, "onCreate: initialising all engines…");
+        instance = this;
 
-        lifecycleRegistry.setCurrentState(Lifecycle.State.CREATED);
         analysisPool = Executors.newFixedThreadPool(4);
 
         initEngines();
         registerAllSkills();
 
-        // Start always-on audio hazard classifier
+        // Register as FrameRelay listener — receives frames pushed by LocatorActivity.
+        // This replaces the old CameraX direct binding, which caused a SecurityException
+        // (camera HAL "different process than original client") on Android 12+ when both
+        // the activity and the service tried to own the camera simultaneously.
+        frameListener = this::processFrame;
+        FrameRelay.get().addListener(frameListener);
+
+        // Start always-on audio hazard classifier (microphone-based, no camera needed)
         passiveHazard.start((hazardType, confidence) -> {
             String msg = "Warning! " + hazardType.name().replace("_", " ").toLowerCase(Locale.ROOT)
                        + " detected.";
@@ -194,40 +198,39 @@ public class AurigaCoreService extends Service implements LifecycleOwner {
                                AurigaInterfaces.HapticZone.ALL);
         });
 
-        Log.i(TAG, "onCreate: all engines initialised, hazard listener started.");
+        // Boot TTS → skill engine → on-device LLM dispatch chain
+        initTts();
+
+        Log.i(TAG, "onCreate: engines ready, FrameRelay registered, hazard listener started.");
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i(TAG, "onStartCommand: promoting to foreground and binding camera.");
-
-        // Promote to foreground immediately
+        Log.i(TAG, "onStartCommand: promoting to foreground.");
         startForeground(NOTIF_ID, buildNotification());
-        lifecycleRegistry.setCurrentState(Lifecycle.State.STARTED);
-
-        // Bind CameraX
-        bindCamera();
-
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
-        Log.i(TAG, "onDestroy: shutting down all engines.");
+        Log.i(TAG, "onDestroy: shutting down.");
+        instance = null;
 
-        lifecycleRegistry.setCurrentState(Lifecycle.State.DESTROYED);
-
-        // Stop CameraX
-        if (cameraProvider != null) {
-            cameraProvider.unbindAll();
-            cameraProvider = null;
+        // Disconnect from FrameRelay
+        if (frameListener != null) {
+            FrameRelay.get().removeListener(frameListener);
+            frameListener = null;
         }
-        cameraReady.set(false);
 
-        // Stop and release all engines
+        // Stop perception engines
         passiveHazard.stop();
         labelReader.shutdown();
         outputLayer.shutdown();
+
+        // Release LLM / skill engine resources
+        if (mindEngine != null) { mindEngine.close(); mindEngine = null; }
+        if (tts != null)        { tts.shutdown();     tts = null;        }
+        ttsReady = false;
 
         // Shut down analysis pool
         analysisPool.shutdown();
@@ -240,7 +243,7 @@ public class AurigaCoreService extends Service implements LifecycleOwner {
             analysisPool.shutdownNow();
         }
 
-        stopForeground(true);
+        stopForeground(STOP_FOREGROUND_REMOVE);
         super.onDestroy();
     }
 
@@ -466,65 +469,20 @@ public class AurigaCoreService extends Service implements LifecycleOwner {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // CameraX setup
+    // Per-frame analysis pipeline (frames arrive via FrameRelay from LocatorActivity)
     // ─────────────────────────────────────────────────────────────────────────
 
-    private void bindCamera() {
-        ListenableFuture<ProcessCameraProvider> future =
-            ProcessCameraProvider.getInstance(this);
-
-        future.addListener(() -> {
-            try {
-                cameraProvider = future.get();
-
-                ImageAnalysis analyser = new ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build();
-
-                analyser.setAnalyzer(analysisPool, imageProxy -> {
-                    try {
-                        processFrame(imageProxy);
-                    } finally {
-                        imageProxy.close();
-                    }
-                });
-
-                cameraProvider.unbindAll();
-                cameraProvider.bindToLifecycle(
-                    this,
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    analyser
-                );
-
-                lifecycleRegistry.setCurrentState(Lifecycle.State.RESUMED);
-                cameraReady.set(true);
-                Log.i(TAG, "Camera bound and analysis started.");
-
-            } catch (Exception e) {
-                Log.e(TAG, "Camera bind failed", e);
-                outputLayer.speak("Camera unavailable. Some features are disabled.",
-                    AurigaInterfaces.OutputPriority.HIGH);
-            }
-        }, ContextCompat.getMainExecutor(this));
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Per-frame analysis pipeline
-    // ─────────────────────────────────────────────────────────────────────────
-
-    private void processFrame(ImageProxy imageProxy) {
+    /**
+     * Called by the {@link FrameRelay} listener on LocatorActivity's analysisExecutor
+     * thread. Heavy engine work is immediately offloaded to {@link #analysisPool}.
+     */
+    private void processFrame(byte[] nv21, int width, int height, int rotation) {
         // ── Frame rate gate: max 1 frame per FRAME_GATE_MS ───────────────
         long now = System.currentTimeMillis();
         if (now - lastFrameMs.get() < FRAME_GATE_MS) return;
         lastFrameMs.set(now);
 
-        // ── Extract NV21 ─────────────────────────────────────────────────
-        byte[] nv21 = toNv21(imageProxy);
         if (nv21 == null) return;
-
-        int width    = imageProxy.getWidth();
-        int height   = imageProxy.getHeight();
-        int rotation = imageProxy.getImageInfo().getRotationDegrees();
 
         // ── YOLO detections (if model bundled) ───────────────────────────
         List<Detection> detections = null;
@@ -647,21 +605,33 @@ public class AurigaCoreService extends Service implements LifecycleOwner {
 
     private void captureFaceEnrolment(String personName) {
         analysisPool.submit(() -> {
-            byte[][] frames = new byte[5][];
+            byte[][] frames  = new byte[5][];
+            int capturedW = 640, capturedH = 480;
             for (int i = 0; i < 5; i++) {
                 FrameSnapshot snap = latestFrame.get();
-                if (snap != null) frames[i] = snap.nv21;
+                if (snap != null && snap.nv21 != null) {
+                    frames[i] = snap.nv21;
+                    capturedW  = snap.width;
+                    capturedH  = snap.height;
+                }
                 try { Thread.sleep(400); } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return;
                 }
             }
 
-            FrameSnapshot snap = latestFrame.get();
-            int w = snap != null ? snap.width  : 640;
-            int h = snap != null ? snap.height : 480;
+            // Require at least one valid frame before enrolment
+            boolean hasFrame = false;
+            for (byte[] f : frames) { if (f != null) { hasFrame = true; break; } }
+            if (!hasFrame) {
+                outputLayer.speak(
+                    "Face enrolment failed: no camera frame available. "
+                    + "Please open the locator screen first.",
+                    AurigaInterfaces.OutputPriority.NORMAL);
+                return;
+            }
 
-            boolean ok = faceVault.enrol(personName, frames, w, h);
+            boolean ok = faceVault.enrol(personName, frames, capturedW, capturedH);
             String msg = ok
                 ? personName + " enrolled successfully."
                 : "Face enrolment failed. Please try again in better lighting.";
@@ -699,32 +669,6 @@ public class AurigaCoreService extends Service implements LifecycleOwner {
     // ─────────────────────────────────────────────────────────────────────────
     // Conversion utilities
     // ─────────────────────────────────────────────────────────────────────────
-
-    /** Extract NV21 bytes from a CameraX ImageProxy (YUV_420_888). */
-    private static byte[] toNv21(ImageProxy proxy) {
-        try {
-            ImageProxy.PlaneProxy[] planes = proxy.getPlanes();
-            if (planes.length < 3) return null;
-
-            ByteBuffer yBuf  = planes[0].getBuffer();
-            ByteBuffer uBuf  = planes[1].getBuffer();
-            ByteBuffer vBuf  = planes[2].getBuffer();
-
-            int ySize = yBuf.remaining();
-            int uSize = uBuf.remaining();
-            int vSize = vBuf.remaining();
-
-            byte[] nv21 = new byte[ySize + uSize + vSize];
-            yBuf.get(nv21, 0, ySize);
-            // NV21 expects V then U interleaved; ImageProxy gives U then V planes
-            vBuf.get(nv21, ySize, vSize);
-            uBuf.get(nv21, ySize + vSize, uSize);
-            return nv21;
-        } catch (Exception e) {
-            Log.e(TAG, "toNv21 failed", e);
-            return null;
-        }
-    }
 
     /** Convert NV21 bytes → Bitmap for YoloDetector. */
     private static Bitmap nv21ToBitmap(byte[] nv21, int width, int height) {
@@ -772,16 +716,104 @@ public class AurigaCoreService extends Service implements LifecycleOwner {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Route a spoken command through the CommandRouter and speak the response.
-     * Called by {@link AurigaVoiceService} and {@link AurigaVoiceEngine} when
-     * the wake-word fires.
+     * Full 5-tier voice command dispatch. Called by AurigaVoiceService /
+     * AurigaButlerService or any component that wants the complete chain.
+     *
+     * <ol>
+     *   <li>CommandRouter — camera-dependent skills (describe, stair, face, pill…)</li>
+     *   <li>AurigaSkillEngine — timers, alarms, weather, compass…</li>
+     *   <li>AurigaKnowledge — rule-based offline KB (instant)</li>
+     *   <li>MindEngine — on-device Qwen LLM (streams via its own TTS)</li>
+     *   <li>KnowledgeCache context / AurigaKnowledge.fallback() safety net</li>
+     * </ol>
      */
     public void onVoiceCommand(String spokenText) {
         if (spokenText == null || spokenText.trim().isEmpty()) return;
-        String response = commandRouter.dispatch(spokenText);
+        String cmd = spokenText.trim().toLowerCase(Locale.ROOT);
+
+        // Tier 1: camera-dependent skills
+        if (tryDispatchCameraCommand(cmd)) return;
+
+        // Tier 2: skill engine (timers, alarms, weather, etc.)
+        if (skillEngine != null && skillEngine.dispatch(cmd)) return;
+
+        // Tier 3: rule-based KB (instant, fully offline)
+        String kbAnswer = AurigaKnowledge.answer(cmd);
+        if (kbAnswer != null) {
+            outputLayer.speak(kbAnswer, AurigaInterfaces.OutputPriority.NORMAL);
+            AurigaMemoryStore.store(this, "assistant", kbAnswer, "voice");
+            return;
+        }
+
+        // Tier 4: on-device LLM
+        if (mindEngine != null) {
+            AurigaMemoryStore.store(this, "assistant", "[MindEngine responding]", "voice");
+            mindEngine.ask(cmd, null);
+            return;
+        }
+
+        // Tier 5: context from KnowledgeCache or AurigaKnowledge.fallback()
+        String ctx   = knowledgeCache != null ? knowledgeCache.getContext(cmd) : "";
+        String reply = !ctx.isEmpty() ? ctx : AurigaKnowledge.fallback(cmd);
+        outputLayer.speak(reply, AurigaInterfaces.OutputPriority.NORMAL);
+        AurigaMemoryStore.store(this, "assistant", reply, "voice");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // LLM / skill engine bootstrap
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void initTts() {
+        tts = new TextToSpeech(this, status -> {
+            ttsReady = (status == TextToSpeech.SUCCESS);
+            if (!ttsReady || tts == null) {
+                Log.w(TAG, "TTS init failed — skill engine and LLM will be unavailable.");
+                return;
+            }
+            tts.setLanguage(java.util.Locale.getDefault());
+            skillEngine    = new AurigaSkillEngine(this, tts);
+            knowledgeCache = new KnowledgeCache(this);
+            knowledgeCache.warmUp();
+            MindEngine.createAsync(this, knowledgeCache, tts,
+                    engine -> mindEngine = engine);
+
+            // Hot-reload: if a Qwen model finishes downloading while the service is live,
+            // bootstrap MindEngine immediately so the next command uses it without a restart.
+            if (AurigaApplication.modelDownloadManager != null) {
+                AurigaApplication.modelDownloadManager.setTts(tts);
+                AurigaApplication.modelDownloadManager.registerListener(
+                        new ModelDownloadManager.DownloadListener() {
+                    @Override public void onProgress(
+                            ModelDownloadManager.ModelId model, int pct) {}
+                    @Override public void onStateChanged(
+                            ModelDownloadManager.ModelId model,
+                            ModelDownloadManager.ModelState state) {
+                        if (state == ModelDownloadManager.ModelState.READY
+                                && mindEngine == null) {
+                            MindEngine.createAsync(AurigaCoreService.this,
+                                    knowledgeCache, tts,
+                                    engine -> mindEngine = engine);
+                        }
+                    }
+                });
+            }
+            Log.i(TAG, "TTS ready — skill engine + LLM chain initialised.");
+        });
+    }
+
+    /**
+     * Try to route {@code cmd} through the CommandRouter (camera-dependent skills only).
+     *
+     * @return {@code true} if a skill matched and the response has been spoken;
+     *         {@code false} if no skill matched and the caller should try the next tier.
+     */
+    public boolean tryDispatchCameraCommand(String cmd) {
+        String response = commandRouter.dispatch(cmd);
         if (response != null && !response.isEmpty()) {
             outputLayer.speak(response, AurigaInterfaces.OutputPriority.HIGH);
+            return true;
         }
+        return false;
     }
 
     /**

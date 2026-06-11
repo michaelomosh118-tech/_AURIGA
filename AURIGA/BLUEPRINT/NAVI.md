@@ -772,6 +772,68 @@ The web UI shows: *"Chair — last seen 3 minutes ago, 1.2 metres, slightly righ
 
 ---
 
-*Blueprint version: 1.0.0 — Auriga Navi · Phase 1 complete*
+---
+
+## 17. Architecture Decisions (Session 18 Integration Fixes)
+
+### 17.1 Camera ownership — FrameRelay singleton
+
+Both `AurigaCoreService` and `LocatorActivity` previously bound the same physical
+camera device via `ProcessCameraProvider.bindToLifecycle()`. On Android 12+
+(SDK 34/35, Samsung SM-A057F) this caused a `SecurityException` ("camera from a
+different process") when CameraX session-drain callbacks fired on the service's
+`analysisPool` thread.
+
+**Architecture decision:** Exactly one camera owner at a time.
+`LocatorActivity` owns CameraX when in the foreground. `AurigaCoreService` listens
+on `FrameRelay` — a process-local singleton frame bus — instead of binding CameraX
+directly. `LocatorActivity.onResume()` calls `FrameRelay.markSourceActive()` and
+pushes processed bitmaps after each YOLO cycle; `onPause()` calls
+`markSourceInactive()`. The service's engines (StairSense, TrafficSense,
+CrossingGuard, GodsEye) receive NV21 frames converted internally by `FrameRelay`.
+
+### 17.2 Voice command dispatch — unified 5-tier chain
+
+Previously `AurigaCoreService.CommandRouter` had camera skills registered but
+nothing actually called `dispatch()` from the voice pipeline.
+`AurigaVoiceEngine.routeCommand()` handled skill engine + LLM but had no path to
+camera skills (describe scene, stair, crossing, find face, read cash, etc.).
+
+**Architecture decision:** A new `tryDispatchCameraCommand()` method on
+`AurigaCoreService` (accessible via the `static volatile instance` field) is
+inserted as Tier 3 in `AurigaVoiceEngine.routeCommand()`:
+
+```
+T1: UI / navigation (open drawer, back)
+T2: AurigaSkillEngine  (timers, alarms, weather)
+T3: AurigaCoreService.tryDispatchCameraCommand()  ← new
+T4: AurigaKnowledge KB (instant, offline)
+T5: MindEngine Qwen LLM
+T6: KnowledgeCache / AurigaKnowledge.fallback()
+```
+
+`AurigaCoreService` also boots its own `TextToSpeech` + `AurigaSkillEngine` +
+`KnowledgeCache` + `MindEngine` chain via `initTts()` in `onCreate()`, so its
+standalone `onVoiceCommand()` (called from AurigaButlerService or future clients)
+also reaches the LLM. `CommandRouter.dispatch()` now returns `null` on no-match so
+callers can detect it cleanly without string comparison.
+
+### 17.3 Mic audio-focus — AudioRecord VAD
+
+`AurigaVoiceService` previously looped `SpeechRecognizer.startListening()` every
+~300 ms. Each call caused the recognizer's internal Google process to request
+`AUDIOFOCUS_GAIN`, ducking music continuously — critical UX issue for blind users
+who rely on audio feedback.
+
+**Architecture decision:** Replace the loop with `AudioRecord` + energy-RMS VAD.
+`AudioRecord(VOICE_RECOGNITION, 16kHz)` reads PCM continuously with **zero audio
+focus requests** — music plays uninterrupted. The VAD fires `SpeechRecognizer` only
+after 300 ms of sustained speech above RMS threshold 800. The recognizer is active
+for at most 2–3 seconds per utterance. Graceful fallback to the old loop on devices
+where `AudioRecord` fails to initialize (logged with a warning).
+
+---
+
+*Blueprint version: 1.1.0 — Auriga Navi · Session 18 integration fixes applied*
 *Maintained by DrakoSanctis / Michael Omondi*
 *All formulas, thresholds, and constants described here are live in the codebase.*
