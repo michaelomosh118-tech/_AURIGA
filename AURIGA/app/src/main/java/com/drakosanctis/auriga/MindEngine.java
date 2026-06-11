@@ -137,12 +137,20 @@ public class MindEngine {
                     + "Falling through to Qwen 0.5B.");
         }
 
-        // ── Qwen 2.5 0.5B (q8, ~519 MB) ─────────────────────────────
-        // Bundled in the APK assets by CI — always available immediately.
-        if (assetExists(MODEL_QWEN) && tryLoadMediaPipe(MODEL_QWEN, "qwen", true)) return;
+        // ── Qwen 2.5 0.5B (q8, ~519 MB) — compact, runs on all devices ──
+        // Check APK assets first (CI-bundled sideload builds), then the
+        // FilesDir path written by ModelDownloadManager (download-on-demand builds).
+        if (assetExists(MODEL_QWEN)) {
+            if (tryLoadMediaPipe(MODEL_QWEN, "qwen", true)) return;
+        }
+        File smallFile = ModelDownloadManager.qwenSmallFilesPath(ctx);
+        if (smallFile.exists() && smallFile.length() > 0) {
+            if (tryLoadFromFile(smallFile, "qwen")) return;
+        }
 
-        Log.i(TAG, "MindEngine: no usable model available. "
-                + "Both Qwen models should be bundled in APK assets by CI.");
+        Log.i(TAG, "MindEngine: no model available. "
+                + "Download Qwen via AI Assistant in the drawer, "
+                + "or drop model files into app/src/main/assets/. See MODEL_README.md.");
     }
 
     /** Returns total device RAM in MB. Used for the Qwen 1.5B OOM guard. */

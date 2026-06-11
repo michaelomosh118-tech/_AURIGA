@@ -237,6 +237,31 @@ public class ModelDownloadManager {
         runningLarge.set(false);
     }
 
+    /** Cancel a single model's in-progress download. Partial file is kept for resume. */
+    public void cancelDownload(ModelId id) {
+        if (id == ModelId.QWEN_SMALL) runningSmall.set(false);
+        else                          runningLarge.set(false);
+    }
+
+    /**
+     * Delete a model's files and reset its download state.
+     * Safe to call even if the model was never downloaded.
+     * Does NOT cancel an in-flight download — call {@link #cancelDownload} first.
+     */
+    public void deleteModel(ModelId id) {
+        boolean isSmall = id == ModelId.QWEN_SMALL;
+        File target = isSmall ? qwenSmallFilesPath(ctx) : qwenLargeFilesPath(ctx);
+        if (target.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            target.delete();
+        }
+        String prefDone  = isSmall ? PREF_QWEN_SMALL_DONE  : PREF_QWEN_LARGE_DONE;
+        String prefBytes = isSmall ? PREF_QWEN_SMALL_BYTES  : PREF_QWEN_LARGE_BYTES;
+        getPrefs().edit().remove(prefDone).remove(prefBytes).apply();
+        notifyState(id, ModelState.NOT_DOWNLOADED);
+        notifyProgress(id, 0);
+    }
+
     // ── Download internals ────────────────────────────────────────────
 
     private void downloadWithRetry(ModelId id) {

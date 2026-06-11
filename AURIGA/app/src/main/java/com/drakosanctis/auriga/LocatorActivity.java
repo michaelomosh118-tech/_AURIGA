@@ -296,6 +296,7 @@ public class LocatorActivity extends ComponentActivity {
         }
         refreshFeedbackGate(findViewById(R.id.nav_feedback),
                 findViewById(R.id.nav_feedback_hint));
+        refreshAiStatus();
         if (voiceEngine != null) voiceEngine.onResume();
     }
 
@@ -1098,6 +1099,13 @@ public class LocatorActivity extends ComponentActivity {
         }
         refreshMuteLabels();
 
+        // ── AI ASSISTANT ─────────────────────────────────────────
+        View navAi = findViewById(R.id.nav_ai_assistant);
+        if (navAi != null) navAi.setOnClickListener(v -> {
+            closeDrawer();
+            safeStart(ModelStatusActivity.class, "AI Assistant");
+        });
+
         // ── SUPPORT / CONTRIBUTE ─────────────────────────────────
         View navHelp = findViewById(R.id.nav_help);
         if (navHelp != null) navHelp.setOnClickListener(v -> {
@@ -1139,6 +1147,33 @@ public class LocatorActivity extends ComponentActivity {
             smartLightSub.setText(smartLightEnabled
                     ? "ON · flashes before each scan"
                     : "OFF · tap to enable");
+        }
+    }
+
+    /**
+     * Refresh the AI Assistant drawer sub-label to reflect current model state.
+     * Called from onResume so users always see fresh status when they open the drawer.
+     */
+    private void refreshAiStatus() {
+        TextView sub = findViewById(R.id.nav_ai_assistant_sub);
+        if (sub == null) return;
+        ModelDownloadManager mgr = AurigaApplication.modelDownloadManager;
+        if (mgr == null) {
+            sub.setText(getString(R.string.drawer_ai_active_none));
+            return;
+        }
+        ModelDownloadManager.ModelState ls = mgr.getState(ModelDownloadManager.ModelId.QWEN_LARGE);
+        ModelDownloadManager.ModelState ss = mgr.getState(ModelDownloadManager.ModelId.QWEN_SMALL);
+        if (ls == ModelDownloadManager.ModelState.DOWNLOADING) {
+            sub.setText("Qwen 1.5B downloading  " + mgr.getProgressPercent(ModelDownloadManager.ModelId.QWEN_LARGE) + "% · tap to manage");
+        } else if (ss == ModelDownloadManager.ModelState.DOWNLOADING) {
+            sub.setText("Qwen 0.5B downloading  " + mgr.getProgressPercent(ModelDownloadManager.ModelId.QWEN_SMALL) + "% · tap to manage");
+        } else if (ls == ModelDownloadManager.ModelState.READY) {
+            sub.setText(getString(R.string.drawer_ai_active_large));
+        } else if (ss == ModelDownloadManager.ModelState.READY) {
+            sub.setText(getString(R.string.drawer_ai_active_small));
+        } else {
+            sub.setText(getString(R.string.drawer_ai_active_none));
         }
     }
 

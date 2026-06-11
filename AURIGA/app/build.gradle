@@ -207,7 +207,16 @@ tasks.register('copyWebDeployToAssets', Copy) {
 // Make every variant's asset-merge step depend on the copy task so the
 // staged web bundle is in place before AAPT packages assets.
 android.applicationVariants.all { variant ->
-    variant.mergeAssetsProvider.configure { dependsOn 'copyWebDeployToAssets' }
+    variant.mergeAssetsProvider.configure {
+        dependsOn 'copyWebDeployToAssets'
+        // Safety net: never bundle *.bin model files inside the APK.
+        // Models are downloaded on first run via ModelDownloadManager.
+        // This doLast fires after assets are merged and removes any .bin
+        // files that may have been staged locally for development.
+        doLast {
+            delete(fileTree(outputDir).matching { include '**/*.bin' })
+        }
+    }
 }
 
 // AGP's lint pipeline (both the regular `lint*` tasks and the

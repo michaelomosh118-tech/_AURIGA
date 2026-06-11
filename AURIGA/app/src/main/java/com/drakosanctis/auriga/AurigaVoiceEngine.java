@@ -298,6 +298,37 @@ public class AurigaVoiceEngine implements RecognitionListener {
                    before TTS is ready, so we wire TTS here once it's ready. */
                 if (AurigaApplication.modelDownloadManager != null) {
                     AurigaApplication.modelDownloadManager.setTts(ttsRef);
+                    // Hot-reload: when any model finishes downloading while the
+                    // app is running, automatically initialise MindEngine without
+                    // requiring the user to restart. The DownloadListener is kept
+                    // alive for the duration of the AurigaVoiceEngine instance.
+                    AurigaApplication.modelDownloadManager.registerListener(
+                            new ModelDownloadManager.DownloadListener() {
+                        @Override
+                        public void onProgress(ModelDownloadManager.ModelId model,
+                                               int percentDone) { /* progress spoken by mgr */ }
+
+                        @Override
+                        public void onStateChanged(ModelDownloadManager.ModelId model,
+                                                   ModelDownloadManager.ModelState newState) {
+                            if (newState == ModelDownloadManager.ModelState.READY
+                                    && mindEngine == null) {
+                                // A model just became ready — bootstrap MindEngine
+                                // so the next spoken question uses it immediately.
+                                MindEngine.createAsync(activity, knowledgeCache, ttsRef,
+                                        engine -> {
+                                            mindEngine = engine;
+                                            if (engine != null) {
+                                                ttsRef.speak(
+                                                    "AI assistant is now ready. "
+                                                    + "You can ask me anything.",
+                                                    android.speech.tts.TextToSpeech.QUEUE_ADD,
+                                                    null, "mind_ready");
+                                            }
+                                        });
+                            }
+                        }
+                    });
                 } else if (!ModelDownloadManager.isQwenLargeReady(activity)) {
                     /* Rare path: Application.onCreate ran without network.
                        Start the download now that we're past init and online. */

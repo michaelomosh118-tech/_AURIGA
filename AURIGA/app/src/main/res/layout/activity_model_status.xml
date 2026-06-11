@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/space_black"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="28dp"
+        android:paddingBottom="32dp">
+
+        <!-- ── Top bar ── -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="28dp">
+
+            <Button
+                android:id="@+id/btn_back"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:text="←"
+                android:textSize="18sp"
+                android:textColor="@color/auriga_cyan"
+                android:background="@drawable/drawer_item_bg"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:contentDescription="Go back"
+                android:stateListAnimator="@null" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"
+                android:text="AI ASSISTANT"
+                android:textSize="18sp"
+                android:textColor="@color/ai_violet"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.12"
+                android:shadowColor="@color/ai_violet"
+                android:shadowRadius="10"
+                android:shadowDx="0"
+                android:shadowDy="0" />
+
+        </LinearLayout>
+
+        <!-- ── Intro note ── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="On-device language models power your voice Q&amp;A. No data leaves your phone. Models are stored in private app storage and are never visible in the Files app."
+            android:textSize="13sp"
+            android:textColor="@color/section_header_text"
+            android:fontFamily="sans-serif"
+            android:lineSpacingMultiplier="1.4" />
+
+        <!-- ── Active model footer (shown at top for quick status) ── -->
+        <TextView
+            android:id="@+id/active_model_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="28dp"
+            android:text="@string/drawer_ai_active_none"
+            android:textSize="13sp"
+            android:textColor="@color/ai_violet"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.06" />
+
+        <!-- ══ Qwen 0.5B Card ══ -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/drawer_item_bg"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp"
+            android:layout_marginBottom="16dp">
+
+            <!-- Row 1: name + size -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="6dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Qwen 2.5 · 0.5B · Compact"
+                    android:textSize="15sp"
+                    android:textColor="@color/hud_text"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.02" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="~519 MB"
+                    android:textSize="11sp"
+                    android:textColor="@color/drawer_sub_text"
+                    android:fontFamily="monospace" />
+
+            </LinearLayout>
+
+            <!-- Row 2: description -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="Compact and fast. Answers most voice questions well. Recommended for devices with less than 3 GB RAM."
+                android:textSize="12sp"
+                android:textColor="@color/drawer_sub_text"
+                android:fontFamily="sans-serif"
+                android:lineSpacingMultiplier="1.3" />
+
+            <!-- Row 3: status label -->
+            <TextView
+                android:id="@+id/small_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:text="NOT DOWNLOADED"
+                android:textSize="12sp"
+                android:textColor="@color/model_missing"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.08"
+                android:textAllCaps="true" />
+
+            <!-- Row 4: progress bar (hidden when idle/ready) -->
+            <ProgressBar
+                android:id="@+id/small_progress"
+                style="@android:style/Widget.ProgressBar.Horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginBottom="12dp"
+                android:progress="0"
+                android:max="100"
+                android:progressTint="@color/warning_amber"
+                android:progressBackgroundTint="@color/glass_panel"
+                android:visibility="gone" />
+
+            <!-- Row 5: action button -->
+            <Button
+                android:id="@+id/btn_small"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:text="DOWNLOAD"
+                android:textSize="13sp"
+                android:textColor="@color/space_black"
+                android:backgroundTint="@color/ai_violet"
+                android:letterSpacing="0.08"
+                android:fontFamily="sans-serif-medium"
+                android:stateListAnimator="@null"
+                android:contentDescription="Download or cancel Qwen 0.5B model" />
+
+        </LinearLayout>
+
+        <!-- ══ Qwen 1.5B Card ══ -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/drawer_item_bg"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp"
+            android:layout_marginBottom="28dp">
+
+            <!-- Row 1: name + size -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="6dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Qwen 2.5 · 1.5B · Large"
+                    android:textSize="15sp"
+                    android:textColor="@color/hud_text"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.02" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="~800 MB"
+                    android:textSize="11sp"
+                    android:textColor="@color/drawer_sub_text"
+                    android:fontFamily="monospace" />
+
+            </LinearLayout>
+
+            <!-- Row 2: description -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:text="Larger and more capable. Better for detailed questions, descriptions and complex Q&amp;A. Requires 3 GB+ RAM."
+                android:textSize="12sp"
+                android:textColor="@color/drawer_sub_text"
+                android:fontFamily="sans-serif"
+                android:lineSpacingMultiplier="1.3" />
+
+            <!-- Row 3: status label -->
+            <TextView
+                android:id="@+id/large_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:text="NOT DOWNLOADED"
+                android:textSize="12sp"
+                android:textColor="@color/model_missing"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="0.08"
+                android:textAllCaps="true" />
+
+            <!-- Row 4: progress bar -->
+            <ProgressBar
+                android:id="@+id/large_progress"
+                style="@android:style/Widget.ProgressBar.Horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginBottom="12dp"
+                android:progress="0"
+                android:max="100"
+                android:progressTint="@color/warning_amber"
+                android:progressBackgroundTint="@color/glass_panel"
+                android:visibility="gone" />
+
+            <!-- Row 5: action button -->
+            <Button
+                android:id="@+id/btn_large"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:text="DOWNLOAD"
+                android:textSize="13sp"
+                android:textColor="@color/space_black"
+                android:backgroundTint="@color/ai_violet"
+                android:letterSpacing="0.08"
+                android:fontFamily="sans-serif-medium"
+                android:stateListAnimator="@null"
+                android:contentDescription="Download or cancel Qwen 1.5B model" />
+
+        </LinearLayout>
+
+        <!-- ── Storage note ── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Models are stored in the app&#8217;s private internal storage. They are NOT accessible from the Files app or any other app. To free storage, use the DELETE button above."
+            android:textSize="11sp"
+            android:textColor="@color/drawer_sub_text"
+            android:fontFamily="sans-serif"
+            android:lineSpacingMultiplier="1.4" />
+
+    </LinearLayout>
+</ScrollView>
