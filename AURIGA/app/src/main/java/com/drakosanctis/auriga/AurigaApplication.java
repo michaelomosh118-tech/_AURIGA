@@ -64,12 +64,17 @@ public class AurigaApplication extends Application {
      * attaches it later via modelDownloadManager.setTts().
      */
     private void kickModelDownloadsIfNeeded() {
-        boolean smallReady = ModelDownloadManager.isQwenSmallReady(this);
-        boolean largeReady = ModelDownloadManager.isQwenLargeReady(this);
-        if (smallReady && largeReady) return;
-        if (!ModelDownloadManager.isOnline(this)) return;
+        // Always create the manager so ModelStatusActivity and LocatorActivity
+        // can always reference a non-null instance — even when the device starts
+        // offline. "Service not available" was caused by this being null on cold
+        // boots without a network connection.
         ModelDownloadManager mgr = new ModelDownloadManager(this);
         modelDownloadManager = mgr;
+
+        boolean smallReady = ModelDownloadManager.isQwenSmallReady(this);
+        boolean largeReady = ModelDownloadManager.isQwenLargeReady(this);
+        if (smallReady && largeReady) return; // nothing to download
+        if (!ModelDownloadManager.isOnline(this)) return; // offline — user can retry via UI
         if (!smallReady) mgr.ensureQwenSmallDownloaded();
         if (!largeReady) mgr.ensureQwenLargeDownloaded();
     }

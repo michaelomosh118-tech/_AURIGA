@@ -661,7 +661,11 @@ public class AurigaVoiceEngine implements RecognitionListener {
                 "download AI", "download the AI", "install AI", "get the AI",
                 "download small model", "get small model", "download small AI",
                 "small model", "get AI assistant", "install assistant", "get AI")) {
-            ModelDownloadManager mgr = new ModelDownloadManager(activity);
+            // Always use the global manager so downloads show in ModelStatusActivity
+            // and progress is spoken correctly. Never create a local orphan instance —
+            // it would have its own AtomicBoolean(false), report NOT_DOWNLOADED even
+            // when a download is in progress, and could race-write the same file.
+            ModelDownloadManager mgr = getOrCreateGlobalMgr();
             ModelDownloadManager.ModelState st =
                     mgr.getState(ModelDownloadManager.ModelId.QWEN_SMALL);
             if (st == ModelDownloadManager.ModelState.READY) {
@@ -671,8 +675,12 @@ public class AurigaVoiceEngine implements RecognitionListener {
                         + mgr.getProgressPercent(ModelDownloadManager.ModelId.QWEN_SMALL)
                         + " percent complete.");
             } else {
-                speak("Starting small AI model download.");
-                mgr.ensureQwenSmallDownloaded();
+                if (!ModelDownloadManager.isOnline(activity)) {
+                    speak("No internet connection. Please connect and try again.");
+                } else {
+                    speak("Starting small AI model download. About 519 megabytes.");
+                    mgr.ensureQwenSmallDownloaded();
+                }
             }
 
         // ── AI model — download large ──────────────────────────────────
@@ -680,7 +688,7 @@ public class AurigaVoiceEngine implements RecognitionListener {
                 "download large model", "download large AI", "get large model",
                 "get big model", "download big AI", "large model",
                 "download full AI", "install full model", "get large AI")) {
-            ModelDownloadManager mgr = new ModelDownloadManager(activity);
+            ModelDownloadManager mgr = getOrCreateGlobalMgr();
             ModelDownloadManager.ModelState st =
                     mgr.getState(ModelDownloadManager.ModelId.QWEN_LARGE);
             if (st == ModelDownloadManager.ModelState.READY) {
@@ -690,9 +698,13 @@ public class AurigaVoiceEngine implements RecognitionListener {
                         + mgr.getProgressPercent(ModelDownloadManager.ModelId.QWEN_LARGE)
                         + " percent complete.");
             } else {
-                speak("Starting large AI model download. This is about 1.3 gigabytes "
-                        + "so please use Wi-Fi.");
-                mgr.ensureQwenLargeDownloaded();
+                if (!ModelDownloadManager.isOnline(activity)) {
+                    speak("No internet connection. Please connect and try again.");
+                } else {
+                    speak("Starting large AI model download. This is about 1.3 gigabytes "
+                            + "so please use Wi-Fi.");
+                    mgr.ensureQwenLargeDownloaded();
+                }
             }
 
         // ── AI model — status ──────────────────────────────────────────
@@ -701,7 +713,7 @@ public class AurigaVoiceEngine implements RecognitionListener {
                 "is AI ready", "is the AI ready", "AI ready",
                 "download status", "model progress", "check AI",
                 "is my AI downloaded", "check AI status")) {
-            ModelDownloadManager mgr = new ModelDownloadManager(activity);
+            ModelDownloadManager mgr = getOrCreateGlobalMgr();
             String small = modelStateLabel(mgr, ModelDownloadManager.ModelId.QWEN_SMALL);
             String large = modelStateLabel(mgr, ModelDownloadManager.ModelId.QWEN_LARGE);
             speak("Small AI: " + small + ". Large AI: " + large + ".");
@@ -762,6 +774,23 @@ public class AurigaVoiceEngine implements RecognitionListener {
                 AurigaMemoryStore.store(activity, "assistant", reply, "voice");
             }
         }
+    }
+
+    /**
+     * Returns the global {@link ModelDownloadManager}, lazily creating it if
+     * the app launched offline and {@link AurigaApplication} deferred init.
+     * Attaches TTS so progress can be spoken once the engine is online.
+     */
+    private ModelDownloadManager getOrCreateGlobalMgr() {
+        if (AurigaApplication.modelDownloadManager == null) {
+            ModelDownloadManager mgr = new ModelDownloadManager(activity);
+            if (ttsReady && tts != null) mgr.setTts(tts);
+            AurigaApplication.modelDownloadManager = mgr;
+        } else if (ttsReady && tts != null) {
+            // Re-attach TTS in case it wasn't ready when the manager was first created.
+            AurigaApplication.modelDownloadManager.setTts(tts);
+        }
+        return AurigaApplication.modelDownloadManager;
     }
 
     /** Human-readable model state for the AI status voice command. */

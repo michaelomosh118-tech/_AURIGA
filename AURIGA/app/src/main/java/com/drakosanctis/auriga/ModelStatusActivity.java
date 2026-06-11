@@ -68,8 +68,9 @@ public class ModelStatusActivity extends Activity
     @Override
     protected void onResume() {
         super.onResume();
-        ModelDownloadManager mgr = AurigaApplication.modelDownloadManager;
-        if (mgr != null) mgr.registerListener(this);
+        // getOrCreateMgr() guarantees a non-null manager so the listener is
+        // always registered and live progress callbacks always arrive.
+        getOrCreateMgr().registerListener(this);
         refreshAll();
     }
 
@@ -110,9 +111,7 @@ public class ModelStatusActivity extends Activity
     // ── Button actions ────────────────────────────────────────────────
 
     private void handleSmallBtn() {
-        ModelDownloadManager mgr = AurigaApplication.modelDownloadManager;
-        if (mgr == null) { toast("Download service not available"); return; }
-
+        ModelDownloadManager mgr = getOrCreateMgr();
         switch (mgr.getState(ModelDownloadManager.ModelId.QWEN_SMALL)) {
             case READY:
                 mgr.cancelDownload(ModelDownloadManager.ModelId.QWEN_SMALL);
@@ -136,9 +135,7 @@ public class ModelStatusActivity extends Activity
     }
 
     private void handleLargeBtn() {
-        ModelDownloadManager mgr = AurigaApplication.modelDownloadManager;
-        if (mgr == null) { toast("Download service not available"); return; }
-
+        ModelDownloadManager mgr = getOrCreateMgr();
         switch (mgr.getState(ModelDownloadManager.ModelId.QWEN_LARGE)) {
             case READY:
                 mgr.cancelDownload(ModelDownloadManager.ModelId.QWEN_LARGE);
@@ -159,6 +156,18 @@ public class ModelStatusActivity extends Activity
                 break;
         }
         refreshAll();
+    }
+
+    /**
+     * Returns the global {@link ModelDownloadManager}, creating and registering
+     * it if it is null. This handles the case where the app started offline and
+     * {@link com.drakosanctis.auriga.AurigaApplication} deferred manager creation.
+     */
+    private ModelDownloadManager getOrCreateMgr() {
+        if (AurigaApplication.modelDownloadManager == null) {
+            AurigaApplication.modelDownloadManager = new ModelDownloadManager(this);
+        }
+        return AurigaApplication.modelDownloadManager;
     }
 
     // ── UI refresh ────────────────────────────────────────────────────
