@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/space_black">
+
+    <!-- Full-screen camera preview -->
+    <androidx.camera.view.PreviewView
+        android:id="@+id/color_preview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="Live camera preview for color detection" />
+
+    <!-- Centre reticle — square target zone -->
+    <View
+        android:layout_width="110dp"
+        android:layout_height="110dp"
+        android:layout_gravity="center"
+        android:background="@drawable/reader_capture_bg"
+        android:contentDescription="Point this box at the object you want to identify" />
+
+    <!-- Top HUD bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:background="@color/glass_panel_strong"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp">
+
+        <Button
+            android:id="@+id/btn_color_back"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="←"
+            android:textSize="18sp"
+            android:textColor="@color/auriga_cyan"
+            android:background="@drawable/drawer_item_bg"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:contentDescription="Go back"
+            android:stateListAnimator="@null" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:text="COLOR SENSE"
+            android:textSize="15sp"
+            android:textColor="@color/ai_violet"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.12"
+            android:shadowColor="@color/ai_violet"
+            android:shadowRadius="8"
+            android:shadowDx="0"
+            android:shadowDy="0" />
+
+        <Button
+            android:id="@+id/btn_color_auto"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="AUTO  OFF"
+            android:textSize="12sp"
+            android:textColor="@color/space_black"
+            android:backgroundTint="@color/muted_label"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:letterSpacing="0.06"
+            android:stateListAnimator="@null"
+            android:contentDescription="Toggle automatic color detection every 2.5 seconds" />
+
+    </LinearLayout>
+
+    <!-- Bottom result panel -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@color/glass_panel_strong"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="20dp"
+        android:paddingBottom="28dp">
+
+        <!-- Detected color name (large) -->
+        <TextView
+            android:id="@+id/color_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tap the screen"
+            android:textSize="32sp"
+            android:textColor="@color/hud_text"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:letterSpacing="0.02" />
+
+        <!-- Sub-label (region / confidence) -->
+        <TextView
+            android:id="@+id/color_sub_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Point camera at the centre of the object"
+            android:textSize="13sp"
+            android:textColor="@color/section_header_text"
+            android:fontFamily="sans-serif"
+            android:gravity="center" />
+
+    </LinearLayout>
+
+</FrameLayout>

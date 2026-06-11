@@ -3,3 +3,4 @@
 - [Conversational AI Layer](conversational-ai.md) — chat.html streaming LLM + auriga-memory.js RAG + auriga-llm.js WebGPU model; always-on mic + swipe gestures in auriga-swipe.js
 - [AurigaMind architecture](auriga-mind.md) — MindEngine + KnowledgeCache wiring; MediaPipe reflective load; dispatch order; how to enable full LLM
 - [SIE Distance Engine](sie-distance-engine.md) — DracoAID auto-calibrates H_c from person bbox; FiducialLUT.generateDynamicTable() builds physics LUT; TriangulationEngine feeds LocatorActivity
+- [Accessibility Feature Set](accessibility-features.md) — ProximityEarconManager + ColorSenseActivity + SosManager + 8 voice commands; competitor gap analysis behind each decision

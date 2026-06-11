@@ -80,6 +80,16 @@ public class AurigaVoiceEngine implements RecognitionListener {
     private KnowledgeCache knowledgeCache;
     private MindEngine     mindEngine;   // null until model is loaded (or no model)
 
+    /** Last utterance spoken — used by "say again" command. */
+    private String         lastUtterance = "";
+    /** TTS speech rate — persisted across commands (0.5 – 2.0). */
+    private float          speechRate    = 1.05f;
+    private static final float RATE_STEP = 0.20f;
+    private static final float RATE_MIN  = 0.50f;
+    private static final float RATE_MAX  = 2.00f;
+    /** Emergency SOS — lazily created on first "SOS" command or long-press. */
+    private SosManager     sosMgr;
+
     public AurigaVoiceEngine(Activity activity, Listener listener) {
         this.activity = activity;
         this.listener = listener;
@@ -166,8 +176,15 @@ public class AurigaVoiceEngine implements RecognitionListener {
     /** Speak arbitrary text via TTS (flushes any in-flight utterance). */
     public void speak(String text) {
         if (!ttsReady || tts == null) return;
+        if (text != null && !text.isEmpty()) lastUtterance = text;
         tts.speak(text, TextToSpeech.QUEUE_FLUSH, null,
                 "auriga_voice_" + System.currentTimeMillis());
+    }
+
+    /** Activate emergency SOS (same as saying "SOS"). */
+    public void activateSos() {
+        if (sosMgr == null) sosMgr = new SosManager(activity, tts);
+        sosMgr.activate();
     }
 
     /**
@@ -585,10 +602,130 @@ public class AurigaVoiceEngine implements RecognitionListener {
                 "what are your commands", "available commands",
                 "show commands", "command list", "what do you know",
                 "what commands", "what can i say")) {
-            speak("I can open the locator, reader, targets, calibration, feedback, " +
-                    "about, help, and support. I can open or close the menu, go back, " +
-                    "describe the current page, and control voice navigation. " +
-                    "Say any of these naturally — you don't need to use exact words.");
+            speak("I can open the locator, reader, targets, Color Sense, calibration, " +
+                    "feedback, about, help, and support. I can describe the current scene, " +
+                    "repeat the last thing I said, change speech speed, check or download " +
+                    "AI models, and activate an emergency SOS. Say any of these naturally " +
+                    "— you do not need exact words.");
+
+        // ── Say again ──────────────────────────────────────────────────
+        } else if (matches(cmd,
+                "say again", "say that again", "repeat that", "repeat",
+                "what did you say", "i missed that", "come again",
+                "pardon", "sorry what", "one more time", "play that again")) {
+            if (lastUtterance.isEmpty()) {
+                speak("Nothing has been said yet.");
+            } else {
+                tts.speak(lastUtterance, TextToSpeech.QUEUE_FLUSH, null,
+                        "auriga_repeat_" + System.currentTimeMillis());
+            }
+
+        // ── TTS speech rate — slower ───────────────────────────────────
+        } else if (matches(cmd,
+                "speak slower", "slow down", "slower", "talk slower",
+                "speak more slowly", "slow speech", "reduce speed",
+                "too fast", "speak slower please")) {
+            speechRate = Math.max(RATE_MIN, speechRate - RATE_STEP);
+            if (ttsReady && tts != null) tts.setSpeechRate(speechRate);
+            speak("Slower. " + Math.round(speechRate * 100) + " percent.");
+
+        // ── TTS speech rate — faster ───────────────────────────────────
+        } else if (matches(cmd,
+                "speak faster", "speed up", "faster", "talk faster",
+                "speak more quickly", "fast speech", "increase speed",
+                "too slow", "speak faster please")) {
+            speechRate = Math.min(RATE_MAX, speechRate + RATE_STEP);
+            if (ttsReady && tts != null) tts.setSpeechRate(speechRate);
+            speak("Faster. " + Math.round(speechRate * 100) + " percent.");
+
+        // ── Describe current scene (relays to host Activity) ──────────
+        } else if (matches(cmd,
+                "describe what you see", "describe the scene", "scene summary",
+                "full scan", "scene description", "what objects are visible",
+                "list everything", "tell me everything", "what can you see",
+                "full description", "what are you seeing", "show me everything",
+                "what's in the frame", "describe everything")) {
+            if (listener != null) listener.onDescribePage();
+
+        // ── Color Sense ────────────────────────────────────────────────
+        } else if (matches(cmd,
+                "color sense", "open color sense", "colour sense",
+                "identify color", "what color is this", "what colour is this",
+                "detect color", "detect colour", "color identification",
+                "what color", "what colour", "colour detect")) {
+            speak("Opening Color Sense.");
+            safeStart(ColorSenseActivity.class);
+
+        // ── AI model — download small ──────────────────────────────────
+        } else if (matches(cmd,
+                "download AI", "download the AI", "install AI", "get the AI",
+                "download small model", "get small model", "download small AI",
+                "small model", "get AI assistant", "install assistant", "get AI")) {
+            ModelDownloadManager mgr = new ModelDownloadManager(activity);
+            ModelDownloadManager.ModelState st =
+                    mgr.getState(ModelDownloadManager.ModelId.QWEN_SMALL);
+            if (st == ModelDownloadManager.ModelState.READY) {
+                speak("The small AI model is already installed and ready.");
+            } else if (st == ModelDownloadManager.ModelState.DOWNLOADING) {
+                speak("Download already in progress. "
+                        + mgr.getProgressPercent(ModelDownloadManager.ModelId.QWEN_SMALL)
+                        + " percent complete.");
+            } else {
+                speak("Starting small AI model download.");
+                mgr.ensureQwenSmallDownloaded();
+            }
+
+        // ── AI model — download large ──────────────────────────────────
+        } else if (matches(cmd,
+                "download large model", "download large AI", "get large model",
+                "get big model", "download big AI", "large model",
+                "download full AI", "install full model", "get large AI")) {
+            ModelDownloadManager mgr = new ModelDownloadManager(activity);
+            ModelDownloadManager.ModelState st =
+                    mgr.getState(ModelDownloadManager.ModelId.QWEN_LARGE);
+            if (st == ModelDownloadManager.ModelState.READY) {
+                speak("The large AI model is already installed and ready.");
+            } else if (st == ModelDownloadManager.ModelState.DOWNLOADING) {
+                speak("Download already in progress. "
+                        + mgr.getProgressPercent(ModelDownloadManager.ModelId.QWEN_LARGE)
+                        + " percent complete.");
+            } else {
+                speak("Starting large AI model download. This is about 1.3 gigabytes "
+                        + "so please use Wi-Fi.");
+                mgr.ensureQwenLargeDownloaded();
+            }
+
+        // ── AI model — status ──────────────────────────────────────────
+        } else if (matches(cmd,
+                "AI status", "model status", "AI model status",
+                "is AI ready", "is the AI ready", "AI ready",
+                "download status", "model progress", "check AI",
+                "is my AI downloaded", "check AI status")) {
+            ModelDownloadManager mgr = new ModelDownloadManager(activity);
+            String small = modelStateLabel(mgr, ModelDownloadManager.ModelId.QWEN_SMALL);
+            String large = modelStateLabel(mgr, ModelDownloadManager.ModelId.QWEN_LARGE);
+            speak("Small AI: " + small + ". Large AI: " + large + ".");
+
+        // ── Emergency SOS ──────────────────────────────────────────────
+        } else if (matches(cmd,
+                "sos", "send sos", "emergency", "call emergency",
+                "call emergency services", "call for help",
+                "i need emergency help", "help emergency",
+                "call 999", "call 911", "call 112",
+                "i'm in danger", "i am in danger")) {
+            if (sosMgr == null) sosMgr = new SosManager(activity, tts);
+            sosMgr.activate();
+
+        // ── Cancel SOS ─────────────────────────────────────────────────
+        } else if (matches(cmd,
+                "cancel sos", "abort sos", "stop sos",
+                "abort emergency", "cancel emergency", "stop emergency",
+                "sos cancel", "never mind emergency")) {
+            if (sosMgr != null && sosMgr.isActive()) {
+                sosMgr.cancel();
+            } else {
+                speak("No SOS countdown is active.");
+            }
 
         // ── OpenClaw-style skill engine (timers, alarms, weather, etc.) ──
         } else if (skillEngine != null && skillEngine.dispatch(cmd)) {
@@ -621,10 +758,16 @@ public class AurigaVoiceEngine implements RecognitionListener {
         }
     }
 
-    /**
-     * Returns true if {@code text} contains ANY of the given {@code phrases}
-     * as a substring (case already lower on input).
-     */
+    /** Human-readable model state for the AI status voice command. */
+    private static String modelStateLabel(ModelDownloadManager mgr,
+                                          ModelDownloadManager.ModelId id) {
+        ModelDownloadManager.ModelState st = mgr.getState(id);
+        if (st == ModelDownloadManager.ModelState.READY)        return "ready";
+        if (st == ModelDownloadManager.ModelState.DOWNLOADING)
+            return "downloading, " + mgr.getProgressPercent(id) + " percent";
+        return "not downloaded";
+    }
+
     private static boolean matches(String text, String... phrases) {
         for (String p : phrases) {
             if (text.contains(p)) return true;

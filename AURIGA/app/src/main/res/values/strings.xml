@@ -31,6 +31,8 @@
     <string name="drawer_nav_about_sub">Version info, licenses &amp; DrakoSanctis mission</string>
     <string name="drawer_nav_targets">◎  Object Targets</string>
     <string name="drawer_nav_targets_sub">Pick what triggers haptic + voice — offline ML Kit</string>
+    <string name="drawer_nav_color_sense">◈  Color Sense</string>
+    <string name="drawer_nav_color_sense_sub">Identify colors — point &amp; tap · 20 names · fully offline</string>
     <string name="drawer_setup_calibrate">⬡  10-Point Calibration Walk</string>
     <string name="drawer_setup_calibrate_sub">Calibrate distance accuracy to sub-20 cm precision</string>
     <string name="drawer_setup_feedback">✉  Send Feedback</string>

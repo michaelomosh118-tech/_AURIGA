@@ -44,6 +44,11 @@ import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -187,6 +192,33 @@ public class LocatorActivity extends ComponentActivity {
     private String lastSpokenLabel = "";
     private long lastAnalysedAt = 0L;
 
+    /** Most-recent YOLO detection list — updated every frame on the main thread.
+     *  Read by onDescribePage() to give a real spoken scene summary. */
+    private volatile List<Detection> recentDetections = Collections.emptyList();
+
+    /** Parking-sensor style distance earcons — non-verbal proximity feedback. */
+    private ProximityEarconManager earconManager;
+
+    /** Light sensor — warns user when scene is too dark for accurate detection. */
+    private SensorManager sensorManager;
+    private Sensor        lightSensor;
+    private long          lastLowLightAt = 0L;
+
+    private final SensorEventListener lightListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent e) {
+            float lux = e.values[0];
+            long  now = SystemClock.uptimeMillis();
+            if (lux < 8f && now - lastLowLightAt > 60_000L && voiceEngine != null) {
+                lastLowLightAt = now;
+                voiceEngine.speakQuiet(
+                        "Low light. Enable Smart Light for better accuracy.");
+            }
+        }
+        @Override
+        public void onAccuracyChanged(Sensor s, int accuracy) {}
+    };
+
     private Set<String> activeTargets = Collections.emptySet();
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -298,12 +330,30 @@ public class LocatorActivity extends ComponentActivity {
                 findViewById(R.id.nav_feedback_hint));
         refreshAiStatus();
         if (voiceEngine != null) voiceEngine.onResume();
+
+        // Proximity earcon — init on first resume, no-op thereafter.
+        if (earconManager == null) earconManager = new ProximityEarconManager();
+
+        // Light-level sensor — gentle "low light" advisory spoken at most once/min.
+        if (sensorManager == null) {
+            sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+            if (sensorManager != null)
+                lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+        }
+        if (sensorManager != null && lightSensor != null) {
+            sensorManager.registerListener(lightListener, lightSensor,
+                    SensorManager.SENSOR_DELAY_NORMAL);
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         if (voiceEngine != null) voiceEngine.onPause();
+        if (earconManager != null) earconManager.silence();
+        if (sensorManager != null) {
+            try { sensorManager.unregisterListener(lightListener); } catch (Throwable ignored) {}
+        }
     }
 
     @Override
@@ -326,6 +376,13 @@ public class LocatorActivity extends ComponentActivity {
         }
         if (lockOnBeep != null) {
             try { lockOnBeep.release(); } catch (Throwable ignored) {}
+        }
+        if (earconManager != null) {
+            try { earconManager.release(); } catch (Throwable ignored) {}
+            earconManager = null;
+        }
+        if (sensorManager != null) {
+            try { sensorManager.unregisterListener(lightListener); } catch (Throwable ignored) {}
         }
         if (voiceEngine != null) {
             try { voiceEngine.shutdown(); } catch (Throwable ignored) {}
@@ -381,6 +438,12 @@ public class LocatorActivity extends ComponentActivity {
         if (voiceMicFab != null) {
             voiceMicFab.setOnClickListener(v -> {
                 if (voiceEngine != null) voiceEngine.startListening();
+            });
+            // Long-press (2.5 s) activates Emergency SOS — critical
+            // accessibility gap: no competitor provides this.
+            voiceMicFab.setOnLongClickListener(v -> {
+                if (voiceEngine != null) voiceEngine.activateSos();
+                return true;
             });
         }
 
@@ -447,10 +510,33 @@ public class LocatorActivity extends ComponentActivity {
             public void onGoBack()      { onBackPressed(); }
             @Override
             public void onDescribePage() {
-                if (voiceEngine != null)
-                    voiceEngine.speak("You are on the Object Locator. "
-                            + "The camera is scanning for objects matching your targets. "
-                            + "Say open menu for navigation options.");
+                if (voiceEngine == null) return;
+                List<Detection> dets = recentDetections;
+                if (dets == null || dets.isEmpty()) {
+                    voiceEngine.speak("Nothing detected right now. "
+                            + "Move the camera around.");
+                    return;
+                }
+                // Build a natural spoken summary: e.g. "I can see a person straight
+                // ahead, a chair to your left, and a bottle to your right. 3 objects total."
+                StringBuilder sb = new StringBuilder("I can see ");
+                int n = Math.min(dets.size(), 5);
+                for (int i = 0; i < n; i++) {
+                    Detection d = dets.get(i);
+                    float bear = bearingDeg(d.centerX());
+                    String dir = bear < -20f ? "to your left"
+                               : bear >  20f ? "to your right"
+                               : "straight ahead";
+                    if (i > 0 && i == n - 1) sb.append(", and ");
+                    else if (i > 0) sb.append(", ");
+                    sb.append("a ").append(d.label).append(" ").append(dir);
+                }
+                sb.append(". ");
+                if (dets.size() > n)
+                    sb.append(dets.size()).append(" objects total.");
+                else
+                    sb.append(dets.size() == 1 ? "1 object total." : dets.size() + " objects total.");
+                voiceEngine.speak(sb.toString());
             }
         });
     }
@@ -624,6 +710,14 @@ public class LocatorActivity extends ComponentActivity {
                 final List<Detection> uiDets = dets;
                 final Detection uiTarget = target;
                 mainHandler.post(() -> {
+                    recentDetections = uiDets; // snapshot for "describe surroundings" command
+                    if (earconManager != null) {
+                        if (uiTarget != null) {
+                            earconManager.update(distanceM(uiTarget));
+                        } else {
+                            earconManager.silence();
+                        }
+                    }
                     overlayView.setDetections(uiDets, uiTarget);
                     if (uiTarget != null) {
                         overlayView.setStatus(buildStatusLine(uiTarget, spatialOut, fH));
@@ -1011,6 +1105,12 @@ public class LocatorActivity extends ComponentActivity {
         });
 
         View navTargets = findViewById(R.id.nav_targets);
+        View navColorSense = findViewById(R.id.nav_color_sense);
+        if (navColorSense != null) navColorSense.setOnClickListener(v -> {
+            closeDrawer();
+            safeStart(ColorSenseActivity.class, "Color Sense");
+        });
+
         if (navTargets != null) navTargets.setOnClickListener(v -> {
             closeDrawer();
             safeStart(TargetsActivity.class, "Targets");
