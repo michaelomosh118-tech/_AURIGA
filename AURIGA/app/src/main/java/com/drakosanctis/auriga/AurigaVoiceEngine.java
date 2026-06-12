@@ -78,7 +78,8 @@ public class AurigaVoiceEngine implements RecognitionListener {
 
     /* AurigaMind — on-device LLM final fallback */
     private KnowledgeCache knowledgeCache;
-    private MindEngine     mindEngine;   // null until model is loaded (or no model)
+    private volatile MindEngine  mindEngine;        // null until model is loaded (or no model)
+    private volatile boolean     mindEngineLoading; // true while createAsync is in flight
 
     /** Last utterance spoken — used by "say again" command. */
     private String         lastUtterance = "";
@@ -301,14 +302,21 @@ public class AurigaVoiceEngine implements RecognitionListener {
                 }
                 /* Boot AurigaMind — KnowledgeCache warms up immediately;
                    MindEngine loads the LLM model in the background (5–30 s).
-                   Both are null-safe — the dispatch chain handles missing model. */
+                   mindEngineLoading is true while createAsync is in flight so
+                   the dispatch chain can speak a useful wait message instead of
+                   the generic fallback. */
                 if (knowledgeCache == null) {
                     knowledgeCache = new KnowledgeCache(activity);
                     knowledgeCache.warmUp();
                 }
                 final TextToSpeech ttsRef = tts;
-                MindEngine.createAsync(activity, knowledgeCache, ttsRef,
-                        engine -> mindEngine = engine);
+                mindEngineLoading = true;
+                MindEngine.createAsync(activity, knowledgeCache, ttsRef, engine -> {
+                    mindEngine        = engine;
+                    mindEngineLoading = false;
+                    // MindEngine already speaks "AI assistant ready" on success,
+                    // or "AI assistant not available" when no model is found.
+                });
 
                 /* Attach TTS to the Qwen downloader so it can speak progress.
                    ModelDownloadManager is started in AurigaApplication.onCreate
@@ -317,43 +325,37 @@ public class AurigaVoiceEngine implements RecognitionListener {
                     AurigaApplication.modelDownloadManager.setTts(ttsRef);
                     // Hot-reload: when any model finishes downloading while the
                     // app is running, automatically initialise MindEngine without
-                    // requiring the user to restart. The DownloadListener is kept
-                    // alive for the duration of the AurigaVoiceEngine instance.
+                    // requiring the user to restart.
                     AurigaApplication.modelDownloadManager.registerListener(
                             new ModelDownloadManager.DownloadListener() {
                         @Override
                         public void onProgress(ModelDownloadManager.ModelId model,
-                                               int percentDone) { /* progress spoken by mgr */ }
+                                               int percentDone) { /* spoken by mgr */ }
 
                         @Override
                         public void onStateChanged(ModelDownloadManager.ModelId model,
                                                    ModelDownloadManager.ModelState newState) {
                             if (newState == ModelDownloadManager.ModelState.READY
-                                    && mindEngine == null) {
-                                // A model just became ready — bootstrap MindEngine
-                                // so the next spoken question uses it immediately.
+                                    && mindEngine == null
+                                    && !mindEngineLoading) {
+                                // A model just finished downloading — load it now.
+                                mindEngineLoading = true;
                                 MindEngine.createAsync(activity, knowledgeCache, ttsRef,
                                         engine -> {
-                                            mindEngine = engine;
-                                            if (engine != null) {
-                                                ttsRef.speak(
-                                                    "AI assistant is now ready. "
-                                                    + "You can ask me anything.",
-                                                    android.speech.tts.TextToSpeech.QUEUE_ADD,
-                                                    null, "mind_ready");
-                                            }
+                                            mindEngine        = engine;
+                                            mindEngineLoading = false;
                                         });
                             }
                         }
                     });
-                } else if (!ModelDownloadManager.isQwenLargeReady(activity)) {
+                } else if (!ModelDownloadManager.isQwenLargeReady(activity)
+                        && !ModelDownloadManager.isQwenSmallReady(activity)) {
                     /* Rare path: Application.onCreate ran without network.
-                       Start the download now that we're past init and online. */
+                       Create and store the global manager now that we're online. */
                     if (ModelDownloadManager.isOnline(activity)) {
                         ModelDownloadManager mgr = new ModelDownloadManager(activity);
                         mgr.setTts(ttsRef);
                         AurigaApplication.modelDownloadManager = mgr;
-                        mgr.ensureQwenLargeDownloaded();
                     }
                 }
             }
@@ -753,7 +755,7 @@ public class AurigaVoiceEngine implements RecognitionListener {
         //   Tier 1: AurigaKnowledge rule-based KB  (instant, fully offline)
         //   Tier 2: MindEngine on-device LLM        (2–10 s, offline after first load)
         //           grounded by KnowledgeCache      (weather/news/Wikipedia)
-        //   Tier 3: AurigaKnowledge.fallback()      (always-available safety net)
+        //   Tier 3: KnowledgeCache context / AurigaKnowledge.fallback()
         } else if (!cmd.isEmpty()) {
             String kbAnswer = AurigaKnowledge.answer(cmd);
             if (kbAnswer != null) {
@@ -762,12 +764,15 @@ public class AurigaVoiceEngine implements RecognitionListener {
                 AurigaMemoryStore.store(activity, "assistant", kbAnswer, "voice");
             } else if (mindEngine != null) {
                 // LLM is loaded — stream the answer via MindEngine
-                // (MindEngine speaks directly; we just store the query for memory)
                 AurigaMemoryStore.store(activity, "assistant", "[MindEngine responding]", "voice");
                 mindEngine.ask(cmd, null);
+            } else if (mindEngineLoading) {
+                // Model is downloaded and being loaded into memory (5–30 s on first run).
+                // Tell the user to wait rather than giving the confusing generic fallback.
+                speak("The AI is still loading. Please wait a moment and ask again.");
             } else {
-                // No LLM yet (still loading or no model file) — rule-based fallback
-                // but try KnowledgeCache context first for weather/news accuracy
+                // No LLM and not loading — try KnowledgeCache context for weather/news,
+                // then fall back to the offline knowledge base.
                 String ctxStr = knowledgeCache != null ? knowledgeCache.getContext(cmd) : "";
                 String reply  = !ctxStr.isEmpty() ? ctxStr : AurigaKnowledge.fallback(cmd);
                 speak(reply);

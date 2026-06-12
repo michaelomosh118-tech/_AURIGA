@@ -165,7 +165,8 @@ public class AurigaCoreService extends Service {
     private boolean           ttsReady     = false;
     private AurigaSkillEngine skillEngine;
     private KnowledgeCache    knowledgeCache;
-    private MindEngine        mindEngine;
+    private volatile MindEngine mindEngine;
+    private volatile boolean    mindEngineLoading; // true while createAsync is in flight
 
     // ─────────────────────────────────────────────────────────────────────────
     // Service lifecycle
@@ -752,6 +753,13 @@ public class AurigaCoreService extends Service {
             return;
         }
 
+        // Tier 4b: model downloaded but still loading into memory (5–30 s)
+        if (mindEngineLoading) {
+            outputLayer.speak("The AI is still loading. Please wait a moment and ask again.",
+                    AurigaInterfaces.OutputPriority.NORMAL);
+            return;
+        }
+
         // Tier 5: context from KnowledgeCache or AurigaKnowledge.fallback()
         String ctx   = knowledgeCache != null ? knowledgeCache.getContext(cmd) : "";
         String reply = !ctx.isEmpty() ? ctx : AurigaKnowledge.fallback(cmd);
@@ -774,8 +782,12 @@ public class AurigaCoreService extends Service {
             skillEngine    = new AurigaSkillEngine(this, tts);
             knowledgeCache = new KnowledgeCache(this);
             knowledgeCache.warmUp();
-            MindEngine.createAsync(this, knowledgeCache, tts,
-                    engine -> mindEngine = engine);
+            mindEngineLoading = true;
+            MindEngine.createAsync(this, knowledgeCache, tts, engine -> {
+                mindEngine        = engine;
+                mindEngineLoading = false;
+                // MindEngine speaks "AI assistant ready" or "not available" itself.
+            });
 
             // Hot-reload: if a Qwen model finishes downloading while the service is live,
             // bootstrap MindEngine immediately so the next command uses it without a restart.
@@ -789,10 +801,13 @@ public class AurigaCoreService extends Service {
                             ModelDownloadManager.ModelId model,
                             ModelDownloadManager.ModelState state) {
                         if (state == ModelDownloadManager.ModelState.READY
-                                && mindEngine == null) {
+                                && mindEngine == null && !mindEngineLoading) {
+                            mindEngineLoading = true;
                             MindEngine.createAsync(AurigaCoreService.this,
-                                    knowledgeCache, tts,
-                                    engine -> mindEngine = engine);
+                                    knowledgeCache, tts, engine -> {
+                                        mindEngine        = engine;
+                                        mindEngineLoading = false;
+                                    });
                         }
                     }
                 });
