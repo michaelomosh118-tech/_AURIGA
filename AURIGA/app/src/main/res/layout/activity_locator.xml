@@ -597,6 +597,40 @@
                     android:visibility="gone"
                     android:text="@string/drawer_setup_feedback_gate" />
 
+                <!-- AI timeout row — lets the user set how long the AI model
+                     stays loaded in RAM before being offloaded. -->
+                <LinearLayout
+                    android:id="@+id/nav_ai_timeout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/drawer_item_bg"
+                    android:orientation="vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:minHeight="52dp"
+                    android:gravity="center_vertical"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:contentDescription="Set how long the AI stays in memory before sleeping">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="AI SLEEP TIMER"
+                        android:textSize="14sp"
+                        android:textColor="@color/hud_text"
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.04" />
+
+                    <TextView
+                        android:id="@+id/nav_ai_timeout_sub"
+                        style="@style/DrawerItemSub"
+                        android:text="After 2 min idle · tap to change" />
+                </LinearLayout>
+
                 <!-- Voice mute toggle — flips a JS-side flag the activity
                      injects so the WebView's SpeechSynthesis goes silent
                      without the website itself needing any changes. -->

@@ -784,9 +784,14 @@ public class AurigaCoreService extends Service {
             knowledgeCache.warmUp();
             mindEngineLoading = true;
             MindEngine.createAsync(this, knowledgeCache, tts, engine -> {
+                if (engine == null) {
+                    Log.e(TAG, "MindEngine.createAsync returned null — model unavailable or load failed.");
+                    mindEngineLoading = false;
+                    return;
+                }
                 mindEngine        = engine;
                 mindEngineLoading = false;
-                // MindEngine speaks "AI assistant ready" or "not available" itself.
+                Log.i(TAG, "MindEngine initialised successfully.");
             });
 
             // Hot-reload: if a Qwen model finishes downloading while the service is live,
@@ -805,8 +810,14 @@ public class AurigaCoreService extends Service {
                             mindEngineLoading = true;
                             MindEngine.createAsync(AurigaCoreService.this,
                                     knowledgeCache, tts, engine -> {
+                                        if (engine == null) {
+                                            Log.e(TAG, "Hot-reload MindEngine returned null after download.");
+                                            mindEngineLoading = false;
+                                            return;
+                                        }
                                         mindEngine        = engine;
                                         mindEngineLoading = false;
+                                        Log.i(TAG, "MindEngine hot-loaded after model download.");
                                     });
                         }
                     }

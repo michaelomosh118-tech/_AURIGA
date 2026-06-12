@@ -1163,6 +1163,33 @@ public class LocatorActivity extends ComponentActivity {
         });
         refreshFeedbackGate(navFeedback, findViewById(R.id.nav_feedback_hint));
 
+        // ── AI SLEEP TIMER ───────────────────────────────────────
+        View navAiTimeout = findViewById(R.id.nav_ai_timeout);
+        TextView aiTimeoutSub = findViewById(R.id.nav_ai_timeout_sub);
+        if (navAiTimeout != null) {
+            refreshAiTimeoutLabel(aiTimeoutSub);
+            navAiTimeout.setOnClickListener(v -> {
+                int[] options = {60, 120, 300, 600};
+                String[] labels = {"1 minute", "2 minutes (default)", "5 minutes", "10 minutes"};
+                int current = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE)
+                        .getInt(MindEngine.PREF_OFFLOAD_TIMEOUT,
+                                MindEngine.DEFAULT_OFFLOAD_TIMEOUT_SEC);
+                int currentIdx = 1; // default: 2 min
+                for (int i = 0; i < options.length; i++) {
+                    if (options[i] == current) { currentIdx = i; break; }
+                }
+                int nextIdx = (currentIdx + 1) % options.length;
+                getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE)
+                        .edit()
+                        .putInt(MindEngine.PREF_OFFLOAD_TIMEOUT, options[nextIdx])
+                        .apply();
+                refreshAiTimeoutLabel(aiTimeoutSub);
+                Toast.makeText(this,
+                        "AI sleep timer: " + labels[nextIdx],
+                        Toast.LENGTH_SHORT).show();
+            });
+        }
+
         // ── VOICE / HAPTIC TOGGLES ───────────────────────────────
         View navVoice = findViewById(R.id.nav_voice_locator);
         voiceSub = findViewById(R.id.nav_voice_locator_sub);
@@ -1263,6 +1290,18 @@ public class LocatorActivity extends ComponentActivity {
                     ? "ON · flashes before each scan"
                     : "OFF · tap to enable");
         }
+    }
+
+    /** Update the AI Sleep Timer sub-label to show the currently configured timeout. */
+    private void refreshAiTimeoutLabel(TextView sub) {
+        if (sub == null) return;
+        int secs = getSharedPreferences(MainActivity.PREFS_NAME, MODE_PRIVATE)
+                .getInt(MindEngine.PREF_OFFLOAD_TIMEOUT, MindEngine.DEFAULT_OFFLOAD_TIMEOUT_SEC);
+        String label;
+        if (secs < 120)       label = "After " + secs + " sec idle · tap to change";
+        else if (secs < 3600) label = "After " + (secs / 60) + " min idle · tap to change";
+        else                  label = "After " + (secs / 3600) + " hr idle · tap to change";
+        sub.setText(label);
     }
 
     /**

@@ -312,10 +312,15 @@ public class AurigaVoiceEngine implements RecognitionListener {
                 final TextToSpeech ttsRef = tts;
                 mindEngineLoading = true;
                 MindEngine.createAsync(activity, knowledgeCache, ttsRef, engine -> {
+                    if (engine == null) {
+                        Log.e("AurigaVoiceEngine",
+                              "MindEngine.createAsync returned null — model unavailable or failed to load.");
+                        mindEngineLoading = false;
+                        return;
+                    }
                     mindEngine        = engine;
                     mindEngineLoading = false;
-                    // MindEngine already speaks "AI assistant ready" on success,
-                    // or "AI assistant not available" when no model is found.
+                    Log.i("AurigaVoiceEngine", "MindEngine initialised successfully.");
                 });
 
                 /* Attach TTS to the Qwen downloader so it can speak progress.
@@ -338,12 +343,19 @@ public class AurigaVoiceEngine implements RecognitionListener {
                             if (newState == ModelDownloadManager.ModelState.READY
                                     && mindEngine == null
                                     && !mindEngineLoading) {
-                                // A model just finished downloading — load it now.
                                 mindEngineLoading = true;
                                 MindEngine.createAsync(activity, knowledgeCache, ttsRef,
                                         engine -> {
+                                            if (engine == null) {
+                                                Log.e("AurigaVoiceEngine",
+                                                      "Hot-reload MindEngine returned null after download.");
+                                                mindEngineLoading = false;
+                                                return;
+                                            }
                                             mindEngine        = engine;
                                             mindEngineLoading = false;
+                                            Log.i("AurigaVoiceEngine",
+                                                  "MindEngine hot-loaded after model download.");
                                         });
                             }
                         }
@@ -803,6 +815,7 @@ public class AurigaVoiceEngine implements RecognitionListener {
                                           ModelDownloadManager.ModelId id) {
         ModelDownloadManager.ModelState st = mgr.getState(id);
         if (st == ModelDownloadManager.ModelState.READY)        return "ready";
+        if (st == ModelDownloadManager.ModelState.VERIFYING)   return "verifying download";
         if (st == ModelDownloadManager.ModelState.DOWNLOADING)
             return "downloading, " + mgr.getProgressPercent(id) + " percent";
         return "not downloaded";

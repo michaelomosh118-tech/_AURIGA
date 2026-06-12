@@ -2,6 +2,7 @@ package com.drakosanctis.auriga;
 
 import android.app.ActivityManager;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.os.Handler;
 import android.os.Looper;
@@ -13,40 +14,37 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.security.MessageDigest;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * MindEngine — on-device LLM backbone for the Auriga personal assistant.
  *
- * Wraps the MediaPipe LLM Inference API around a quantised Qwen 2.5 1.5B
- * (primary) or Qwen 2.5 0.5B (low-RAM fallback) model. Supports streaming
- * so TTS begins speaking after the FIRST complete sentence — the user hears
- * word 1 of the answer within ~2 s even if full generation takes 8–10 s.
+ * Architecture: load-on-demand with configurable inactivity offload.
+ *   - Model is NOT loaded at startup; it is loaded the first time ask() is called
+ *     and the caller signals the intent requires LLM reasoning.
+ *   - After each response the inactivity timer is reset. If no further request
+ *     arrives within the configured timeout the model is offloaded and GC is
+ *     suggested, freeing RAM for vision/nav engines.
+ *   - On devices with ≥8 GB RAM the model stays resident (timer still resets but
+ *     offload is skipped) for instant responses throughout a conversation.
  *
- * ─────────────────────────────────────────────────────────────────────────
+ * Exception policy:
+ *   - DEBUG builds: exceptions are re-thrown so the crash lands in Logcat with a
+ *     full stack trace — this is intentional during development.
+ *   - RELEASE builds: exceptions are swallowed gracefully; the AI fails with a
+ *     spoken message while navigation continues unaffected.
+ *
  * Required model files (downloaded by ModelDownloadManager to FilesDir):
- *
  *   qwen2_5_1_5b_q8.bin     Qwen 2.5 1.5B q8 (~800 MB)  primary; richer answers
  *   qwen2_5_0_5b_q8.bin     Qwen 2.5 0.5B q8 (~519 MB)  fallback for low-RAM
- *
- * Engine tries qwen_large first (skipped on devices with <3 GB total RAM),
- * then qwen_small. If neither is present, tryCreate() returns null and
- * AurigaVoiceEngine stays on the rule-based fallback.
- * ─────────────────────────────────────────────────────────────────────────
- *
- * MediaPipe AAR declared in build.gradle:
- *   implementation 'com.google.mediapipe:tasks-genai:0.10.35'
- *
- * The engine uses reflection only for the listener proxy (Proxy.newProxyInstance)
- * so the streaming callback compiles against the interface regardless of which
- * exact nested-class name MediaPipe used in a given version.
- *
- * Prompt format (both models use ChatML):
- *   <|im_start|>system\n{sys}<|im_end|>\n<|im_start|>user\n{ctx}{q}<|im_end|>\n<|im_start|>assistant\n
  */
 public class MindEngine {
 
@@ -59,10 +57,23 @@ public class MindEngine {
 
     /**
      * Minimum total RAM (MB) required to attempt the Qwen 1.5B model.
-     * Devices below this threshold skip straight to Qwen 0.5B to avoid OOM.
-     * Qwen 1.5B q8 expands to ~2.5 GB in RAM; allow 500 MB headroom.
+     * Qwen 1.5B q8 expands to ~2.5 GB; allow 500 MB headroom.
      */
-    private static final long QWEN_LARGE_MIN_RAM_MB = 3_000;
+    private static final long QWEN_LARGE_MIN_RAM_MB  = 3_000;
+
+    /**
+     * Devices with this much RAM or more keep the model resident in memory
+     * (load-on-demand still applies for the first call, but the inactivity
+     * offload is suppressed so responses are always instant).
+     */
+    private static final long KEEP_RESIDENT_RAM_MB   = 8_000;
+
+    /** Default inactivity timeout before offloading (seconds). User-configurable. */
+    public static final int DEFAULT_OFFLOAD_TIMEOUT_SEC = 120;
+
+    /** SharedPreferences key for the user-configured timeout. */
+    public static final String PREF_OFFLOAD_TIMEOUT = "mind_offload_timeout_sec";
+    public static final String PREFS_NAME           = "auriga_prefs";
 
     private static final String SYSTEM_PROMPT =
         "You are Auriga, a helpful voice assistant for blind and low-vision users. "
@@ -71,9 +82,25 @@ public class MindEngine {
       + "Say so briefly if you do not know. "
       + "Current real-world data: ";
 
-    // MediaPipe package — base path for all class lookups
     private static final String MP_PKG =
             "com.google.mediapipe.tasks.genai.llminference";
+
+    // ── Shared static executor — one thread pool for ALL MindEngine instances ──
+    // Using a static executor prevents the executor-leak where every createAsync()
+    // call previously spun up a brand-new single-thread executor and never shut it down.
+    private static final ExecutorService MODEL_EXECUTOR =
+            Executors.newSingleThreadExecutor(r -> {
+                Thread t = new Thread(r, "MindEngine-worker");
+                t.setDaemon(true);
+                return t;
+            });
+
+    private static final ScheduledExecutorService OFFLOAD_SCHEDULER =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "MindEngine-offload");
+                t.setDaemon(true);
+                return t;
+            });
 
     // ── Fields ────────────────────────────────────────────────────────
 
@@ -81,26 +108,24 @@ public class MindEngine {
     private final KnowledgeCache  knowledge;
     private final TextToSpeech    tts;
     private final Handler         main  = new Handler(Looper.getMainLooper());
-    private final ExecutorService exec  = Executors.newSingleThreadExecutor();
     private final AtomicBoolean   busy  = new AtomicBoolean(false);
 
-    /** The live LlmInference instance (Object to stay reflection-agnostic). */
-    private Object   llm       = null;
-    private String   modelType = "";
-    private boolean  ready     = false;
-    private Future<?>  current = null;
+    private Object            llm       = null;
+    private String            modelType = "";
+    private boolean           ready     = false;
+    private Future<?>         current   = null;
+    private ScheduledFuture<?>  offloadTimer = null;
 
     // ── Factory ───────────────────────────────────────────────────────
 
     /**
-     * Creates a MindEngine asynchronously on a background thread.
-     * {@code onReady} fires on the same background thread — caller must
-     * marshal to main if UI updates are needed. Engine is null if no model
-     * is available or loading failed.
+     * Creates a MindEngine asynchronously on the shared background thread.
+     * onReady fires on the background thread — marshal to main if UI updates needed.
+     * Engine is null if no model is available or loading failed.
      */
     public static void createAsync(Context ctx, KnowledgeCache knowledge,
                                     TextToSpeech tts, ReadyCallback onReady) {
-        Executors.newSingleThreadExecutor().submit(() -> {
+        MODEL_EXECUTOR.submit(() -> {
             MindEngine e = tryCreate(ctx, knowledge, tts);
             onReady.onReady(e);
         });
@@ -123,105 +148,103 @@ public class MindEngine {
     // ── Init ──────────────────────────────────────────────────────────
 
     private void init() {
-        // ── Qwen 2.5 1.5B (q8, ~800 MB) ─────────────────────────────
-        // Skip on low-RAM devices (need ≥3 GB to avoid OOM).
         long ramMb = totalRamMb();
+        Log.i(TAG, "MindEngine.init() — device RAM: " + ramMb + " MB");
+
         if (ramMb >= QWEN_LARGE_MIN_RAM_MB) {
-            // 1. APK assets (CI-bundled sideload build)
             if (assetExists(MODEL_QWEN_LARGE)) {
                 if (tryLoadFromAsset(MODEL_QWEN_LARGE, "qwen_large")) return;
             }
-            // 2. FilesDir (downloaded by ModelDownloadManager)
             if (ModelDownloadManager.isQwenLargeReady(ctx)) {
                 File f = ModelDownloadManager.qwenLargeFilesPath(ctx);
+                logModelDiagnostics(f);
                 if (tryLoadFromFile(f, "qwen_large")) return;
             }
         } else {
-            Log.i(TAG, "MindEngine: skipping Qwen 1.5B — device RAM " + ramMb
+            Log.i(TAG, "Skipping Qwen 1.5B — device RAM " + ramMb
                     + " MB (need " + QWEN_LARGE_MIN_RAM_MB + " MB). Trying 0.5B.");
         }
 
-        // ── Qwen 2.5 0.5B (q8, ~519 MB) — compact, runs on all devices ──
-        // 1. APK assets
         if (assetExists(MODEL_QWEN)) {
             if (tryLoadFromAsset(MODEL_QWEN, "qwen")) return;
         }
-        // 2. FilesDir
         if (ModelDownloadManager.isQwenSmallReady(ctx)) {
             File f = ModelDownloadManager.qwenSmallFilesPath(ctx);
+            logModelDiagnostics(f);
             if (tryLoadFromFile(f, "qwen")) return;
         }
 
-        // Nothing loaded — tell the user why via spoken diagnostic
-        Log.i(TAG, "MindEngine: no model available. Say 'download AI' in the drawer.");
+        Log.i(TAG, "MindEngine: no model available. Say 'download AI' to get started.");
         speakMainNow("AI assistant is not available. Say download A I to get started.");
+    }
+
+    /**
+     * Emit diagnostic log lines before attempting to load a file model.
+     * These are critical for diagnosing format/size/corruption failures in Logcat.
+     */
+    private void logModelDiagnostics(File f) {
+        Log.i(TAG, "Model path   = " + f.getAbsolutePath());
+        Log.i(TAG, "Model size   = " + f.length() + " bytes ("
+                + (f.length() / 1_000_000) + " MB)");
+        Log.i(TAG, "Model exists = " + f.exists());
+        Log.i(TAG, "Model read   = " + f.canRead());
     }
 
     // ── Load helpers ──────────────────────────────────────────────────
 
-    /**
-     * Copies an APK asset to cache dir and loads it into MediaPipe.
-     * MediaPipe requires a real filesystem path — it cannot mmap an AssetFD.
-     */
     private boolean tryLoadFromAsset(String assetName, String type) {
         speakMainNow("Loading AI model. This may take up to 30 seconds.");
         try {
             String path = copyAssetToCache(assetName);
             if (path == null) {
-                speakAndLog(TAG, "Asset copy failed for " + assetName);
+                Log.e(TAG, "Asset copy failed for " + assetName);
+                speakMainNow("Failed to prepare AI model from app bundle.");
                 return false;
             }
             return loadMediaPipe(path, type, assetName);
         } catch (Throwable t) {
-            speakAndLog(TAG, "Failed to load bundled AI model: " + t.getMessage());
-            return false;
+            return handleLoadFailure(t, "bundled asset: " + assetName);
         }
     }
 
-    /**
-     * Loads a model from a FilesDir file written by {@link ModelDownloadManager}.
-     */
     private boolean tryLoadFromFile(File modelFile, String type) {
         speakMainNow("Loading AI model. This may take up to 30 seconds.");
         try {
             return loadMediaPipe(modelFile.getAbsolutePath(), type, modelFile.getName());
         } catch (Throwable t) {
-            // Spoken diagnostic so the user knows what went wrong without logcat
-            speakAndLog(TAG, "AI model failed to load: " + t.getMessage()
-                    + ". Try re-downloading.");
-            return false;
+            return handleLoadFailure(t, "file: " + modelFile.getName());
         }
+    }
+
+    /**
+     * Centralised failure handler.
+     *
+     * DEBUG: full stack trace is re-thrown so you see the exact line in Logcat.
+     * RELEASE: spoken degradation message; navigation keeps running.
+     */
+    private boolean handleLoadFailure(Throwable t, String source) {
+        Log.e(TAG, "MODEL LOAD FAILURE — source=" + source
+                + " | type=" + t.getClass().getSimpleName()
+                + " | message=" + t.getMessage(), t);
+
+        if (BuildConfig.DEBUG) {
+            throw new RuntimeException("MindEngine load failed (" + source + "): "
+                    + t.getMessage(), t);
+        }
+
+        speakMainNow("AI assistant failed to load. "
+                + "Navigation and vision features are unaffected.");
+        return false;
     }
 
     // ── MediaPipe bootstrap ───────────────────────────────────────────
 
-    /**
-     * Loads a model at {@code absolutePath} via the MediaPipe LlmInference API.
-     *
-     * Reflection is used ONLY for the options/builder step so the code stays
-     * compatible with MediaPipe versions that changed the class nesting
-     * (LlmInference$LlmInferenceOptions  vs  top-level LlmInferenceOptions).
-     * The API surface is otherwise stable across 0.10.x.
-     *
-     * @throws Exception any reflection / MediaPipe error — caller speaks + logs it
-     */
     private boolean loadMediaPipe(String absolutePath, String type, String logName)
             throws Exception {
 
-        // ── Step 1: obtain the options builder ────────────────────────
-        //
-        // MediaPipe tasks-genai changed the nesting of LlmInferenceOptions:
-        //   ≤ 0.10.14:  LlmInference.LlmInferenceOptions  (nested static class)
-        //               accessed via  Class.forName(pkg + ".LlmInference$LlmInferenceOptions")
-        //   ≥ 0.10.22:  LlmInferenceOptions  (top-level class in the same package)
-        //               accessed via  Class.forName(pkg + ".LlmInferenceOptions")
-        //
-        // In BOTH cases the builder is obtained via the static factory:
-        //   LlmInferenceOptions.builder()
-        // NOT via new Builder() — the Builder constructor is package-private / auto-value.
-        //
-        // We try top-level first (0.10.22+ / 0.10.35 target), then fall back.
+        Log.d(TAG, "loadMediaPipe → path=" + absolutePath + " type=" + type);
 
+        // ── Step 1: options builder ────────────────────────────────────
         Object builder = null;
         for (String optsCn : new String[]{
                 MP_PKG + ".LlmInferenceOptions",
@@ -231,24 +254,18 @@ public class MindEngine {
                 builder = optsCls.getMethod("builder").invoke(null);
                 Log.d(TAG, "Options class: " + optsCn);
                 break;
-            } catch (ClassNotFoundException ignored) {
-                // Try next candidate
-            }
+            } catch (ClassNotFoundException ignored) {}
         }
         if (builder == null) {
             throw new IllegalStateException(
                 "Cannot find LlmInferenceOptions class — "
-                + "check 'implementation com.google.mediapipe:tasks-genai:0.10.35' "
-                + "in build.gradle");
+                + "check 'implementation com.google.mediapipe:tasks-genai:0.10.35'");
         }
 
-        // ── Step 2: configure the builder ────────────────────────────
+        // ── Step 2: configure ─────────────────────────────────────────
         Class<?> bCls = builder.getClass();
-
         bCls.getMethod("setModelPath", String.class).invoke(builder, absolutePath);
 
-        // setMaxTokens was renamed setMaxNewTokens in some pre-release builds.
-        // Try both; if neither exists, fall through with the model's default.
         boolean tokenLimitSet = false;
         for (String setter : new String[]{"setMaxTokens", "setMaxNewTokens"}) {
             try {
@@ -263,19 +280,19 @@ public class MindEngine {
 
         Object options = bCls.getMethod("build").invoke(builder);
 
-        // ── Step 3: create the LlmInference engine ───────────────────
+        // ── Step 3: create engine ─────────────────────────────────────
         Class<?> llmCls = Class.forName(MP_PKG + ".LlmInference");
         Object engine = null;
         for (Method m : llmCls.getMethods()) {
-            if ("createFromOptions".equals(m.getName())
-                    && m.getParameterCount() == 2) {
+            if ("createFromOptions".equals(m.getName()) && m.getParameterCount() == 2) {
                 engine = m.invoke(null, ctx, options);
                 break;
             }
         }
         if (engine == null) {
             throw new IllegalStateException(
-                "createFromOptions returned null for " + logName);
+                "createFromOptions returned null for " + logName
+                + " — model format may be incompatible with tasks-genai:0.10.35");
         }
 
         llm       = engine;
@@ -283,30 +300,79 @@ public class MindEngine {
         ready     = true;
         Log.i(TAG, "MindEngine ready: " + logName + " (" + type + ")");
         speakMainNow("AI assistant ready. You can ask me anything.");
+        scheduleOffload();
         return true;
+    }
+
+    // ── Inactivity offload ────────────────────────────────────────────
+
+    /**
+     * Schedule automatic model offload after user-configured idle timeout.
+     * Skipped on high-RAM devices (≥8 GB) where keeping the model resident is safe.
+     */
+    private void scheduleOffload() {
+        cancelOffloadTimer();
+        if (totalRamMb() >= KEEP_RESIDENT_RAM_MB) {
+            Log.d(TAG, "High-RAM device — model will stay resident.");
+            return;
+        }
+        int timeoutSec = getOffloadTimeoutSec();
+        Log.d(TAG, "Offload timer armed: " + timeoutSec + "s");
+        offloadTimer = OFFLOAD_SCHEDULER.schedule(() -> {
+            Log.i(TAG, "MindEngine idle for " + timeoutSec + "s — offloading model.");
+            main.post(() -> speakMainNow("AI assistant sleeping to save memory."));
+            offloadModel();
+        }, timeoutSec, TimeUnit.SECONDS);
+    }
+
+    private void cancelOffloadTimer() {
+        if (offloadTimer != null && !offloadTimer.isDone()) {
+            offloadTimer.cancel(false);
+        }
+        offloadTimer = null;
+    }
+
+    /** Unload the native model, release MediaPipe resources, and suggest GC. */
+    private void offloadModel() {
+        if (llm != null) {
+            try { llm.getClass().getMethod("close").invoke(llm); }
+            catch (Throwable ignored) {}
+            llm   = null;
+            ready = false;
+            Log.i(TAG, "Model offloaded. Suggesting GC.");
+            System.gc();
+        }
+    }
+
+    private int getOffloadTimeoutSec() {
+        try {
+            SharedPreferences prefs =
+                    ctx.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            int v = prefs.getInt(PREF_OFFLOAD_TIMEOUT, DEFAULT_OFFLOAD_TIMEOUT_SEC);
+            return (v > 0) ? v : DEFAULT_OFFLOAD_TIMEOUT_SEC;
+        } catch (Throwable t) {
+            return DEFAULT_OFFLOAD_TIMEOUT_SEC;
+        }
     }
 
     // ── Public API ────────────────────────────────────────────────────
 
     /**
      * Answer the user's spoken query.
-     *
-     * Pipeline:
-     *   1. KnowledgeCache grounds the prompt with real-world data.
-     *   2. LLM streams tokens; each completed sentence is piped to TTS
-     *      immediately via QUEUE_ADD — continuous voice, no waiting.
-     *   3. Falls back to KnowledgeCache context or AurigaKnowledge.fallback()
-     *      when no model is loaded.
+     * Resets the inactivity timer on every call so a live conversation keeps
+     * the model warm for at least one more timeout period.
      */
     public void ask(String query, Runnable onComplete) {
         if (busy.getAndSet(true) && current != null) current.cancel(true);
 
-        current = exec.submit(() -> {
+        // Re-arm the offload timer — user is active
+        scheduleOffload();
+
+        current = MODEL_EXECUTOR.submit(() -> {
             try {
                 String contextStr = knowledge != null ? knowledge.getContext(query) : "";
 
                 if (!ready) {
-                    // Model not loaded — speak best available offline answer
                     if (!contextStr.isEmpty()) speakMain(contextStr);
                     else speakMain(AurigaKnowledge.fallback(query));
                     if (onComplete != null) main.post(onComplete);
@@ -319,7 +385,7 @@ public class MindEngine {
                 generateAndStream(prompt, onComplete);
 
             } catch (Throwable t) {
-                Log.e(TAG, "MindEngine.ask", t);
+                Log.e(TAG, "MindEngine.ask exception", t);
                 speakMain("Sorry, I had trouble with that. Please try again.");
                 if (onComplete != null) main.post(onComplete);
             } finally {
@@ -337,21 +403,17 @@ public class MindEngine {
 
     public boolean isBusy() { return busy.get(); }
 
+    public boolean isReady() { return ready; }
+
     public void close() {
         cancel();
-        exec.shutdown();
-        if (llm != null) {
-            try { llm.getClass().getMethod("close").invoke(llm); }
-            catch (Throwable ignored) {}
-            llm   = null;
-            ready = false;
-        }
+        cancelOffloadTimer();
+        offloadModel();
     }
 
     // ── Generation ────────────────────────────────────────────────────
 
     private void generateAndStream(String prompt, Runnable onComplete) {
-        // Try streaming (generateResponseAsync or generateAsync)
         boolean streamStarted = false;
         try {
             streamStarted = tryGenerateAsync(prompt, onComplete);
@@ -360,7 +422,6 @@ public class MindEngine {
         }
         if (streamStarted) return;
 
-        // Sync fallback — generateResponse / generateResult
         try {
             String result = null;
             for (String methodName : new String[]{"generateResponse", "generateResult"}) {
@@ -380,20 +441,7 @@ public class MindEngine {
         if (onComplete != null) main.post(onComplete);
     }
 
-    /**
-     * Streaming via generateResponseAsync / generateAsync.
-     *
-     * MediaPipe changed the method name and listener interface across versions:
-     *   0.10.x early : generateAsync(String, LlmInferenceResultListener)
-     *   0.10.x later : generateResponseAsync(String, ProgressListener<String>)
-     *
-     * We probe for both method names and both listener class names via reflection.
-     * The actual invocation uses a Proxy so we don't need to import the interface.
-     *
-     * @return true if the async call was dispatched successfully
-     */
     private boolean tryGenerateAsync(String prompt, Runnable onComplete) throws Exception {
-        // Find the async generate method — try both names
         Method asyncMethod = null;
         for (Method m : llm.getClass().getMethods()) {
             String n = m.getName();
@@ -405,7 +453,6 @@ public class MindEngine {
         }
         if (asyncMethod == null) return false;
 
-        // Find the listener interface class — try both known names
         Class<?> listenerInterface = null;
         for (String cn : new String[]{
                 MP_PKG + ".LlmInference$LlmInferenceResultListener",
@@ -418,7 +465,6 @@ public class MindEngine {
         }
         if (listenerInterface == null) return false;
 
-        // The listener method may be "onResult(String, boolean)" or "run(String, boolean)"
         final StringBuilder buf = new StringBuilder();
         final Class<?> finalListenerInterface = listenerInterface;
 
@@ -454,10 +500,6 @@ public class MindEngine {
         return true;
     }
 
-    /**
-     * Flush all complete sentences from the accumulation buffer to TTS.
-     * A sentence ends with . ! ? followed by a space or end-of-string.
-     */
     private void flushSentences(StringBuilder buf) {
         while (true) {
             String s = buf.toString();
@@ -488,44 +530,30 @@ public class MindEngine {
 
     // ── TTS helpers ───────────────────────────────────────────────────
 
-    /** Post a QUEUE_FLUSH speak to the main thread. */
     private void speakMain(String text) {
         if (tts == null || text == null || text.isEmpty()) return;
         main.post(() -> tts.speak(text, TextToSpeech.QUEUE_FLUSH, null,
                 "mind_" + System.currentTimeMillis()));
     }
 
-    /**
-     * Speak immediately, even if called from any thread (init / background).
-     * Uses QUEUE_ADD so it doesn't interrupt an in-progress announcement.
-     */
     private void speakMainNow(String text) {
         if (tts == null || text == null || text.isEmpty()) return;
         main.post(() -> tts.speak(text, TextToSpeech.QUEUE_ADD, null,
                 "mind_diag_" + System.currentTimeMillis()));
     }
 
-    /** Speak a sentence in the streaming queue (non-interrupting). */
     private void speakQueued(String text) {
         if (tts == null || text == null || text.isEmpty()) return;
         main.post(() -> tts.speak(text, TextToSpeech.QUEUE_ADD, null,
                 "mind_q_" + System.currentTimeMillis()));
     }
 
-    /**
-     * Log an error AND speak a short diagnostic so the user knows what went
-     * wrong without needing adb logcat.
-     */
-    private void speakAndLog(String tag, String message) {
-        Log.e(tag, message);
-        speakMainNow(message);
-    }
-
     // ── Utilities ─────────────────────────────────────────────────────
 
     private long totalRamMb() {
         try {
-            ActivityManager am = (ActivityManager) ctx.getSystemService(Context.ACTIVITY_SERVICE);
+            ActivityManager am = (ActivityManager)
+                    ctx.getSystemService(Context.ACTIVITY_SERVICE);
             if (am == null) return 0;
             ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
             am.getMemoryInfo(mi);
@@ -535,7 +563,6 @@ public class MindEngine {
         }
     }
 
-    /** Strip model control tokens and markdown before speaking. */
     private static String clean(String s) {
         if (s == null) return "";
         return s.replace("<end_of_turn>", "")
@@ -550,10 +577,6 @@ public class MindEngine {
         catch (Throwable t) { return false; }
     }
 
-    /**
-     * Copies an asset to the internal cache dir so MediaPipe can mmap it.
-     * Re-uses existing file if size matches to avoid re-copying on every launch.
-     */
     private String copyAssetToCache(String name) {
         try {
             AssetFileDescriptor afd  = ctx.getAssets().openFd(name);
@@ -572,7 +595,7 @@ public class MindEngine {
             Log.i(TAG, "Model cached: " + out.getAbsolutePath());
             return out.getAbsolutePath();
         } catch (Throwable t) {
-            Log.e(TAG, "copyAssetToCache(" + name + "): " + t.getMessage());
+            Log.e(TAG, "copyAssetToCache(" + name + "): " + t.getMessage(), t);
             return null;
         }
     }
@@ -580,7 +603,7 @@ public class MindEngine {
     // ── Callback ──────────────────────────────────────────────────────
 
     public interface ReadyCallback {
-        /** Called on a background thread. engine is null if unavailable. */
+        /** Called on the shared MODEL_EXECUTOR thread. engine is null if unavailable. */
         void onReady(MindEngine engine);
     }
 }

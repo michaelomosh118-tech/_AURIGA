@@ -1,0 +1,43 @@
+{
+  "_comment": "Upload this file as manifest.json to the AurigaModels GitHub Release. Update sha256 and mirrors whenever you publish a new model version.",
+  "manifest_version": 1,
+  "updated": "2026-06-12",
+  "models": {
+    "qwen_small": {
+      "name": "Qwen 2.5 0.5B Instruct (q8)",
+      "filename": "qwen2_5_0_5b_q8.bin",
+      "size_bytes": 519000000,
+      "sha256": "REPLACE_WITH_ACTUAL_SHA256_OF_YOUR_HOSTED_FILE",
+      "mirrors": [
+        {
+          "priority": 1,
+          "name": "GitHub Releases (AurigaModels)",
+          "url": "https://github.com/michaelomosh118-tech/AurigaModels/releases/latest/download/qwen2_5_0_5b_q8.bin"
+        },
+        {
+          "priority": 2,
+          "name": "Hugging Face litert-community (original source)",
+          "url": "https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite"
+        }
+      ]
+    },
+    "qwen_large": {
+      "name": "Qwen 2.5 1.5B Instruct (q8)",
+      "filename": "qwen2_5_1_5b_q8.bin",
+      "size_bytes": 800000000,
+      "sha256": "REPLACE_WITH_ACTUAL_SHA256_OF_YOUR_HOSTED_FILE",
+      "mirrors": [
+        {
+          "priority": 1,
+          "name": "GitHub Releases (AurigaModels)",
+          "url": "https://github.com/michaelomosh118-tech/AurigaModels/releases/latest/download/qwen2_5_1_5b_q8.bin"
+        },
+        {
+          "priority": 2,
+          "name": "Hugging Face litert-community (original source)",
+          "url": "https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/resolve/main/Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite"
+        }
+      ]
+    }
+  }
+}
