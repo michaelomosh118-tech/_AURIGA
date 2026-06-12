@@ -1,0 +1,267 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Auriga Model Mirror — GitHub Actions release workflow
+#
+# USAGE
+# ─────
+# Copy this file to your AurigaModels repo at:
+#   .github/workflows/release.yml
+#
+# Then run it manually from the Actions tab, or let the schedule trigger it.
+#
+# What it does
+# ────────────
+#   1. Downloads Qwen 2.5 0.5B and 1.5B from Hugging Face.
+#   2. Computes SHA-256 for each file.
+#   3. Generates a fresh manifest.json with real hashes, sizes, and mirror URLs.
+#   4. Creates (or updates) a GitHub Release tagged "latest" in this repo and
+#      uploads all three files (0.5B model, 1.5B model, manifest.json) as
+#      release assets — which is what Auriga's ModelDownloadManager fetches.
+#
+# Secrets required (set in AurigaModels → Settings → Secrets → Actions)
+# ────────────────────────────────────────────────────────────────────────
+#   HF_TOKEN   (optional) — Hugging Face read token. Only needed if the model
+#              repo is gated. The litert-community models are public, so this
+#              can be left blank.
+#
+# The built-in GITHUB_TOKEN is used to create the release; no extra setup needed.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Mirror Auriga Models
+
+on:
+  # Run manually from the Actions tab whenever you want to refresh the mirror.
+  workflow_dispatch:
+    inputs:
+      skip_large:
+        description: "Skip the 1.5B model (saves ~800 MB bandwidth)"
+        required: false
+        default: "false"
+        type: boolean
+
+  # Also run on a schedule — first day of every month at 03:00 UTC.
+  # Remove or adjust if you'd rather only trigger manually.
+  schedule:
+    - cron: "0 3 1 * *"
+
+jobs:
+  mirror:
+    name: Download · Hash · Release
+    runs-on: ubuntu-latest
+
+    # Allow the workflow to create releases and upload assets.
+    permissions:
+      contents: write
+
+    env:
+      # Hugging Face source URLs
+      HF_SMALL_URL: "https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite"
+      HF_LARGE_URL: "https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/resolve/main/Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite"
+
+      # Local filenames (must match what ModelDownloadManager expects)
+      SMALL_FILENAME: "qwen2_5_0_5b_q8.bin"
+      LARGE_FILENAME: "qwen2_5_1_5b_q8.bin"
+
+      # Minimum acceptable sizes (bytes) — reject truncated downloads
+      SMALL_MIN_BYTES: "400000000"
+      LARGE_MIN_BYTES: "600000000"
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout AurigaModels repo
+        uses: actions/checkout@v4
+
+      # ── 2. Download Qwen 0.5B ──────────────────────────────────────────────
+      - name: Download Qwen 2.5 0.5B
+        run: |
+          echo "Downloading Qwen 0.5B (~519 MB)…"
+          curl -L \
+            --retry 5 \
+            --retry-delay 10 \
+            --retry-connrefused \
+            --progress-bar \
+            ${HF_TOKEN:+-H "Authorization: Bearer $HF_TOKEN"} \
+            -o "$SMALL_FILENAME" \
+            "$HF_SMALL_URL"
+
+          ACTUAL=$(stat -c%s "$SMALL_FILENAME")
+          echo "Downloaded $ACTUAL bytes"
+          if [ "$ACTUAL" -lt "$SMALL_MIN_BYTES" ]; then
+            echo "ERROR: File too small ($ACTUAL < $SMALL_MIN_BYTES). Download failed."
+            exit 1
+          fi
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+      # ── 3. Download Qwen 1.5B (optional skip) ─────────────────────────────
+      - name: Download Qwen 2.5 1.5B
+        if: ${{ github.event.inputs.skip_large != 'true' }}
+        run: |
+          echo "Downloading Qwen 1.5B (~800 MB)…"
+          curl -L \
+            --retry 5 \
+            --retry-delay 10 \
+            --retry-connrefused \
+            --progress-bar \
+            ${HF_TOKEN:+-H "Authorization: Bearer $HF_TOKEN"} \
+            -o "$LARGE_FILENAME" \
+            "$HF_LARGE_URL"
+
+          ACTUAL=$(stat -c%s "$LARGE_FILENAME")
+          echo "Downloaded $ACTUAL bytes"
+          if [ "$ACTUAL" -lt "$LARGE_MIN_BYTES" ]; then
+            echo "ERROR: File too small ($ACTUAL < $LARGE_MIN_BYTES). Download failed."
+            exit 1
+          fi
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+      # ── 4. Compute SHA-256 hashes ──────────────────────────────────────────
+      - name: Compute SHA-256 hashes
+        id: hashes
+        run: |
+          SMALL_SHA=$(sha256sum "$SMALL_FILENAME" | awk '{print $1}')
+          SMALL_SIZE=$(stat -c%s "$SMALL_FILENAME")
+          echo "small_sha=$SMALL_SHA"   >> "$GITHUB_OUTPUT"
+          echo "small_size=$SMALL_SIZE" >> "$GITHUB_OUTPUT"
+          echo "Qwen 0.5B: $SMALL_SHA ($SMALL_SIZE bytes)"
+
+          if [ -f "$LARGE_FILENAME" ]; then
+            LARGE_SHA=$(sha256sum "$LARGE_FILENAME" | awk '{print $1}')
+            LARGE_SIZE=$(stat -c%s "$LARGE_FILENAME")
+            echo "large_sha=$LARGE_SHA"   >> "$GITHUB_OUTPUT"
+            echo "large_size=$LARGE_SIZE" >> "$GITHUB_OUTPUT"
+            echo "Qwen 1.5B: $LARGE_SHA ($LARGE_SIZE bytes)"
+          else
+            echo "large_sha=skipped"  >> "$GITHUB_OUTPUT"
+            echo "large_size=0"       >> "$GITHUB_OUTPUT"
+            echo "Qwen 1.5B: skipped"
+          fi
+
+      # ── 5. Generate manifest.json ──────────────────────────────────────────
+      - name: Generate manifest.json
+        run: |
+          REPO_OWNER="${{ github.repository_owner }}"
+          REPO_NAME="${{ github.event.repository.name }}"
+          BASE_URL="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download"
+
+          SMALL_SHA="${{ steps.hashes.outputs.small_sha }}"
+          SMALL_SIZE="${{ steps.hashes.outputs.small_size }}"
+          LARGE_SHA="${{ steps.hashes.outputs.large_sha }}"
+          LARGE_SIZE="${{ steps.hashes.outputs.large_size }}"
+          TODAY=$(date -u +%Y-%m-%d)
+
+          # Build large model mirrors array — omit if skipped
+          if [ "$LARGE_SHA" = "skipped" ]; then
+            LARGE_MIRRORS='[]'
+            LARGE_SHA_FIELD='"sha256": "not-yet-mirrored"'
+            LARGE_SIZE_FIELD='"size_bytes": 0'
+          else
+            LARGE_MIRRORS=$(cat <<MIRROREOF
+          [
+              {
+                "priority": 1,
+                "name": "GitHub Releases (AurigaModels)",
+                "url": "${BASE_URL}/${LARGE_FILENAME}"
+              },
+              {
+                "priority": 2,
+                "name": "Hugging Face litert-community",
+                "url": "https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/resolve/main/Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite"
+              }
+            ]
+          MIRROREOF
+          )
+            LARGE_SHA_FIELD="\"sha256\": \"${LARGE_SHA}\""
+            LARGE_SIZE_FIELD="\"size_bytes\": ${LARGE_SIZE}"
+          fi
+
+          cat > manifest.json <<EOF
+          {
+            "manifest_version": 1,
+            "updated": "${TODAY}",
+            "models": {
+              "qwen_small": {
+                "name": "Qwen 2.5 0.5B Instruct (q8)",
+                "filename": "${SMALL_FILENAME}",
+                ${LARGE_SIZE_FIELD/large/small},
+                "size_bytes": ${SMALL_SIZE},
+                "sha256": "${SMALL_SHA}",
+                "mirrors": [
+                  {
+                    "priority": 1,
+                    "name": "GitHub Releases (AurigaModels)",
+                    "url": "${BASE_URL}/${SMALL_FILENAME}"
+                  },
+                  {
+                    "priority": 2,
+                    "name": "Hugging Face litert-community",
+                    "url": "https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite"
+                  }
+                ]
+              },
+              "qwen_large": {
+                "name": "Qwen 2.5 1.5B Instruct (q8)",
+                "filename": "${LARGE_FILENAME}",
+                ${LARGE_SIZE_FIELD},
+                ${LARGE_SHA_FIELD},
+                "mirrors": ${LARGE_MIRRORS}
+              }
+            }
+          }
+          EOF
+
+          echo "Generated manifest.json:"
+          cat manifest.json
+
+      # ── 6. Delete old "latest" release (if any) ────────────────────────────
+      # gh release delete is idempotent — safe if no release exists yet.
+      - name: Delete existing latest release
+        run: |
+          gh release delete latest --yes --cleanup-tag 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 7. Create new release and upload assets ────────────────────────────
+      - name: Create GitHub Release and upload assets
+        run: |
+          ASSETS="manifest.json $SMALL_FILENAME"
+          if [ -f "$LARGE_FILENAME" ]; then
+            ASSETS="$ASSETS $LARGE_FILENAME"
+          fi
+
+          gh release create latest \
+            --title "Auriga Models — $(date -u +%Y-%m-%d)" \
+            --notes "$(cat <<'NOTES'
+          ## Auriga AI Models — Mirror Release
+
+          These are verified mirrors of the Qwen 2.5 models used by the Auriga spatial intelligence platform.
+
+          | File | Model | Size |
+          |------|-------|------|
+          | `qwen2_5_0_5b_q8.bin` | Qwen 2.5 0.5B Instruct (q8) | ~519 MB |
+          | `qwen2_5_1_5b_q8.bin` | Qwen 2.5 1.5B Instruct (q8) | ~800 MB |
+          | `manifest.json` | SHA-256 hashes + mirror list | — |
+
+          **SHA-256 hashes are in `manifest.json`.**
+          Auriga verifies every download automatically before loading.
+
+          Original models: [litert-community on Hugging Face](https://huggingface.co/litert-community)
+          License: Apache 2.0 (Qwen 2.5 series)
+          NOTES
+          )" \
+            --latest \
+            $ASSETS
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 8. Summary ────────────────────────────────────────────────────────
+      - name: Print summary
+        run: |
+          echo "### Auriga Model Mirror Complete" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Model | SHA-256 | Size |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|---------|------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Qwen 0.5B | \`${{ steps.hashes.outputs.small_sha }}\` | ${{ steps.hashes.outputs.small_size }} bytes |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Qwen 1.5B | \`${{ steps.hashes.outputs.large_sha }}\` | ${{ steps.hashes.outputs.large_size }} bytes |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Release: https://github.com/${{ github.repository }}/releases/latest" >> "$GITHUB_STEP_SUMMARY"
