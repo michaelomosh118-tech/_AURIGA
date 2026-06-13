@@ -738,25 +738,26 @@ public class AurigaCoreService extends Service {
         // Tier 2: skill engine (timers, alarms, weather, etc.)
         if (skillEngine != null && skillEngine.dispatch(cmd)) return;
 
-        // Tier 3: rule-based KB (instant, fully offline)
-        String kbAnswer = AurigaKnowledge.answer(cmd);
-        if (kbAnswer != null) {
-            outputLayer.speak(kbAnswer, AurigaInterfaces.OutputPriority.NORMAL);
-            AurigaMemoryStore.store(this, "assistant", kbAnswer, "voice");
-            return;
-        }
-
-        // Tier 4: on-device LLM
+        // Tier 3: on-device LLM (tried before rule-based KB so complex
+        //         questions get real answers instead of broad pattern matches)
         if (mindEngine != null) {
             AurigaMemoryStore.store(this, "assistant", "[MindEngine responding]", "voice");
             mindEngine.ask(cmd, null);
             return;
         }
 
-        // Tier 4b: model downloaded but still loading into memory (5–30 s)
+        // Tier 3b: model downloaded but still loading into memory (5–30 s)
         if (mindEngineLoading) {
             outputLayer.speak("The AI is still loading. Please wait a moment and ask again.",
                     AurigaInterfaces.OutputPriority.NORMAL);
+            return;
+        }
+
+        // Tier 4: rule-based KB (instant, fully offline) — fallback when no LLM
+        String kbAnswer = AurigaKnowledge.answer(cmd);
+        if (kbAnswer != null) {
+            outputLayer.speak(kbAnswer, AurigaInterfaces.OutputPriority.NORMAL);
+            AurigaMemoryStore.store(this, "assistant", kbAnswer, "voice");
             return;
         }
 
@@ -847,4 +848,11 @@ public class AurigaCoreService extends Service {
      * without starting their own TTS instance.
      */
     public AurigaInterfaces.IOutputLayer getOutputLayer() { return outputLayer; }
+
+    /**
+     * Returns the service's MindEngine instance (may be null if not yet loaded
+     * or model unavailable). Used by AurigaVoiceEngine to avoid creating a
+     * duplicate LLM instance.
+     */
+    public MindEngine getMindEngine() { return mindEngine; }
 }

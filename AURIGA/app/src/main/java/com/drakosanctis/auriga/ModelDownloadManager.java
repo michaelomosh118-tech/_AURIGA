@@ -60,23 +60,31 @@ public class ModelDownloadManager {
         void onStateChanged(ModelId model, ModelState newState);
     }
 
-    // ── Manifest location ─────────────────────────────────────────────
+    // ── URL resolution ──────────────────────────────────────────────────
 
     /**
-     * Primary manifest — GitHub Releases raw JSON.
-     * This is the canonical record of all mirrors, sizes, and SHA-256 hashes.
+     * HuggingFace API endpoints for dynamic URL resolution.
+     * The system first queries the HF API to discover the current filename,
+     * then falls back to hard-coded URLs if the API is unreachable.
      */
+    private static final String HF_API_BASE = "https://huggingface.co/api/models/";
+
+    private static final String QWEN_SMALL_HF_REPO = "litert-community/Qwen2.5-0.5B-Instruct";
+    private static final String QWEN_LARGE_HF_REPO = "litert-community/Qwen2.5-1.5B-Instruct";
+
+    /** Known filename patterns for matching in HF API responses. */
+    private static final String QWEN_SMALL_FILE_PATTERN = "Qwen2.5-0.5B";
+    private static final String QWEN_LARGE_FILE_PATTERN = "Qwen2.5-1.5B";
+
+    /** Fallback manifest on GitHub Releases (secondary). */
     private static final String MANIFEST_URL_PRIMARY =
         "https://github.com/michaelomosh118-tech/AurigaModels/releases/latest/download/manifest.json";
 
-    /** Fallback manifest on HuggingFace (in case GitHub is unreachable). */
+    /** Fallback manifest on HuggingFace datasets (tertiary). */
     private static final String MANIFEST_URL_FALLBACK =
         "https://huggingface.co/datasets/michaelomosh118-tech/AurigaModels/resolve/main/manifest.json";
 
-    // ── Hard-coded fallback URLs (used if manifest fetch itself fails) ─
-    // These are the original Hugging Face direct-download URLs that were
-    // present before the manifest system was introduced. They ensure the
-    // downloader still works even if both manifest endpoints are down.
+    // ── Hard-coded fallback URLs (last resort if all dynamic resolution fails) ─
 
     private static final String QWEN_SMALL_FALLBACK_URL =
         "https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/"
@@ -85,6 +93,11 @@ public class ModelDownloadManager {
     private static final String QWEN_LARGE_FALLBACK_URL =
         "https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/resolve/main/"
         + "Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv1280.tflite";
+
+    private static final String PREF_RESOLVED_SMALL_URL  = "resolved_small_url";
+    private static final String PREF_RESOLVED_LARGE_URL  = "resolved_large_url";
+    private static final String PREF_RESOLVED_AT_MS      = "resolved_urls_at_ms";
+    private static final long   RESOLVE_TTL_MS           = 7 * 24 * 60 * 60 * 1_000L;
 
     // ── Model constants ───────────────────────────────────────────────
 
@@ -275,29 +288,93 @@ public class ModelDownloadManager {
     }
 
     /**
-     * Returns an ordered array of download URLs for the given model,
-     * sourced from the manifest. GitHub Releases comes first (manifest priority order).
-     * If the manifest is unavailable the hard-coded HuggingFace URLs are used.
+     * Returns an ordered array of download URLs for the given model.
+     *
+     * Resolution priority:
+     *   1. HuggingFace API — dynamically discovers the current .tflite filename
+     *   2. Manifest JSON — GitHub Releases then HF datasets
+     *   3. Hard-coded HuggingFace direct URLs (last resort)
+     *
+     * Resolved URLs are cached in SharedPreferences for 7 days.
      */
     private String[] getMirrorUrls(ModelId id) {
+        java.util.List<String> urls = new java.util.ArrayList<>();
+
+        // 1. Try dynamic HuggingFace API resolution
+        String dynamicUrl = resolveHuggingFaceUrl(id);
+        if (dynamicUrl != null) urls.add(dynamicUrl);
+
+        // 2. Try manifest mirrors
         JSONObject manifest = fetchManifest();
         if (manifest != null) {
             try {
                 String key = (id == ModelId.QWEN_SMALL) ? "qwen_small" : "qwen_large";
                 JSONObject modelObj = manifest.getJSONObject("models").getJSONObject(key);
                 JSONArray mirrors = modelObj.getJSONArray("mirrors");
-                String[] urls = new String[mirrors.length()];
                 for (int i = 0; i < mirrors.length(); i++) {
-                    urls[i] = mirrors.getJSONObject(i).getString("url");
+                    String u = mirrors.getJSONObject(i).getString("url");
+                    if (!urls.contains(u)) urls.add(u);
                 }
-                return urls;
             } catch (Throwable t) {
                 Log.w(TAG, "Manifest parse error: " + t.getMessage());
             }
         }
-        return (id == ModelId.QWEN_SMALL)
-                ? new String[]{QWEN_SMALL_FALLBACK_URL}
-                : new String[]{QWEN_LARGE_FALLBACK_URL};
+
+        // 3. Hard-coded fallback
+        String fallback = (id == ModelId.QWEN_SMALL)
+                ? QWEN_SMALL_FALLBACK_URL : QWEN_LARGE_FALLBACK_URL;
+        if (!urls.contains(fallback)) urls.add(fallback);
+
+        return urls.toArray(new String[0]);
+    }
+
+    /**
+     * Queries the HuggingFace API to discover the current model filename.
+     * Returns a full download URL or null if the API is unreachable.
+     * Results are cached for {@link #RESOLVE_TTL_MS}.
+     */
+    private String resolveHuggingFaceUrl(ModelId id) {
+        boolean small = (id == ModelId.QWEN_SMALL);
+        String prefKey = small ? PREF_RESOLVED_SMALL_URL : PREF_RESOLVED_LARGE_URL;
+        SharedPreferences prefs = getPrefs();
+
+        // Check cache
+        long lastResolved = prefs.getLong(PREF_RESOLVED_AT_MS, 0);
+        String cached = prefs.getString(prefKey, null);
+        if (cached != null && (System.currentTimeMillis() - lastResolved) < RESOLVE_TTL_MS) {
+            Log.d(TAG, "Using cached HF URL for " + id + ": " + cached);
+            return cached;
+        }
+
+        // Query HF API
+        String repo = small ? QWEN_SMALL_HF_REPO : QWEN_LARGE_HF_REPO;
+        String pattern = small ? QWEN_SMALL_FILE_PATTERN : QWEN_LARGE_FILE_PATTERN;
+        try {
+            String apiUrl = HF_API_BASE + repo;
+            String json = httpGetString(apiUrl);
+            if (json != null) {
+                JSONObject obj = new JSONObject(json);
+                JSONArray siblings = obj.getJSONArray("siblings");
+                for (int i = 0; i < siblings.length(); i++) {
+                    JSONObject file = siblings.getJSONObject(i);
+                    String fname = file.getString("rfilename");
+                    if (fname.contains(pattern) && fname.endsWith(".tflite")) {
+                        String url = "https://huggingface.co/" + repo
+                                + "/resolve/main/" + fname;
+                        prefs.edit()
+                             .putString(prefKey, url)
+                             .putLong(PREF_RESOLVED_AT_MS, System.currentTimeMillis())
+                             .apply();
+                        Log.i(TAG, "Resolved HF URL for " + id + ": " + url);
+                        return url;
+                    }
+                }
+                Log.w(TAG, "No matching .tflite in HF API for " + repo);
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "HF API resolution failed for " + id + ": " + t.getMessage());
+        }
+        return null;
     }
 
     /**
@@ -368,6 +445,23 @@ public class ModelDownloadManager {
                     } else {
                         Log.w(TAG, label + " no SHA-256 in manifest — skipping hash check.");
                     }
+
+                    // Quick MediaPipe probe — validate the file is loadable
+                    Log.i(TAG, label + " probing model format…");
+                    if (!MindEngine.probeModel(ctx, dest)) {
+                        Log.e(TAG, label + " MediaPipe probe FAILED — file may be corrupt.");
+                        speakDeferred(label + " model file appears corrupt. Re-downloading.");
+                        boolean deleted = dest.delete();
+                        Log.w(TAG, "Deleted corrupt file: " + deleted);
+                        getPrefs().edit().remove(prefBytes).apply();
+                        notifyState(id, ModelState.DOWNLOADING);
+                        if (attempt < MAX_RETRIES && running.get()) {
+                            try { Thread.sleep(RETRY_DELAY_MS); }
+                            catch (InterruptedException ie) { break; }
+                        }
+                        continue;
+                    }
+                    Log.i(TAG, label + " MediaPipe probe OK.");
 
                     getPrefs().edit().putBoolean(prefDone, true).apply();
                     Log.i(TAG, label + " download + verify complete.");

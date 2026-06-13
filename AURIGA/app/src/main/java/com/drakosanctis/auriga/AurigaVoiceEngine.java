@@ -305,24 +305,32 @@ public class AurigaVoiceEngine implements RecognitionListener {
                    MindEngine loads the LLM model in the background (5–30 s).
                    mindEngineLoading is true while createAsync is in flight so
                    the dispatch chain can speak a useful wait message instead of
-                   the generic fallback. */
+                   the generic fallback.
+                   Only create a local MindEngine if AurigaCoreService is NOT
+                   running — otherwise defer to the service's instance to avoid
+                   loading the 500-800 MB model twice into RAM. */
                 if (knowledgeCache == null) {
                     knowledgeCache = new KnowledgeCache(activity);
                     knowledgeCache.warmUp();
                 }
                 final TextToSpeech ttsRef = tts;
-                mindEngineLoading = true;
-                MindEngine.createAsync(activity, knowledgeCache, ttsRef, engine -> {
-                    if (engine == null) {
-                        Log.e("AurigaVoiceEngine",
-                              "MindEngine.createAsync returned null — model unavailable or failed to load.");
+                if (AurigaCoreService.instance == null) {
+                    mindEngineLoading = true;
+                    MindEngine.createAsync(activity, knowledgeCache, ttsRef, engine -> {
+                        if (engine == null) {
+                            Log.e("AurigaVoiceEngine",
+                                  "MindEngine.createAsync returned null — model unavailable or failed to load.");
+                            mindEngineLoading = false;
+                            return;
+                        }
+                        mindEngine        = engine;
                         mindEngineLoading = false;
-                        return;
-                    }
-                    mindEngine        = engine;
-                    mindEngineLoading = false;
-                    Log.i("AurigaVoiceEngine", "MindEngine initialised successfully.");
-                });
+                        Log.i("AurigaVoiceEngine", "MindEngine initialised successfully.");
+                    });
+                } else {
+                    Log.i("AurigaVoiceEngine",
+                          "AurigaCoreService running — deferring to its MindEngine.");
+                }
 
                 /* Attach TTS to the Qwen downloader so it can speak progress.
                    ModelDownloadManager is started in AurigaApplication.onCreate
@@ -342,7 +350,7 @@ public class AurigaVoiceEngine implements RecognitionListener {
                         public void onStateChanged(ModelDownloadManager.ModelId model,
                                                    ModelDownloadManager.ModelState newState) {
                             if (newState == ModelDownloadManager.ModelState.READY
-                                    && mindEngine == null
+                                    && getEffectiveMindEngine() == null
                                     && !mindEngineLoading) {
                                 mindEngineLoading = true;
                                 MindEngine.createAsync(activity, knowledgeCache, ttsRef,
@@ -373,6 +381,18 @@ public class AurigaVoiceEngine implements RecognitionListener {
                 }
             }
         });
+    }
+
+    /**
+     * Returns the best available MindEngine — prefers AurigaCoreService's
+     * instance (already loaded, shared) over our own local one.
+     */
+    private MindEngine getEffectiveMindEngine() {
+        if (AurigaCoreService.instance != null) {
+            MindEngine svcEngine = AurigaCoreService.instance.getMindEngine();
+            if (svcEngine != null) return svcEngine;
+        }
+        return mindEngine;
     }
 
     // ── RecognitionListener ─────────────────────────────────────────
@@ -764,32 +784,35 @@ public class AurigaVoiceEngine implements RecognitionListener {
                 && AurigaCoreService.instance.tryDispatchCameraCommand(cmd)) {
             /* camera skill matched — response spoken via the service OutputLayer */
 
-        // ── Conversational Q&A — three-tier fallback ──────────────────
-        //   Tier 1: AurigaKnowledge rule-based KB  (instant, fully offline)
-        //   Tier 2: MindEngine on-device LLM        (2–10 s, offline after first load)
+        // ── Conversational Q&A — four-tier fallback ─────────────────
+        //   Tier 1: MindEngine on-device LLM        (2–10 s, offline after first load)
         //           grounded by KnowledgeCache      (weather/news/Wikipedia)
-        //   Tier 3: KnowledgeCache context / AurigaKnowledge.fallback()
+        //   Tier 2: AurigaKnowledge rule-based KB  (instant, fully offline)
+        //   Tier 3: KnowledgeCache context string  (weather/news)
+        //   Tier 4: AurigaKnowledge.fallback()     (safe "I don't know")
+        //
+        // LLM is tried first so complex questions ("what is quantum computing")
+        // get a real answer instead of being intercepted by the rule-based KB's
+        // broad pattern matching.
         } else if (!cmd.isEmpty()) {
-            String kbAnswer = AurigaKnowledge.answer(cmd);
-            if (kbAnswer != null) {
-                // Rule-based KB matched — fast path
-                speak(kbAnswer);
-                AurigaMemoryStore.store(activity, "assistant", kbAnswer, "voice");
-            } else if (mindEngine != null) {
-                // LLM is loaded — stream the answer via MindEngine
+            MindEngine effectiveMind = getEffectiveMindEngine();
+            if (effectiveMind != null) {
                 AurigaMemoryStore.store(activity, "assistant", "[MindEngine responding]", "voice");
-                mindEngine.ask(cmd, null);
+                effectiveMind.ask(cmd, null);
             } else if (mindEngineLoading) {
-                // Model is downloaded and being loaded into memory (5–30 s on first run).
-                // Tell the user to wait rather than giving the confusing generic fallback.
                 speak("The AI is still loading. Please wait a moment and ask again.");
             } else {
-                // No LLM and not loading — try KnowledgeCache context for weather/news,
-                // then fall back to the offline knowledge base.
-                String ctxStr = knowledgeCache != null ? knowledgeCache.getContext(cmd) : "";
-                String reply  = !ctxStr.isEmpty() ? ctxStr : AurigaKnowledge.fallback(cmd);
-                speak(reply);
-                AurigaMemoryStore.store(activity, "assistant", reply, "voice");
+                // No LLM available — try rule-based KB, then KnowledgeCache, then fallback
+                String kbAnswer = AurigaKnowledge.answer(cmd);
+                if (kbAnswer != null) {
+                    speak(kbAnswer);
+                    AurigaMemoryStore.store(activity, "assistant", kbAnswer, "voice");
+                } else {
+                    String ctxStr = knowledgeCache != null ? knowledgeCache.getContext(cmd) : "";
+                    String reply  = !ctxStr.isEmpty() ? ctxStr : AurigaKnowledge.fallback(cmd);
+                    speak(reply);
+                    AurigaMemoryStore.store(activity, "assistant", reply, "voice");
+                }
             }
         }
     }

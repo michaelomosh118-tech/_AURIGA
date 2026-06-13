@@ -3,19 +3,15 @@ package com.drakosanctis.auriga;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.res.AssetFileDescriptor;
+
 import android.os.Handler;
 import android.os.Looper;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.security.MessageDigest;
-import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -27,12 +23,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * MindEngine — on-device LLM backbone for the Auriga personal assistant.
  *
- * Architecture: load-on-demand with configurable inactivity offload.
- *   - Model is NOT loaded at startup; it is loaded the first time ask() is called
- *     and the caller signals the intent requires LLM reasoning.
+ * Architecture: load-on-demand with configurable inactivity offload and
+ * automatic reload.
+ *   - Model is loaded the first time ask() is called and the caller signals
+ *     the intent requires LLM reasoning.
  *   - After each response the inactivity timer is reset. If no further request
  *     arrives within the configured timeout the model is offloaded and GC is
  *     suggested, freeing RAM for vision/nav engines.
+ *   - On the next ask() after an offload, the model is transparently reloaded
+ *     from disk so the user never sees a permanent "model not loaded" state.
  *   - On devices with ≥8 GB RAM the model stays resident (timer still resets but
  *     offload is skipped) for instant responses throughout a conversation.
  *
@@ -113,6 +112,7 @@ public class MindEngine {
     private Object            llm       = null;
     private String            modelType = "";
     private boolean           ready     = false;
+    private boolean           hasModel  = false;
     private Future<?>         current   = null;
     private ScheduledFuture<?>  offloadTimer = null;
 
@@ -136,7 +136,7 @@ public class MindEngine {
                                         TextToSpeech tts) {
         MindEngine e = new MindEngine(ctx, knowledge, tts);
         e.init();
-        return e.ready ? e : null;
+        return (e.ready || e.hasModel) ? e : null;
     }
 
     private MindEngine(Context ctx, KnowledgeCache knowledge, TextToSpeech tts) {
@@ -151,31 +151,38 @@ public class MindEngine {
         long ramMb = totalRamMb();
         Log.i(TAG, "MindEngine.init() — device RAM: " + ramMb + " MB");
 
-        if (ramMb >= QWEN_LARGE_MIN_RAM_MB) {
-            if (assetExists(MODEL_QWEN_LARGE)) {
-                if (tryLoadFromAsset(MODEL_QWEN_LARGE, "qwen_large")) return;
-            }
-            if (ModelDownloadManager.isQwenLargeReady(ctx)) {
-                File f = ModelDownloadManager.qwenLargeFilesPath(ctx);
-                logModelDiagnostics(f);
-                if (tryLoadFromFile(f, "qwen_large")) return;
-            }
-        } else {
+        if (ramMb >= QWEN_LARGE_MIN_RAM_MB
+                && ModelDownloadManager.isQwenLargeReady(ctx)) {
+            File f = ModelDownloadManager.qwenLargeFilesPath(ctx);
+            logModelDiagnostics(f);
+            if (tryLoadFromFile(f, "qwen_large")) { hasModel = true; return; }
+        } else if (ramMb < QWEN_LARGE_MIN_RAM_MB) {
             Log.i(TAG, "Skipping Qwen 1.5B — device RAM " + ramMb
                     + " MB (need " + QWEN_LARGE_MIN_RAM_MB + " MB). Trying 0.5B.");
         }
 
-        if (assetExists(MODEL_QWEN)) {
-            if (tryLoadFromAsset(MODEL_QWEN, "qwen")) return;
-        }
         if (ModelDownloadManager.isQwenSmallReady(ctx)) {
             File f = ModelDownloadManager.qwenSmallFilesPath(ctx);
             logModelDiagnostics(f);
-            if (tryLoadFromFile(f, "qwen")) return;
+            if (tryLoadFromFile(f, "qwen")) { hasModel = true; return; }
         }
 
         Log.i(TAG, "MindEngine: no model available. Say 'download AI' to get started.");
         speakMainNow("AI assistant is not available. Say download A I to get started.");
+    }
+
+    /**
+     * Reload the model from disk after an inactivity offload.
+     * Called on the MODEL_EXECUTOR thread when ask() detects the model was
+     * offloaded but files are still on disk.
+     *
+     * @return true if the model was reloaded successfully
+     */
+    private boolean reload() {
+        Log.i(TAG, "Reloading model after offload…");
+        speakMainNow("Reloading AI model. One moment.");
+        init();
+        return ready;
     }
 
     /**
@@ -191,21 +198,6 @@ public class MindEngine {
     }
 
     // ── Load helpers ──────────────────────────────────────────────────
-
-    private boolean tryLoadFromAsset(String assetName, String type) {
-        speakMainNow("Loading AI model. This may take up to 30 seconds.");
-        try {
-            String path = copyAssetToCache(assetName);
-            if (path == null) {
-                Log.e(TAG, "Asset copy failed for " + assetName);
-                speakMainNow("Failed to prepare AI model from app bundle.");
-                return false;
-            }
-            return loadMediaPipe(path, type, assetName);
-        } catch (Throwable t) {
-            return handleLoadFailure(t, "bundled asset: " + assetName);
-        }
-    }
 
     private boolean tryLoadFromFile(File modelFile, String type) {
         speakMainNow("Loading AI model. This may take up to 30 seconds.");
@@ -372,6 +364,11 @@ public class MindEngine {
             try {
                 String contextStr = knowledge != null ? knowledge.getContext(query) : "";
 
+                // If the model was offloaded, transparently reload from disk
+                if (!ready && hasModel) {
+                    reload();
+                }
+
                 if (!ready) {
                     if (!contextStr.isEmpty()) speakMain(contextStr);
                     else speakMain(AurigaKnowledge.fallback(query));
@@ -404,6 +401,9 @@ public class MindEngine {
     public boolean isBusy() { return busy.get(); }
 
     public boolean isReady() { return ready; }
+
+    /** True if a model file is on disk (even if currently offloaded). */
+    public boolean hasModelOnDisk() { return hasModel; }
 
     public void close() {
         cancel();
@@ -572,32 +572,53 @@ public class MindEngine {
                 .replaceAll("\\s{2,}", " ").trim();
     }
 
-    private boolean assetExists(String name) {
-        try { ctx.getAssets().openFd(name).close(); return true; }
-        catch (Throwable t) { return false; }
-    }
-
-    private String copyAssetToCache(String name) {
+    /**
+     * Quick MediaPipe probe — validates that a model file can be opened
+     * by MediaPipe before marking it READY. Returns true if the model
+     * can at least be constructed; false if the file is corrupt or
+     * incompatible with tasks-genai:0.10.35.
+     */
+    public static boolean probeModel(Context ctx, File modelFile) {
+        if (!modelFile.exists() || !modelFile.canRead()) return false;
         try {
-            AssetFileDescriptor afd  = ctx.getAssets().openFd(name);
-            long                size = afd.getDeclaredLength();
-            File                out  = new File(ctx.getCacheDir(), name);
-            if (out.exists() && out.length() == size) {
-                afd.close();
-                return out.getAbsolutePath();
+            Class<?> optsCls = null;
+            for (String cn : new String[]{
+                    MP_PKG + ".LlmInferenceOptions",
+                    MP_PKG + ".LlmInference$LlmInferenceOptions"}) {
+                try { optsCls = Class.forName(cn); break; }
+                catch (ClassNotFoundException ignored) {}
             }
-            Log.i(TAG, "Copying " + name + " to cache (" + (size / 1024 / 1024) + " MB)…");
-            try (FileInputStream  fis = new FileInputStream(afd.getFileDescriptor());
-                 FileOutputStream fos = new FileOutputStream(out)) {
-                fis.getChannel().transferTo(afd.getStartOffset(), size, fos.getChannel());
+            if (optsCls == null) return false;
+            Object builder = optsCls.getMethod("builder").invoke(null);
+            builder.getClass().getMethod("setModelPath", String.class)
+                    .invoke(builder, modelFile.getAbsolutePath());
+            try {
+                builder.getClass().getMethod("setMaxTokens", int.class)
+                        .invoke(builder, 1);
+            } catch (NoSuchMethodException ignored) {
+                try {
+                    builder.getClass().getMethod("setMaxNewTokens", int.class)
+                            .invoke(builder, 1);
+                } catch (NoSuchMethodException ig2) {}
             }
-            afd.close();
-            Log.i(TAG, "Model cached: " + out.getAbsolutePath());
-            return out.getAbsolutePath();
+            Object options = builder.getClass().getMethod("build").invoke(builder);
+            Class<?> llmCls = Class.forName(MP_PKG + ".LlmInference");
+            Object engine = null;
+            for (Method m : llmCls.getMethods()) {
+                if ("createFromOptions".equals(m.getName()) && m.getParameterCount() == 2) {
+                    engine = m.invoke(null, ctx.getApplicationContext(), options);
+                    break;
+                }
+            }
+            if (engine != null) {
+                try { engine.getClass().getMethod("close").invoke(engine); }
+                catch (Throwable ignored) {}
+                return true;
+            }
         } catch (Throwable t) {
-            Log.e(TAG, "copyAssetToCache(" + name + "): " + t.getMessage(), t);
-            return null;
+            Log.w(TAG, "probeModel failed for " + modelFile.getName() + ": " + t.getMessage());
         }
+        return false;
     }
 
     // ── Callback ──────────────────────────────────────────────────────
